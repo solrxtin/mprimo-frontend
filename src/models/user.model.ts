@@ -4,7 +4,7 @@ import { User } from "../types/user.type";
 const userSchema = new mongoose.Schema<User>(
     {
         email: { type: String, required: true, unique: true },
-        password: { type: String, required: true },
+        password: { type: String },
         profile: {
           firstName: String,
           lastName: String,
@@ -42,9 +42,9 @@ const userSchema = new mongoose.Schema<User>(
             totalOrders: Number,
             totalSpent: Number
         },
-        createdAt: Date,
-        updatedAt: Date
-    }
+        resetPasswordToken: String,
+        resetPasswordExpiresAt: Date
+    }, {timestamps: true}
 )
 
 const User = mongoose.model<User>('User', userSchema);

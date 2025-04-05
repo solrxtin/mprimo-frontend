@@ -11,14 +11,14 @@
 - [ ✔ ] Configure MongoDB connection with Mongoose
 - [ ✔ ] Implement environment variables management
 - [ ✔ ] Set up TypeScript configuration
-- [ ✔ ] Configure server-side logging system
+- [ ✔ ] Configure server-side logging system-
 - [ ✔ ] Set up error handling middleware
 - [ ✔ ] Implement CORS configuration
 - [ ✔ ] Set up rate limiting
-- [  ] Configure security middleware (helmet, etc.)
+- [ ✔ ] Configure security middleware (helmet, etc.)
 
 ## 2. Authentication & Authorization
-- [ ] Implement JWT authentication
+- [ ✔ ] Implement JWT authentication
 - [ ] Set up OAuth2.0 for social logins:
   - [ ] Google
   - [ ] Facebook
@@ -176,3 +176,7 @@
 - [ ] Create email marketing integration
 - [ ] Set up CRM integration
 - [ ] Implement inventory management integration
+
+
+
+<!-- Google Authorized Redirect URI - http://localhost:5173/auth/google/callback -->

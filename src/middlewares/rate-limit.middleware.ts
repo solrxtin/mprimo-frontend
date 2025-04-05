@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { rateLimiters } from '../config/rate-limit.config';
+import { createRateLimiter, rateLimiters } from '../config/rate-limit.config';
 import { LoggerService } from '../services/logger.service';
 
 const logger = LoggerService.getInstance();

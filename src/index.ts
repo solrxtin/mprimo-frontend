@@ -1,13 +1,17 @@
 import express from 'express';
+import helmet from "helmet";
 import { createServer } from 'http';
-import { SocketService } from './services/socket.service';
-import connectDb from './config/connectDb';
+import cookieParser from 'cookie-parser';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import pushNotificationRoutes from './routes/push-notification.routes';
 import { requestLogger } from './middlewares/request-logger.middleware';
 import { errorLogger } from './middlewares/error-logger.middleware';
 import { LoggerService } from './services/logger.service';
 import { corsMiddleware } from './middlewares/cors.middleware';
+import { SocketService } from './services/socket.service';
+import connectDb from './config/connectDb';
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,13 +23,19 @@ const socketService = new SocketService(httpServer);
 
 // Apply CORS middleware before other middleware
 app.use(corsMiddleware);
+app.use(helmet());
 
 // Other middleware and routes
 app.use(express.json({ limit: "10mb"}));
+app.use(cookieParser());
 // app.use(express.urlencoded({ extended: true }));
 
 // Apply request logging middleware
 app.use(requestLogger);
+
+// Initialize passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Export for use in other parts of the application
 export { socketService };
