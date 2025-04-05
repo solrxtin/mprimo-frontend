@@ -1,14 +1,17 @@
+import { ObjectId, Document } from "mongoose";
 
 export interface User {
+    _id?: ObjectId;
+    _doc?: Document
     email: string;
-    password: string;
+    password?: string;
     profile: {
         firstName: string;
         lastName: string;
         phoneNumber: string;
         avatar: string;
     };
-    addresses: [{
+    addresses?: Array<{
         type: string;
         street: string;
         city: string;
@@ -16,29 +19,31 @@ export interface User {
         country: string;
         postalCode: string;
         isDefault: boolean;
-    }];
-    socialLogins: [{
+    }>;
+    socialLogins?: Array<{
         provider: string;
         providerId: string;
-    }];
+    }>;
     role: 'customer' | 'vendor' | 'admin';
     status: 'active' | 'inactive' | 'suspended';
     preferences: {
-        language: string;
-        currency: string;
+        language?: string;
+        currency?: string;
         notifications: {
-            email: boolean;
-            push: boolean;
-            sms: boolean;
+            email?: boolean;
+            push?: boolean;
+            sms?: boolean;
         },
-        marketing: boolean;
+        marketing?: boolean;
     },
     activity: {
-        lastLogin: Date;
-        lastPurchase: Date;
-        totalOrders: number;
-        totalSpent: number;
+        lastLogin?: Date;
+        lastPurchase?: Date;
+        totalOrders?: number;
+        totalSpent?: number;
     };
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+    resetPasswordToken?: string;
+    resetPasswordExpiresAt?: Date;
 }
