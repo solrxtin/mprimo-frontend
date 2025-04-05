@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export class PushNotificationService {
+  
   constructor() {
     const publicKey = process.env.VAPID_PUBLIC_KEY;
     const privateKey = process.env.VAPID_PRIVATE_KEY;
