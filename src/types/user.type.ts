@@ -12,6 +12,7 @@ export interface User {
         avatar: string;
     };
     addresses?: Array<{
+        _id?: ObjectId;
         type: string;
         street: string;
         city: string;

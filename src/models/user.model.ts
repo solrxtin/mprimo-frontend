@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema<User>(
         },
         addresses: [{
           type: { type: String, enum: ['billing', 'shipping'] },
+          _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
           street: String,
           city: String,
           state: String,
@@ -34,8 +35,7 @@ const userSchema = new mongoose.Schema<User>(
                 push: Boolean,
                 sms: Boolean,
             },
-            marketing: Boolean,
-        },
+            marketing: Boolean},
         activity: {
             lastLogin: Date,
             lastPurchase: Date,

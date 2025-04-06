@@ -31,7 +31,7 @@
 - [ ] Set up two-factor authentication (2FA)
 
 ## 3. User Management
-- [ ] Create user CRUD operations
+- [ ] Create users CRUD operations
 - [ ] Implement user profile management
 - [ ] Set up address management
 - [ ] Create user preferences handling
