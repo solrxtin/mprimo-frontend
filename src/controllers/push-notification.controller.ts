@@ -24,7 +24,7 @@ export class PushNotificationController {
           endpoint: subscription.endpoint,
           keys: subscription.keys,
           userAgent: req.headers['user-agent'],
-          userId: req.user?.id
+          userId: req.userId
         },
         { upsert: true, new: true }
       );

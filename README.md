@@ -20,15 +20,15 @@
 ## 2. Authentication & Authorization
 - [ ✔ ] Implement JWT authentication
 - [ ] Set up OAuth2.0 for social logins:
-  - [ ] Google
+  - [ ✔ ] Google
   - [ ] Facebook
   - [ ] Apple
-- [ ] Create middleware for role-based access control
-- [ ] Implement password hashing and security
-- [ ] Set up email verification system
-- [ ] Create password reset functionality
-- [ ] Implement session management
-- [ ] Set up two-factor authentication (2FA)
+- [ ✔ ] Create middleware for role-based access control
+- [ ✔ ] Implement password hashing and security
+- [ ✔ ] Set up email verification system
+- [ ✔ ] Create password reset functionality
+- [ ✔ ] Implement session management
+- [ ✔ ] Set up two-factor authentication (2FA)
 
 ## 3. User Management
 - [ ] Create user CRUD operations
@@ -40,8 +40,8 @@
 - [ ] Create user analytics tracking
 
 ## 4. Product Management
-- [ ] Implement product CRUD operations
-- [ ] Set up category management
+- [ ✔ ] Implement product CRUD operations
+- [ ✔ ] Set up category management
 - [ ] Create inventory tracking system
 - [ ] Implement product search functionality:
   - [ ] Full-text search

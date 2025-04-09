@@ -1,8 +1,9 @@
 import { ObjectId, Document } from "mongoose";
 
-export interface User {
-    _id?: ObjectId;
-    _doc?: Document
+
+export interface User extends Document {
+    _id: ObjectId;
+    _doc: Document
     email: string;
     password?: string;
     profile: {
@@ -46,4 +47,13 @@ export interface User {
     updatedAt?: Date;
     resetPasswordToken?: string;
     resetPasswordExpiresAt?: Date;
+    verificationToken: string;
+    verificationTokenExpiresAt: Date;
+    isEmailVerified: boolean;
+    twoFactorAuth: {
+        enabled: boolean;
+        secret?: string;
+        tempSecret?: string;
+        backupCodes?: string[];
+    };
 }

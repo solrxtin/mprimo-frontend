@@ -43,7 +43,19 @@ const userSchema = new mongoose.Schema<User>(
             totalSpent: Number
         },
         resetPasswordToken: String,
-        resetPasswordExpiresAt: Date
+        resetPasswordExpiresAt: Date,
+        verificationToken: String,
+        verificationTokenExpiresAt: Date,
+        isEmailVerified: {
+          type: Boolean,
+          default: false
+        },
+        twoFactorAuth: {
+          enabled: { type: Boolean, default: false },
+          secret: { type: String },
+          tempSecret: { type: String },
+          backupCodes: [{ type: String }]
+        }
     }, {timestamps: true}
 )
 

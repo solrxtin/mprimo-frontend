@@ -2,10 +2,12 @@ import express from 'express';
 import helmet from "helmet";
 import { createServer } from 'http';
 import cookieParser from 'cookie-parser';
+import mongoSanitize from 'express-mongo-sanitize';
+import xss from 'xss-clean';
 import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import pushNotificationRoutes from './routes/push-notification.routes';
+import authRoutes from './routes/auth.routes'
 import { requestLogger } from './middlewares/request-logger.middleware';
 import { errorLogger } from './middlewares/error-logger.middleware';
 import { LoggerService } from './services/logger.service';
@@ -24,7 +26,9 @@ const socketService = new SocketService(httpServer);
 // Apply CORS middleware before other middleware
 app.use(corsMiddleware);
 app.use(helmet());
-
+app.use(mongoSanitize()); //Sanitize NoSQL Injection
+app.use(xss()); //XSS protection
+app.set('trust proxy', true); // tells Express to trust x-forwarded-for from your proxy (not the open internet
 // Other middleware and routes
 app.use(express.json({ limit: "10mb"}));
 app.use(cookieParser());
@@ -41,9 +45,12 @@ app.use(passport.session());
 export { socketService };
 
 app.use('/api/v1/push', pushNotificationRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 // Error logging middleware should be last
 app.use(errorLogger);
+
+export default app
 
 // Start the server
 const PORT = process.env.PORT || 5000;
