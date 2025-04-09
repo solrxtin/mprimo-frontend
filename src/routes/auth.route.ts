@@ -1,11 +1,27 @@
 import { Router, Request, Response, NextFunction } from "express"
 import passport from "passport"
 
-import { logout, refreshAccessToken } from "../controllers/auth.controller"
+import { login, logout, refreshAccessToken, signup } from "../controllers/auth.controller"
+import asyncHandler from "express-async-handler"
 import { verifyToken } from "../middlewares/verify-token.middleware"
 import { generateTokensAndSetCookie } from "../utils/generate-token.util"
 
 const router = Router()
+router.post('/signup', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await signup(req, res);
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        await login(req, res);
+    } catch (error) {
+        next(error);
+    }
+});
 
 
 
@@ -42,21 +58,21 @@ router.get('/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })
 );
   
-router.get('/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login' }),
-    async (req: Request, res: Response) => {
-      try {
-        if (!req.user?._id) {
-            return res.redirect('/login');
-          }
-          await generateTokensAndSetCookie(res, req.user._id);
-        res.redirect('/dashboard');
-      } catch(err) {
-        console.error(err)
-        res.redirect('/login')
-      }
-    }
-);
+// router.get('/google/callback',
+//     passport.authenticate('google', { failureRedirect: '/login' }),
+//     async (req: Request, res: Response) => {
+//       try {
+//         if (!req.user?._id) {
+//             return res.redirect('/login');
+//           }
+//           await generateTokensAndSetCookie(res, req.user._id);
+//         res.redirect('/dashboard');
+//       } catch(err) {
+//         console.error(err)
+//         res.redirect('/login')
+//       }
+//     }
+// );
   
 
 export default router

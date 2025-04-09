@@ -16,7 +16,7 @@ import sendPasswordResetEmail from "../mails/send-reset-password.mail"
 const logger = LoggerService.getInstance();
 
 
-export const signup = async(req: Request, res: Response) => {
+export const signup = async(req: Request, res: Response): Promise<Response> => {
   try {
     //TODO: Make sure phone uses international format
     const { email, password, firstName, lastName, phoneNumber } = req.body;
@@ -103,6 +103,7 @@ export const login = async(req: Request, res: Response) => {
 
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password || "");
+    console.log("validPassword", isValidPassword);
     if (!isValidPassword) {
 
       if (user.socialLogins && user.socialLogins.length > 0) {
@@ -115,6 +116,7 @@ export const login = async(req: Request, res: Response) => {
     user.activity.lastLogin = new Date();
     await user.save();
 
+    
     // Generate JWT token
     await generateTokensAndSetCookie(res, user._id)
     logger.debug('User logged in successfully', {

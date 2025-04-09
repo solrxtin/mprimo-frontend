@@ -12,6 +12,7 @@ import { LoggerService } from './services/logger.service';
 import { corsMiddleware } from './middlewares/cors.middleware';
 import { SocketService } from './services/socket.service';
 import connectDb from './config/connectDb';
+import router from './routes/auth.route';
 
 const app = express();
 const httpServer = createServer(app);
@@ -34,13 +35,14 @@ app.use(cookieParser());
 app.use(requestLogger);
 
 // Initialize passport
-app.use(passport.initialize());
-app.use(passport.session());
+// app.use(passport.initialize());
+// app.use(passport.session());
 
 // Export for use in other parts of the application
 export { socketService };
 
 app.use('/api/v1/push', pushNotificationRoutes);
+app.use('/api/v1', router);
 
 // Error logging middleware should be last
 app.use(errorLogger);

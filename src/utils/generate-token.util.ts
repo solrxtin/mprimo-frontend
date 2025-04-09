@@ -7,7 +7,7 @@ import RefreshToken from "../models/auth.model"
 export const generateAccessToken = (userId: ObjectId) => {
   return jwt.sign(
     { userId, type: 'access' },
-    process.env.JWT_SECRET!,
+    process.env.JWT_SECRET || (() => { throw new Error("JWT_SECRET is not defined in environment variables"); })(),
     { expiresIn: '15m' }
   );
 };
