@@ -2,23 +2,23 @@
 import express, {Request, Response, NextFunction} from 'express';
 import { ProductController } from '../controllers/product.controller';
 import { verifyToken } from '../middlewares/verify-token.middleware';
-import { authorizeVendor } from '../middlewares/authorize-role.middleware';
+import { authorizeRole } from '../middlewares/authorize-role.middleware';
 
 
-const router = express.Router();
+const productrouter = express.Router();
 
 // Public routes
-router.get('/search', ProductController.searchProducts);
-router.get('/', ProductController.getProducts);
-router.get('/:id', ProductController.getProduct);
+productrouter.get('/search', ProductController.searchProducts);
+productrouter.get('/get-products', ProductController.getProducts);
+productrouter.get('/get-products/:id', ProductController.getProduct);
 
-router.post('/', 
+productrouter.post('/craete-product', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },
     (req: Request, res: Response, next: NextFunction) => {
-        authorizeVendor();
+        authorizeRole(["vendor"]);
     },
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -28,13 +28,13 @@ router.post('/',
         }
     }
 )
-router.put('/:id', 
+productrouter.put('/update-product/:id', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },
     (req: Request, res: Response, next: NextFunction) => {
-        authorizeVendor();
+        authorizeRole(["vendor"]);
     },
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -45,13 +45,13 @@ router.put('/:id',
     }
 )
 
-router.delete('/:id', 
+productrouter.delete('/delete-product/:id', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },
     (req: Request, res: Response, next: NextFunction) => {
-        authorizeVendor();
+        authorizeRole(["vendor"]);
     },
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -62,13 +62,13 @@ router.delete('/:id',
     }
 )
 
-router.post('/:id/variants', 
+productrouter.post('/:id/variants', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },
     (req: Request, res: Response, next: NextFunction) => {
-        authorizeVendor();
+        authorizeRole(["vendor"]);
     },
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -78,13 +78,13 @@ router.post('/:id/variants',
         }
     }
 )
-router.patch('/:id/inventory', 
+productrouter.patch('/:id/inventory', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },
     (req: Request, res: Response, next: NextFunction) => {
-        authorizeVendor();
+        authorizeRole(["vendor"]);
     },
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -95,10 +95,4 @@ router.patch('/:id/inventory',
     }
 )
 
-router.post('/', ProductController.createProduct);
-router.put('/:id', ProductController.updateProduct);
-router.delete('/:id', ProductController.deleteProduct);
-router.patch('/:id/inventory', ProductController.updateInventory);
-router.post('/:id/variants', ProductController.addVariant);
-
-export default router;
+export default productrouter;

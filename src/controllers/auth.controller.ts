@@ -23,13 +23,13 @@ const generateVerificationCode = () => Math.floor(100000 + Math.random() * 90000
 export const signup = async(req: Request, res: Response): Promise<Response> => {
   try {
     //TODO: Make sure phone uses international format
-    const { email, password, firstName, lastName, phoneNumber } = req.body;
+    const { email, password, firstName, lastName,phoneNumber, role } = req.body;
 
     // Validate input
-    if (!email || !password || !firstName || !lastName || !phoneNumber) {
+    if (!email || !password || !firstName || !lastName || !phoneNumber || !role) {
       return res.status(400).json({
         message:
-          "Email, password, phoneNumber, first name, and last name are required",
+          "Email, password, phoneNumber, first name, role, and last name are required",
       });
     }
 

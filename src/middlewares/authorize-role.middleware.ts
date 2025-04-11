@@ -19,14 +19,14 @@ export const authorizeRole = (roles: UserRole[] = []) => {
   };
 };
 
-export const authorizeVendor = () => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (req.user && req.user.role !== "vendor") {
-      return res.status(403).json({
-        message: "Permissions not granted",
-        success: false,
-      });
-    }
-    next();
-  };
-};
+// export const authorizeVendor = () => {
+//   return (req: Request, res: Response, next: NextFunction) => {
+//     if (req.user && req.user.role !== "vendor") {
+//       return res.status(403).json({
+//         message: "Permissions not granted",
+//         success: false,
+//       });
+//     }
+//     next();
+//   };
+// };

@@ -8,10 +8,10 @@ import { rateLimitMiddleware } from '../middlewares/rate-limit.middleware';
 import { User } from "../types/user.type"
 
 
-const router = Router()
+const authrouter = Router()
 
 // 3 Registerations per IP per day
-router.post('/register',
+authrouter.post('/register',
     rateLimitMiddleware.register,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -23,7 +23,7 @@ router.post('/register',
 );
 
 // 5 login attempts per hour
-router.post('/login',
+authrouter.post('/login',
     rateLimitMiddleware.auth,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -34,7 +34,7 @@ router.post('/login',
     }
 );
 
-router.post('/logout', 
+authrouter.post('/logout', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
@@ -49,7 +49,7 @@ router.post('/logout',
 )
 
 // Password reset request - limited to 3 attempts per hour
-router.post('/forgot-password',
+authrouter.post('/forgot-password',
     rateLimitMiddleware.passwordReset,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -61,7 +61,7 @@ router.post('/forgot-password',
 );
   
 // Password reset confirmation - limited to 3 attempts per hour
-router.post('/reset-password',
+authrouter.post('/reset-password',
     rateLimitMiddleware.passwordReset,
     async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -72,7 +72,7 @@ router.post('/reset-password',
     }
 );
 
-router.post('/refresh', 
+authrouter.post('/refresh', 
     //middleware to verify token
     // (req: Request, res: Response, next: NextFunction) => {
     //     verifyToken(req, res, next);
@@ -87,11 +87,11 @@ router.post('/refresh',
 )
 
 // Google Routes
-router.get('/google',
+authrouter.get('/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })
 );
   
-router.get('/google/callback',
+authrouter.get('/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
     async (req: Request, res: Response) => {
       try {
@@ -110,4 +110,4 @@ router.get('/google/callback',
 );
   
 
-export default router
+export default authrouter

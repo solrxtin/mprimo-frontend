@@ -3,9 +3,9 @@ import express, {Request, Response, NextFunction} from 'express';
 import { TwoFactorController } from '../controllers/two-factor.controller';
 import { verifyToken } from '../middlewares/verify-token.middleware';
 
-const router = express.Router();
+const twofactorrouter = express.Router();
 
-router.post('/setup', 
+twofactorrouter.post('/setup', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
@@ -19,7 +19,7 @@ router.post('/setup',
     }
 )
 
-router.post('/enable', 
+twofactorrouter.post('/enable', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
@@ -33,7 +33,7 @@ router.post('/enable',
     }
 )
 
-router.post('/disable', 
+twofactorrouter.post('/disable', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
@@ -47,7 +47,7 @@ router.post('/disable',
     }
 )
 
-router.post('/setup', 
+twofactorrouter.post('/setup', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
@@ -61,7 +61,7 @@ router.post('/setup',
     }
 )
 
-router.post('/verify', 
+twofactorrouter.post('/verify', 
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             await TwoFactorController.verify(req, res);
@@ -71,4 +71,4 @@ router.post('/verify',
     }
 )
 
-export default router;
+export default twofactorrouter;

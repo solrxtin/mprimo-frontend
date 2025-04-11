@@ -15,12 +15,12 @@ export const rateLimitMiddleware = {
 
   // Apply registration rate limiting
   register: (req: Request, res: Response, next: NextFunction) => {
-    rateLimiters.register(req, res, next);
+    rateLimiters.auth(req, res, next);
   },
 
   // Apply password reset rate limiting
   passwordReset: (req: Request, res: Response, next: NextFunction) => {
-    rateLimiters.passwordReset(req, res, next);
+    rateLimiters.auth(req, res, next);
   },
 
   // Custom rate limiter for specific routes

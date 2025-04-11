@@ -14,7 +14,10 @@ import { LoggerService } from './services/logger.service';
 import { corsMiddleware } from './middlewares/cors.middleware';
 import { SocketService } from './services/socket.service';
 import connectDb from './config/connectDb';
-import router from './routes/auth.route';
+import productrouter from './routes/product.route';
+import twofactorrouter from './routes/two-factor.routes';
+import orderrouter from './routes/order.route';
+import cartrouter from './routes/cart.route';
 
 const app = express();
 const httpServer = createServer(app);
@@ -36,7 +39,7 @@ app.use(cookieParser());
 // app.use(express.urlencoded({ extended: true }));
 
 // Apply request logging middleware
-app.use(requestLogger);
+// app.use(requestLogger);
 
 // Initialize passport
 // app.use(passport.initialize());
@@ -47,7 +50,10 @@ export { socketService };
 
 app.use('/api/v1/push', pushNotificationRoutes);
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1', router);
+app.use('/api/v1/product', productrouter);
+app.use('/api/v1/two-factor', twofactorrouter);
+app.use('/api/v1/order', orderrouter);
+app.use('/api/v1/cart', cartrouter);
 
 // Error logging middleware should be last
 app.use(errorLogger);
