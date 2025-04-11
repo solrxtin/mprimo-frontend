@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { createRateLimiter, rateLimiters } from '../config/rate-limit.config';
-import { LoggerService } from '../services/logger.service';
 
-const logger = LoggerService.getInstance();
 
 export const rateLimitMiddleware = {
   // Apply general API rate limiting

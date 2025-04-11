@@ -1,5 +1,4 @@
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { User as IUser } from "../types/user.type";
 import { Response, Request, NextFunction } from "express";
 import User from "../models/user.model";
 import { ObjectId } from "mongoose";
