@@ -18,7 +18,7 @@ const Header = (props: Props) => {
   const unreadNotificationsCount = 2;
 
   return (
-    <header className="sticky w-full flex justify-between px-4 md:px-10 py-4 md:py-8">
+    <header className="sticky top-0 w-full flex justify-between px-4 md:px-10 py-4 md:py-8 bg-white z-10 shadow-sm">
       <div className="flex items-center gap-x-4">
         <button
           className="md:hidden text-gray-700"
