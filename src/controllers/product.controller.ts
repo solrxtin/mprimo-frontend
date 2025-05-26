@@ -1,38 +1,6 @@
-import { Request, Response } from "express";
-import Product from "../models/product.model";
-import { LoggerService } from "../services/logger.service";
-import mongoose from "mongoose";
-import { CategoryService } from "../services/category.service";
-
-const logger = LoggerService.getInstance();
-
-// Enhanced error handling
-const handleError = (error: unknown, res: Response) => {
-  if (error instanceof mongoose.Error.ValidationError) {
-    const errors = Object.values(error.errors).map((err) => ({
-      field: err.path,
-      message: err.message,
-    }));
-    return res.status(400).json({ success: false, errors });
-  }
-  if (error instanceof mongoose.Error.CastError) {
-    return res.status(400).json({
-      success: false,
-      message: `Invalid ${error.path}: ${error.value}`,
-    });
-  }
-  if (error instanceof Error && "status" in error) {
-    const status = (error as any).status || 500;
-    return res.status(status).json({
-      success: false,
-      message: error.message,
-    });
-  }
-  logger.error(
-    `Server error: ${error instanceof Error ? error.message : "Unknown error"}`
-  );
-  res.status(500).json({ success: false, message: "Internal server error" });
-};
+// src/controllers/product.controller.ts
+import { Request, Response, NextFunction } from "express";
+import { ProductService } from "../services/product.service";
 
 export const ProductController = {
   // Create new product (Vendor only)
@@ -46,105 +14,13 @@ export const ProductController = {
      
 
       const productData = {
-        name: req.body.name,
-        description: req.body.description,
-        category: {
-          main: req.body.categoryMain,
-          sub: req.body.categorySub,
-        },
-        price: {
-          amount: req.body.priceAmount,
-          currency: req.body.priceCurrency || 'USD',
-        },
-        inventory: {
-          quantity: req.body.inventoryQuantity,
-          sku: req.body.inventorySku,
-          lowStockAlert: req.body.inventoryLowStockAlert,
-        },
-        images: req.body.images || [],
-        tags: req.body.tags || [],
-        status: req.body.status || 'active', 
-        vendorId: req.userId,
-        variants: req.body.variants || [], 
-
-        analytics: {
-          views: 0,
-          purchases: 0,
-          conversionRate: 0,
-        },
-
-        specifications: {
-          key: req.body.specificationsKey,
-          value: req.body.specificationsValue,
-
-        },
-        shipping: {
-          weight: req.body.shippingWeight,
-          dimensions: {
-            length: req.body.shippingDimensionsLength,
-            width: req.body.shippingDimensionsWidth,
-            height: req.body.shippingDimensionsHeight,
-          },
-          restrictions: req.body.shippingRestrictions || [],
-        },
-
-
+        ...req.body,
+        vendorId: req.userId!,
       };
 
-      const product = new Product(productData);
-      await product.save();
+      const product = await ProductService.createProduct(productData);
 
-      res.status(201).json({
-        success: true,
-        data: product,
-        message: "Product created successfully",
-      });
-    } catch (error) {
-      handleError(error, res);
-    }
-  },
-
-  getProductsByVendor: async (req: Request, res: Response) => {
-    try {
-      const { 
-        page = 1, 
-        limit = 10,
-        status,
-        search
-      } = req.query;
-
-      const query: any = { 
-        vendorId: req.userId // Only allow vendors to see their own products
-      };
-
-      // Add optional filters
-      if (status) query.status = status;
-      if (search) {
-        query.$or = [
-          { name: { $regex: search.toString(), $options: 'i' } },
-          { description: { $regex: search.toString(), $options: 'i' } },
-          { 'tags': { $regex: search.toString(), $options: 'i' } }
-        ];
-      }
-
-      const products = await Product.find(query)
-        .skip((Number(page) - 1) * Number(limit))
-        .limit(Number(limit))
-        .sort('-createdAt')
-        .populate('category.main', 'name slug');
-
-      const total = await Product.countDocuments(query);
-
-      res.status(200).json({
-        success: true,
-        data: products,
-        pagination: {
-          total,
-          page: Number(page),
-          pages: Math.ceil(total / Number(limit)),
-          limit: Number(limit)
-        }
-      });
+      res.status(201).json({ product });
     } catch (error) {
       handleError(error, res);
     }
@@ -183,51 +59,39 @@ export const ProductController = {
         minPrice,
         maxPrice,
         status,
-        search,
-        sort = "-createdAt",
+        priceRange,
+        sort,
       } = req.query;
 
-      const query: any = {};
+      const query = {
+        ...(category && { category }),
+        ...(status && { status }),
+        ...(priceRange && { priceRange }),
+      };
 
-      // Build query filters
-      if (category) {
-        // Check if category exists
-        const cat = await CategoryService.getCategory(category as string);
-        query["category.main"] = cat._id;
-      }
+      const sortQuery = sort ? JSON.parse(String(sort)) : undefined;
 
-      if (status) query.status = status;
-      if (minPrice || maxPrice) {
-        query["price.amount"] = {};
-        if (minPrice) query["price.amount"].$gte = Number(minPrice);
-        if (maxPrice) query["price.amount"].$lte = Number(maxPrice);
-      }
-      if (search) {
-        query.$or = [
-          { name: { $regex: search.toString(), $options: "i" } },
-          { description: { $regex: search.toString(), $options: "i" } },
-          { tags: { $regex: search.toString(), $options: "i" } },
-        ];
-      }
+      const result = await ProductService.getProducts(
+        query,
+        Number(page),
+        Number(limit),
+        sortQuery
+      );
 
-      const products = await Product.find(query)
-        .skip((Number(page) - 1) * Number(limit))
-        .limit(Number(limit))
-        .sort(sort.toString())
-        .populate("category.main", "name slug");
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 
-      const total = await Product.countDocuments(query);
+  static async getProduct(req: Request, res: Response, next: NextFunction) {
+    try {
+      const product = await ProductService.getProductById(req.params.id);
 
-      res.status(200).json({
-        success: true,
-        data: products,
-        pagination: {
-          total,
-          page: Number(page),
-          pages: Math.ceil(total / Number(limit)),
-          limit: Number(limit),
-        },
-      });
+      // Update view analytics
+      await ProductService.updateAnalytics(req.params.id, "view");
+
+      res.json({ product });
     } catch (error) {
       handleError(error, res);
     }
@@ -305,47 +169,22 @@ export const ProductController = {
     }
   },
 
-  // Update inventory (Vendor only)
-  updateInventory: async (req: Request, res: Response) => {
+  static async updateInventory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
-      const { quantity, sku, lowStockAlert } = req.body;
+      const { quantity, operation } = req.body;
 
-      const product = await Product.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          vendorId: req.userId,
-        },
-        {
-          $set: {
-            "inventory.quantity": quantity,
-            ...(sku && { "inventory.sku": sku }),
-            ...(lowStockAlert && { "inventory.lowStockAlert": lowStockAlert }),
-          },
-        },
-        { new: true, runValidators: true }
+      const product = await ProductService.updateInventory(
+        req.params.id,
+        req.userId!.toString(),
+        Number(quantity),
+        operation as "add" | "subtract"
       );
 
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: "Product not found or unauthorized",
-        });
-      }
-
-      // Update status if needed
-      if (quantity <= 0 && product.status !== "outOfStock") {
-        product.status = "outOfStock";
-        await product.save();
-      } else if (quantity > 0 && product.status === "outOfStock") {
-        product.status = "active";
-        await product.save();
-      }
-
-      res.status(200).json({
-        success: true,
-        data: product.inventory,
-        message: "Inventory updated successfully",
-      });
+      res.json({ product });
     } catch (error) {
       handleError(error, res);
     }
@@ -399,105 +238,69 @@ export const ProductController = {
   // Delete product (Vendor only)
   deleteProduct: async (req: Request, res: Response) => {
     try {
-      const product = await Product.findOneAndDelete({
-        _id: req.params.id,
-        vendorId: req.userId,
-      });
+      const {
+        q,
+        category,
+        status,
+        priceRange,
+        page = 1,
+        limit = 10,
+      } = req.query;
 
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: "Product not found or unauthorized",
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: "Product deleted successfully",
-      });
-    } catch (error) {
-      handleError(error, res);
-    }
-  },
-
-  // Add/update variant (Vendor only)
-  updateVariant: async (req: Request, res: Response) => {
-    try {
-      const { variantId, name, options } = req.body;
-
-      const updateQuery = variantId
-        ? {
-            $set: {
-              "variants.$[elem].name": name,
-              "variants.$[elem].options": options,
+      const filters = {
+        ...(category && { "category.main": category }),
+        ...(status && { status }),
+        ...(priceRange &&
+          typeof priceRange === "string" && {
+            "price.amount": {
+              $gte: Number(priceRange.split("-")[0]),
+              $lte: Number(priceRange.split("-")[1]),
             },
-          }
-        : {
-            $push: {
-              variants: { name, options },
-            },
-          };
-
-      const product = (await Product.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          vendorId: req.userId,
-        },
-        updateQuery,
-        {
-          new: true,
-          runValidators: true,
-          ...(variantId && {
-            arrayFilters: [{ "elem._id": variantId }],
           }),
-        }
-      )) as unknown as Product | null;
+      };
 
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: "Product not found or unauthorized",
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        data: product?.variants,
-        message: variantId ? "Variant updated" : "Variant added",
-      });
-    } catch (error) {
-      handleError(error, res);
-    }
-  },
-
-  // Update product status (Vendor/Admin)
-  updateStatus: async (req: Request, res: Response) => {
-    try {
-      const { status } = req.body;
-
-      const product = await Product.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          vendorId: req.userId,
-        },
-        { status },
-        { new: true }
+      const results = await ProductService.searchProducts(
+        String(q),
+        filters,
+        Number(page),
+        Number(limit)
       );
 
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: "Product not found or unauthorized",
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        data: { status: product.status },
-        message: "Status updated successfully",
-      });
+      res.json(results);
     } catch (error) {
       handleError(error, res);
     }
-  },
-};
+  }
+  static async addReview(req: Request, res: Response) {
+    const { id } = req.params;
+    const { reviewData, reviewerId } = req.body;
+  
+    try {
+      const result = await ProductService.addReview(id, reviewData, reviewerId);
+  
+      res.status(201).json({
+        success: true,
+        message: "Review received",
+        result,
+      });
+    } catch (error) {
+      console.error("Error adding review:", error);
+      res.status(500).json({ success: false, error: "Internal server error" });
+    }
+  };
+  static async getReviews(req: Request, res: Response) {
+    const { id } = req.params;
+
+    try {
+      const reviews = await ProductService.getReviews(id);
+
+      res.status(200).json({
+        success: true,
+        reviews,
+      });
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ success: false, error: "Internal server error" });
+    }
+  };
+}

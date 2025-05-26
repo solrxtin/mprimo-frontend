@@ -9,7 +9,7 @@ export class PushNotificationController {
     this.pushService = new PushNotificationService();
   }
 
-  subscribe: RequestHandler = async (req, res) => {
+  subscribe: RequestHandler = async (req: Request, res: Response) => {
     try {
       const subscription = req.body;
       
@@ -36,7 +36,7 @@ export class PushNotificationController {
     }
   };
 
-  sendToAll: RequestHandler = async (req, res) => {
+  sendToAll: RequestHandler = async (req: Request, res: Response) => {
     try {
       const { title, body } = req.body;
       

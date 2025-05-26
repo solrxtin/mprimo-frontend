@@ -1,6 +1,6 @@
-import mongoose from "mongoose"
+import mongoose, {  Document} from "mongoose"
 
-export interface Order {
+export interface IOrder extends Document {
     userId: mongoose.Schema.Types.ObjectId;
     items: [{
         productId: mongoose.Schema.Types.ObjectId;

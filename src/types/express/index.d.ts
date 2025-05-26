@@ -1,4 +1,14 @@
 import {ObjectId} from "mongoose"
+import session from "express-session";
+
+declare module "express-session" {
+  interface SessionData {
+    preferences?: {
+      language: string;
+      currency: string;
+    };
+  }
+}
 
 declare global {
   namespace Express {
@@ -9,6 +19,10 @@ declare global {
         role: string;  // Add any other user properties you need here
       };
       userId: ObjectId
+      preferences: {
+        language?: string;
+        currency?: string;
+      };
     }
   }
 }

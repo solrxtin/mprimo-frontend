@@ -5,7 +5,9 @@ import mongoose from 'mongoose';
 export interface Vendor {
     _id?: mongoose.Schema.Types.ObjectId;
     userId: mongoose.Schema.Types.ObjectId;
-    businessInfo: {
+    accountType: 'individual' | 'business';
+    kycStatus: 'pending' | 'verified' | 'rejected';
+    businessInfo?: {
         name: string;
         registrationnumber: string;
         taxId: string;
@@ -17,13 +19,13 @@ export interface Vendor {
             postalCode: string;
         };
     };
-    bankDetails: {
+    bankDetails?: {
         accountHolder: string;
         accountnumber: string;
         bankName: string;
         swiftCode: string;
     };
-    ratings: {
+    ratings?: {
         average: number;
         count: number;
     };

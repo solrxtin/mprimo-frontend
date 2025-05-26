@@ -101,4 +101,11 @@ productrouter.patch('/:id/inventory',
     }
 )
 
-export default productrouter;
+router.post('/', ProductController.createProduct);
+router.put('/:id', ProductController.updateProduct);
+router.delete('/:id', ProductController.deleteProduct);
+router.patch('/:id/inventory', ProductController.updateInventory);
+router.post('/:id/variants', ProductController.addVariant);
+router.post('/:id/reviews', ProductController.addReview);
+
+export default router;

@@ -1,5 +1,5 @@
-import webpush, { PushSubscription, WebPushError } from 'web-push';
-import {PushSubscription as PushSubscriptionModel} from "../models/push-subscription.model";
+import webpush, { PushSubscription, WebPushError } from "web-push";
+import { PushSubscription as PushSubscriptionModel } from "../models/push-subscription.model";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -13,15 +13,11 @@ export class PushNotificationService {
 
     if (!publicKey || !privateKey || !email) {
       throw new Error(
-        'VAPID keys and email must be set in environment variables'
+        "VAPID keys and email must be set in environment variables"
       );
     }
 
-    webpush.setVapidDetails(
-      `mailto:${email}`,
-      publicKey,
-      privateKey
-    );
+    webpush.setVapidDetails(`mailto:${email}`, publicKey, privateKey);
   }
 
   async sendNotification(
@@ -30,7 +26,10 @@ export class PushNotificationService {
   ): Promise<boolean> {
     try {
       await webpush.sendNotification(
-        subscription,
+        {
+          endpoint: subscription.endpoint,
+          keys: subscription.keys,
+        },
         JSON.stringify(payload)
       );
       return true;
@@ -42,25 +41,29 @@ export class PushNotificationService {
           await this.removeSubscription(subscription);
         }
       }
-      console.error('Push notification error:', error);
+      console.error("Push notification error:", error);
       return false;
     }
   }
   private async removeSubscription(subscription: PushSubscription) {
     try {
-        // Remove the subscription from database using the endpoint as unique identifier
-        const result = await PushSubscriptionModel.deleteOne({
-          endpoint: subscription.endpoint
-        });
-  
-        if (result.deletedCount > 0) {
-          console.log(`Subscription removed successfully: ${subscription.endpoint}`);
-        } else {
-          console.log(`No subscription found to remove: ${subscription.endpoint}`);
-        }
-      } catch (error) {
-        console.error('Error removing subscription:', error);
-        throw new Error('Failed to remove subscription from database');
+      // Remove the subscription from database using the endpoint as unique identifier
+      const result = await PushSubscriptionModel.deleteOne({
+        endpoint: subscription.endpoint,
+      });
+
+      if (result.deletedCount > 0) {
+        console.log(
+          `Subscription removed successfully: ${subscription.endpoint}`
+        );
+      } else {
+        console.log(
+          `No subscription found to remove: ${subscription.endpoint}`
+        );
       }
+    } catch (error) {
+      console.error("Error removing subscription:", error);
+      throw new Error("Failed to remove subscription from database");
     }
+  }
 }

@@ -3,6 +3,7 @@ import { Product } from "../types/product.type";
 import ProductModel from "../models/product.model";
 import createError from "http-errors";
 import { MongoError } from "../types/mongo.type";
+import Order from "../models/order.model";
 
 function isMongoError(error: any): error is MongoError {
   return error.code !== undefined && typeof error.code === "number";
@@ -209,5 +210,52 @@ export class ProductService {
     };
 
     return this.getProducts(searchQuery, page, limit);
+  }
+
+  static async addReview(
+    id: string,
+    reviewData: Product["reviews"][0],
+    userId: string
+  ): Promise<Product> {
+    const product = await ProductModel.findByIdAndUpdate(
+      id,
+      { $push: { reviews: reviewData } },
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
+      throw createError(404, "Product not found");
+    }
+
+    const order = await Order.findOne({ userId: userId,
+      items: { $elemMatch: { productId: product._id }} });
+    console.log("Order is: ", order)
+
+    if (!order) {
+      throw createError(400, "You can only review products that you have purchased");
+    }
+
+    if (order.status !== "delivered") {
+      throw createError(400, "You can only review products that's been delivered");
+    }
+
+    // Update average rating
+    const totalRatings = product.reviews.reduce(
+      (sum, review) => sum + review.rating,
+      0
+    );
+    product.rating = totalRatings / product.reviews.length;
+    await product.save();
+
+    return product;
+  }
+  static async getReviews(id: string): Promise<Product["reviews"]> {
+    const product = await ProductModel.findById(id);
+
+    if (!product) {
+      throw createError(404, "Product not found");
+    }
+
+    return product.reviews;
   }
 }

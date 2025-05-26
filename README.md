@@ -48,7 +48,7 @@
   - [ ] Filters
   - [ ] Sorting
 - [ ] Set up product variants management
-- [ ] Implement product reviews and ratings
+- [ ✔ ] Implement product reviews and ratings
 - [ ] Create product analytics tracking
 
 ## 5. Vendor Management
@@ -180,3 +180,4 @@
 
 
 <!-- Google Authorized Redirect URI - http://localhost:5173/auth/google/callback -->
+<!-- Used upstash, might have to pay for more usage -->

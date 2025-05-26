@@ -45,7 +45,7 @@ const productSchema = new mongoose.Schema<Product>({
       type: String,
       required: [true, 'Currency is required'],
       enum: {
-        values: ['USD', 'EUR', 'GBP', 'JPY', 'CAD'],
+        values: ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CNY', 'INR', 'NGN'],
         message: 'Invalid currency'
       },
       uppercase: true,
@@ -144,18 +144,35 @@ const productSchema = new mongoose.Schema<Product>({
     },
     default: 'active'
   },
-  ratings: {
-    average: {
-      type: Number,
-      min: [0, 'Rating cannot be below 0'],
-      max: [5, 'Rating cannot exceed 5'],
-      default: 0
+  reviews: [
+    {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     },
-    count: {
+    rating: {
       type: Number,
-      min: [0, 'Count cannot be negative'],
-      default: 0
+      required: true,
+      min: [1, "Rating must be at least 1"],
+      max: [5, "Rating cannot exceed 5"],
+    },
+    comment: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: [500, "Comment cannot exceed 500 characters"]
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
     }
+  }],
+  rating: {
+    type: Number,
+    min: [0, "Rating cannot be negative"],
+    max: [5, "Rating cannot exceed 5"],
+    default: 0
   },
   variants: [{
     name: {
@@ -200,7 +217,24 @@ const productSchema = new mongoose.Schema<Product>({
       max: [100, 'Conversion rate cannot exceed 100'],
       default: 0
     }
-  }
+  },
+  allowOffer: {
+    type: Boolean,
+    default: false
+  },
+  offers: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    userOffers: [{
+      amount: {type: Number},
+      accepted: {
+        type: Boolean,
+        default: false
+      }
+    }]
+  }]
 }, {
   timestamps: true,
   toJSON: {

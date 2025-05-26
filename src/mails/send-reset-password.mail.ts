@@ -4,13 +4,13 @@ import { LoggerService } from "../services/logger.service";
 
 const logger = LoggerService.getInstance();
 
-const sendPasswordResetEmail = async(userEmail: string, resetUrl: string) => {
+const sendPasswordResetEmail = async(userEmail: string, token: string) => {
     try {
         let info = await transporter.sendMail({
             from: process.env.EMAIL,
             to: userEmail,
             subject: 'Reset your password',
-            html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetUrl}", resetUrl),
+            html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{token}", token),
         });
     
         logger.info('Email sent: %s', {messageId: info.messageId});

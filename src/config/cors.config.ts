@@ -1,4 +1,3 @@
-import cors from 'cors';
 import { CorsOptions } from 'cors';
 import { LoggerService } from '../services/logger.service';
 import dotenv from "dotenv";
@@ -9,7 +8,7 @@ const logger = LoggerService.getInstance();
 
 export const corsConfig: CorsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',');
+    const allowedOrigins = process.env.ALLOWED_ORIGINS!
     
     // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) {
