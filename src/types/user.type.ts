@@ -10,9 +10,11 @@ export interface User extends Document {
         firstName: string;
         lastName: string;
         phoneNumber: string;
-        avatar: string;
+        avatar?: string;
+        sex?: string;
     };
     addresses?: Array<{
+        _id?: ObjectId;
         type: string;
         street: string;
         city: string;
@@ -25,12 +27,15 @@ export interface User extends Document {
         provider: string;
         providerId: string;
     }>;
-    role: 'customer' | 'vendor' | 'admin';
+    role: 'personal' | 'business' | 'admin';
     status: 'active' | 'inactive' | 'suspended';
+    canMakeSales: boolean;
+    saleLimit: number;
+    salesCount: number;
     preferences: {
         language?: string;
         currency?: string;
-        notifications: {
+        notifications?: {
             email?: boolean;
             push?: boolean;
             sms?: boolean;

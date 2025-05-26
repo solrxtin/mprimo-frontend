@@ -1,3 +1,4 @@
+
 import express from 'express';
 import helmet from "helmet";
 import { createServer } from 'http';
@@ -5,20 +6,30 @@ import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import passport from 'passport';
+import session from "express-session";
+
+import * as swaggerUi from "swagger-ui-express"
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 import pushNotificationRoutes from './routes/push-notification.routes';
-import authRoutes from './routes/auth.routes'
+import authRoutes from './routes/auth.routes';
 import { requestLogger } from './middlewares/request-logger.middleware';
 import { errorLogger } from './middlewares/error-logger.middleware';
 import { LoggerService } from './services/logger.service';
 import { corsMiddleware } from './middlewares/cors.middleware';
 import { SocketService } from './services/socket.service';
 import connectDb from './config/connectDb';
+import { setPreferencesMiddleware } from './middlewares/country-prefrences.middleware';
+
+
 
 const app = express();
 const httpServer = createServer(app);
 
 const logger = LoggerService.getInstance()
+const swaggerDoc = require("./swagger-output.json");
 
 // Initialize Socket.IO
 const socketService = new SocketService(httpServer);
@@ -26,29 +37,59 @@ const socketService = new SocketService(httpServer);
 // Apply CORS middleware before other middleware
 app.use(corsMiddleware);
 app.use(helmet());
-app.use(mongoSanitize()); //Sanitize NoSQL Injection
-app.use(xss()); //XSS protection
-app.set('trust proxy', true); // tells Express to trust x-forwarded-for from your proxy (not the open internet
+// app.use(
+//   mongoSanitize({
+//     onSanitize: ({ req, key }) => {
+//       console.warn(`Sanitized ${key} in request ${req.method} ${req.url}`);
+//     },
+//     replaceWith: "_", // Prevents modifying req.query directly
+//   })
+// );//Sanitize NoSQL Injection
+// app.use(xss()); //XSS protection
+// app.set('trust proxy', true); // tells Express to trust x-forwarded-for from your proxy (not the open internet)
 // Other middleware and routes
 app.use(express.json({ limit: "10mb"}));
+app.use(express.urlencoded({ extended: true }));
+
 app.use(cookieParser());
-// app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
+
+app.use(
+  session({
+    secret: process.env.SECRET!, 
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === "production" }, // Set to `true` in production if using HTTPS
+  })
+);
+
+
+
 
 // Apply request logging middleware
-app.use(requestLogger);
+// app.use(requestLogger);
 
 // Initialize passport
 app.use(passport.initialize());
 app.use(passport.session());
 
+
 // Export for use in other parts of the application
 export { socketService };
+
+app.use(setPreferencesMiddleware)
 
 app.use('/api/v1/push', pushNotificationRoutes);
 app.use('/api/v1/auth', authRoutes);
 
+// Serve Swagger UI
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));
+app.get("/docs-json", (req, res) => {
+  res.json(swaggerDoc);
+});
+
 // Error logging middleware should be last
-app.use(errorLogger);
+// app.use(errorLogger);
 
 export default app
 
@@ -57,6 +98,7 @@ const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
   connectDb()
   console.log(`Server running on port ${PORT}`);
+  console.log(`Swagger UI running on http://localhost:${PORT}/api-docs`);
 });
 
 // Handle uncaught exceptions

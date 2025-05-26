@@ -2,6 +2,9 @@ import transporter from "../config/nodemailer.config";
 import {VERIFICATION_EMAIL_TEMPLATE} from "../template/verification-mail.template"
 import { LoggerService } from "../services/logger.service";
 
+import dotenv from "dotenv";
+dotenv.config();
+
 const logger = LoggerService.getInstance();
 
 const sendVerificationEmail = async(userEmail: string, verficationCode: string) => {
@@ -10,7 +13,7 @@ const sendVerificationEmail = async(userEmail: string, verficationCode: string) 
             from: process.env.EMAIL,
             to: userEmail,
             subject: 'Verification Code',
-            html: VERIFICATION_EMAIL_TEMPLATE.replace("{verficationCode}", verficationCode),
+            html: VERIFICATION_EMAIL_TEMPLATE.replace("{verificationCode}", verficationCode),
         });
     
         logger.info('Email sent: %s', {messageId: info.messageId});

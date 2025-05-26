@@ -1,5 +1,22 @@
 import mongoose from 'mongoose';
 
+export interface Review {
+    userId: mongoose.Schema.Types.ObjectId;
+    rating: number;
+    comment: string;
+    createdAt?: Date;
+}
+
+export interface Offer {
+   amount: number;
+   accepted: boolean
+}
+
+export interface Offers {
+    userId: mongoose.Schema.Types.ObjectId
+    userOffers: Offer[];
+}
+
 export interface Product {
     vendorId: mongoose.Schema.Types.ObjectId;
     name: string;
@@ -32,10 +49,8 @@ export interface Product {
         restrictions: string[];
     };
     status: 'active' | 'inactive' | 'outOfStock';
-    ratings: {
-        average: number;
-        count: number;
-    };
+    reviews: Review[] | [];
+    rating: number;
     variants: [
         {
             name: string;
@@ -53,6 +68,8 @@ export interface Product {
         purchases: number;
         conversionRate: number;
     };
+    offers: Offers[];
+    allowOffer: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }

@@ -26,7 +26,7 @@ const RefreshTokenSchema = new Schema<IRefreshToken>({
   });
   
   // Add index for better query performance
-  RefreshTokenSchema.index({ userId: 1 });
+  // RefreshTokenSchema.index({ userId: 1 });
 
 const RefreshToken = model<IRefreshToken>("RefreshToken", RefreshTokenSchema);
 
