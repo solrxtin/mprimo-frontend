@@ -18,16 +18,15 @@ const userSchema = new mongoose.Schema<User>(
     password: {
       type: String,
       required: function() {
-        // Only require password if no social logins exist
         return this.socialLogins?.length === 0;
       },
-      minlength: [8, 'Password must be at least 8 characters'],
-      validate: {
-        validator: (value: string) => {
-          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(value);
-        },
-        message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
-      }
+      minlength: [6, 'Password must be at least 8 characters'],
+      // validate: {
+      //   validator: (value: string) => {
+      //     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(value);
+      //   },
+      //   message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+      // }
     },
     profile: {
       firstName: {
@@ -52,13 +51,16 @@ const userSchema = new mongoose.Schema<User>(
       },
       avatar: {
         type: String,
+        default: '',
         validate: {
           validator: (value: string) => {
+            if (value === '') return true;
             return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(value);
           },
           message: 'Invalid avatar URL'
         }
       }
+    
     },
     addresses: [{
       type: {
@@ -175,6 +177,8 @@ const userSchema = new mongoose.Schema<User>(
       backupCodes: [{ type: String }]
     }
   }, 
+  
+
   {
     timestamps: true,
     // Enable virtuals when converting to JSON

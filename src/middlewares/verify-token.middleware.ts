@@ -12,7 +12,8 @@ export const verifyToken = async (
   res: Response,
   next: NextFunction
 ) => {
-  const token = req.cookies.authToken;
+  const token = req.cookies.accessToken;
+
   if (!token)
     return res
       .status(401)
@@ -35,6 +36,7 @@ export const verifyToken = async (
         .json({ success: false, message: "User not found" });
 
     req.user = user;
+
     next();
   } catch (error) {
     console.log("Error in verifyToken ", error);

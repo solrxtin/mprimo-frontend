@@ -51,6 +51,23 @@ export class CategoryService {
 
     return category;
   }
+  static async getCategories(
+    limit: number,
+    page: number
+  ): Promise<{ categories: ICategory[]; total: number }> {
+    const categories = await CategoryModel.find()
+      // .limit(limit)
+      // .skip((page - 1) * limit)
+      // .populate("parent", "name slug")
+      // .populate("children", "name slug");
+
+    const total = await CategoryModel.countDocuments();
+    if (!categories) {
+      throw createError(404, "No categories found");
+    }
+
+    return { categories, total };
+  }
 
   static async deleteCategory(id: string): Promise<void> {
     const session = await mongoose.startSession();

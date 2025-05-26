@@ -120,12 +120,10 @@ export const cartController = {
   },
 
 
-  /**
-   * Get user's cart with calculated totals
-   */
+
   async getCart(req: Request, res: Response) {
     try {
-      const cart = await Cart.findOne(req.userId).populate('items.productId', 'price');
+      const cart = await Cart.findOne({ userId: req.userId }).populate('items.productId', 'price');
       
       if (!cart) {
         return res.status(200).json({
@@ -138,11 +136,12 @@ export const cartController = {
             }
           },
           message: 'Cart is empty'
-
         });
       }
-
-        const totalValue = cart.items.reduce((sum, item) => sum + ((item.productId as any).price.amount * item.quantity), 0);
+  
+      const totalValue = cart.items.reduce((sum, item) => 
+        sum + ((item.productId as any).price.amount * item.quantity), 0);
+        
       res.status(200).json({
         success: true,
         data: {

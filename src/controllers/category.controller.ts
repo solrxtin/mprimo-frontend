@@ -7,6 +7,7 @@ export class CategoryController {
   static async createCategory(req: Request, res: Response, next: NextFunction) {
     try {
     //   await validateCategory(req.body);
+    console.log(req.body);
       const category = await CategoryService.createCategory(
         req.body,
         req.userId.toString()
@@ -100,6 +101,17 @@ export class CategoryController {
       const categories = await CategoryService.searchCategories(
         req.query.q as string,
         Number(req.query.limit)
+      );
+      res.json({ categories });
+    } catch (error) {
+      next(error);
+    }
+  }
+  static async getCategories (req: Request, res: Response, next: NextFunction) {
+    try {
+      const categories = await CategoryService.getCategories(
+        Number(req.query.page) || 1,
+        Number(req.query.limit) || 10,
       );
       res.json({ categories });
     } catch (error) {

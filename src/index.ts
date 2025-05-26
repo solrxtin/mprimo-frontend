@@ -5,7 +5,6 @@ import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import passport from 'passport';
-
 import pushNotificationRoutes from './routes/push-notification.routes';
 import authRoutes from './routes/auth.routes'
 import { requestLogger } from './middlewares/request-logger.middleware';
@@ -18,6 +17,8 @@ import productrouter from './routes/product.route';
 import twofactorrouter from './routes/two-factor.routes';
 import orderrouter from './routes/order.route';
 import cartrouter from './routes/cart.route';
+import categoryrouter from './routes/category.route';
+import userRouter from './routes/user.route';
 
 const app = express();
 const httpServer = createServer(app);
@@ -30,15 +31,13 @@ const socketService = new SocketService(httpServer);
 // Apply CORS middleware before other middleware
 app.use(corsMiddleware);
 app.use(helmet());
-app.use(mongoSanitize()); //Sanitize NoSQL Injection
-app.use(xss()); //XSS protection
+// app.use(mongoSanitize()); //Sanitize NoSQL Injection
+// app.use(xss()); //XSS protection
 app.set('trust proxy', true); // tells Express to trust x-forwarded-for from your proxy (not the open internet
-// Other middleware and routes
 app.use(express.json({ limit: "10mb"}));
 app.use(cookieParser());
 // app.use(express.urlencoded({ extended: true }));
 
-// Apply request logging middleware
 // app.use(requestLogger);
 
 // Initialize passport
@@ -50,10 +49,12 @@ export { socketService };
 
 app.use('/api/v1/push', pushNotificationRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/user-management', userRouter);
 app.use('/api/v1/product', productrouter);
 app.use('/api/v1/two-factor', twofactorrouter);
 app.use('/api/v1/order', orderrouter);
 app.use('/api/v1/cart', cartrouter);
+app.use('/api/v1/category', categoryrouter);
 
 // Error logging middleware should be last
 app.use(errorLogger);

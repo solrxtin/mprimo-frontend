@@ -20,6 +20,8 @@ cartrouter.get(
     }
   }
 );
+
+
 cartrouter.post(
   "/add-to-cart",
     (req: Request, res: Response, next: NextFunction) => {
@@ -90,7 +92,7 @@ cartrouter.get(
     }
 );
 cartrouter.post(
-    "/wishlist",
+    "/add-to-wishlist",
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },

@@ -8,7 +8,7 @@ export const generateAccessToken = (userId: ObjectId) => {
   return jwt.sign(
     { userId, type: 'access' },
     process.env.JWT_SECRET || (() => { throw new Error("JWT_SECRET is not defined in environment variables"); })(),
-    { expiresIn: '15m' }
+    { expiresIn: '2d' }
   );
 };
 
@@ -41,7 +41,7 @@ export const generateTokensAndSetCookie = async (res: Response, userId: ObjectId
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 15 * 60 * 1000 // 15 minutes
+    maxAge:  process.env.NODE_ENV === 'production' ? 7 * 24 * 60 * 60 * 1000  : 7 * 24 * 60 * 60 * 1000 
   });
 
   // Set refresh token cookie
