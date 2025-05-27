@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 import { User } from "@/types/user.type";
 import { toastConfigError } from "@/app/config/toast.config";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";

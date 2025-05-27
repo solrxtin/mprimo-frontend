@@ -1,4 +1,4 @@
-// components/Sidebar.tsx
+
 "use client";
 import {
   Box,
@@ -6,13 +6,12 @@ import {
   HomeIcon,
   LogOut,
   MessageCircleMore,
-  MessageSquareDot,
   Settings,
   ShoppingBasket,
   StarIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { FaTimes } from "react-icons/fa";
 
 const navItems = [
@@ -20,7 +19,7 @@ const navItems = [
   { name: "Products", href: "/vendor/dashboard/products", icon: <Box /> },
   {
     name: "Orders",
-    href: "/node_modulesvendor/dashboard/orders",
+    href: "/vendor/dashboard/orders",
     icon: <ShoppingBasket />,
   },
   {
@@ -39,7 +38,25 @@ type Props = {
 };
 
 export default function Sidebar({ isOpen = true, onClose }: Props) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingPath, setLoadingPath] = useState("");
+
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleClick = (link: string) => {
+    // Set loading state
+    setIsLoading(true);
+    setLoadingPath(link);
+    // Navigate to the link
+    router.push(link);
+  };
+
+  // Reset loading when pathname changes (navigation completes)
+  useEffect(() => {
+    setIsLoading(false);
+    setLoadingPath("");
+  }, [pathname]);
 
   return (
     <div
@@ -49,15 +66,6 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
       ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
     `}
     >
-      {/* <div className="p-4 flex justify-between items-center border-b md:hidden">
-        <h2 className="font-bold text-xl">Menu</h2>
-        {onClose && (
-          <button onClick={onClose} className="text-gray-500">
-            <FaTimes size={20} />
-          </button>
-        )}
-      </div> */}
-
       <div className="p-6">
         <div className="flex justify-between items-center md:hidden mb-10">
           <h1 className="text-xl font-semibold">Mprimo</h1>
@@ -72,21 +80,30 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
           <ul className="space-y-4">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
+              const isItemLoading = isLoading && loadingPath === item.href;
+
               return (
                 <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className={`block p-2 rounded flex md:justify-center lg:justify-start gap-x-2 items-center ${
-                      isActive
-                        ? "bg-[#dce7fd]"
-                        : "hover:bg-gray-700 hover:text-gray-100"
-                    }`}
-                  >
-                    <div className="flex-shrink-0">{item.icon}</div>
-                    <div className="text-sm md:hidden lg:block">
-                      {item.name}
-                    </div>
-                  </Link>
+                 <button
+                  onClick={() => {handleClick(item.href)}}
+                  disabled={isLoading || isActive}
+                  className={`cursor-pointer p-2 rounded flex md:justify-center lg:justify-start gap-x-2 items-center disabled:cursor-not-allowed ${
+                    isActive
+                      ? "bg-[#dce7fd] hover:bg-blue-200 text-blue-600"
+                      : "hover:bg-gray-700 hover:text-gray-100"
+                  } ${isItemLoading ? "opacity-70" : ""}`}
+                >
+                  <div className="flex-shrink-0">
+                    {isItemLoading ? (
+                      <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-blue-500 rounded-full"></div>
+                    ) : (
+                      item.icon
+                    )}
+                  </div>
+                  <div className="text-sm md:hidden lg:block">
+                    {item.name}
+                  </div>
+                </button>
                   {/* Tooltip - only visible on md screens when text is hidden */}
                   <div className="hidden md:block lg:hidden absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
                     {item.name}

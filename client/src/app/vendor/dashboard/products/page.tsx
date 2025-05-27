@@ -386,7 +386,7 @@ const ProductsPage = () => {
               </div>
 
               {showStatusDropdown && (
-                <div className="absolute mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                <div className="absolute mt-1 w-40 md:w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                   <ul className="py-1">
                     <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
                       All Statuses
@@ -426,7 +426,7 @@ const ProductsPage = () => {
               </div>
 
               {showFilterDropdown && (
-                <div className="absolute mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 ">
+                <div className="absolute mt-1 w-40 md:w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10 ">
                   <ul className="py-1">
                     <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b">
                       Filter By
