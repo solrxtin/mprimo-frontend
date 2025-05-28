@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, ChevronDown, Filter, Search, Calendar } from "lucide-react";
+import Link from "next/link";
 import React, { useState, useEffect } from "react";
 
 type Props = {};
@@ -302,10 +303,12 @@ const ProductsPage = () => {
               today.
             </p>
           </div>
+          <Link href="/vendor/dashboard/products/create-product">
           <div className="bg-[#002f7a] text-white px-4 md:px-6 py-2 md:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-[#00245a] transition-colors w-full md:w-auto justify-center md:self-end">
             <button className="whitespace-nowrap">Add Product</button>
             <Plus size={18} />
           </div>
+          </Link>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm">
