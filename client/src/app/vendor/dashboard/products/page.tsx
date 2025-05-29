@@ -309,7 +309,7 @@ const ProductsPage = () => {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm">
-          <div className="grid md:grid-cols-6 lg:grid-cols-12 gap-4 p-5 border-b items-center">
+          <div className="grid md:grid-cols-6 lg:grid-cols-12 gap-4 p-5 border-b border-gray-300 items-center">
             <div className="relative col-span-4">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search size={18} className="text-gray-400" />
@@ -454,28 +454,28 @@ const ProductsPage = () => {
             <table className="min-w-full">
               <thead>
                 <tr className="bg-[#f2f7ff] text-black">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Name
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Category
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Price
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Stock
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Accept Offer
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Bidding
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
