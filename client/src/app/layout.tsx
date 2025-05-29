@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, Inter, Alexandria } from "next/font/google";
+import { Poppins, Inter, Alexandria, Roboto } from "next/font/google";
 import "./globals.css";
 import TanstackProvider from "@/providers/TanstackProvider";
 import { ToastContainer, Slide } from "react-toastify";
@@ -10,6 +10,11 @@ const poppins = Poppins({
   weight: "400",
   subsets: ["latin"],
 });
+
+const roboto = Roboto({
+  variable: "--font-roboto",
+  subsets: ["latin"]
+})
 
 const inter = Inter({
   variable: "--font-inter",
@@ -34,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${poppins.variable} ${inter.variable} ${alexandria.variable} `}
+        className={`${poppins.variable} ${inter.variable} ${alexandria.variable} ${roboto.variable} font-[family-name:var(--font-alexandria)]`}
         suppressHydrationWarning
       >
         <TanstackProvider>
