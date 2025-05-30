@@ -191,17 +191,17 @@ export default function AddProductPage() {
   const renderStepOne = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Product Images - Left Side */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-white rounded-lg border overflow-hidden">
         <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold">Product Images</h2>
+          <h2 className="text-base md:text-lg font-medium">Product Images</h2>
         </div>
-        <div className="p-6 space-y-4">
-          {/* Main Product Image Dropzone */}
+        <div className="p-4 space-y-4">
           <DropZone
             onDrop={handleImageDrop}
             accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+           
           >
-            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+            <div className="aspect-square bg-gray-100 max-h-[227px] w-full rounded-lg overflow-hidden flex items-center justify-center">
               {formData.images.length > 0 ? (
                 <img
                   src={URL.createObjectURL(formData.images[0])}
@@ -209,18 +209,17 @@ export default function AddProductPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center text-gray-400">
-                  <Plus className="w-12 h-12 mb-2" />
+                <div className="flex flex-col items-center justify-center font-light text-gray-400">
+                  <Plus className="w-8 h-8 mb-2" />
                   <p>Click or drag to upload main image</p>
                 </div>
               )}
             </div>
           </DropZone>
 
-          {/* Thumbnail Images */}
           <div className="flex gap-3">
             {formData.images.slice(0, 2).map((image, index) => (
-              <div key={index} className="relative w-16 h-16">
+              <div key={index} className="relative w-10 h-10">
                 <img
                   src={URL.createObjectURL(image)}
                   alt={`Thumbnail ${index + 1}`}
@@ -243,8 +242,8 @@ export default function AddProductPage() {
                 onDrop={handleImageDrop}
                 accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
               >
-                <div className="w-16 h-16 border-2 border-dashed border-blue-400 rounded-lg flex items-center justify-center bg-blue-50">
-                  <Plus className="w-6 h-6 text-blue-500" />
+                <div className="w-10 h-10 border-2 border-dashed border-blue-400 rounded-lg flex items-center justify-center bg-blue-50">
+                  <Plus className="w-4 h-4 text-blue-500" />
                 </div>
               </DropZone>
             )}
@@ -290,9 +289,9 @@ export default function AddProductPage() {
       <div>
         <div className="bg-white rounded-lg border">
           <div className="p-6 border-b">
-            <h2 className="text-lg font-semibold">Product Details</h2>
+            <h2 className="text-base md:text-lg font-medium">Product Details</h2>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-4 md:p-6 space-y-4">
             <div>
               <Label
                 htmlFor="productName"
@@ -305,6 +304,7 @@ export default function AddProductPage() {
                 placeholder="Nike Baseball Cap"
                 value={formData.productName}
                 onChange={(e) => updateFormData("productName", e.target.value)}
+                className="text-light placeholder:font-light"
               />
             </div>
 
@@ -811,7 +811,7 @@ export default function AddProductPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className=" bg-gray-50">
       {/* Success Notifications */}
       {showSuccessNotification && (
         <SuccessNotification
