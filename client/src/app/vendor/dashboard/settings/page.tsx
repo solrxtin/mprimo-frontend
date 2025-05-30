@@ -49,9 +49,9 @@ export default function SettingsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">My Profile</h2>
+          <h2 className="text-lg md:text-xl font-normal text-gray-900">My Profile</h2>
           <div className="flex items-center gap-3 mt-2">
-            <span className="text-gray-600">Available</span>
+            <span className="font-normal text-[#000]">Available</span>
             <Switch checked={isAvailable} onCheckedChange={setIsAvailable} />
           </div>
         </div>
@@ -64,7 +64,7 @@ export default function SettingsPage() {
         </Avatar>
         <div className="flex-1">
           <h3 className="text-xl font-semibold">Bovie Wealth</h3>
-          <p className="text-gray-600">Vendor since 2023</p>
+          <p className="text-[#797979]">Vendor since 2023</p>
           <Button variant="outline" size="sm" className="mt-2">
             Change Photo
           </Button>
@@ -75,7 +75,7 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-3  border rounded-md p-2">
         <div className="flex items-center justify-between">
           <h4 className="text-lg font-medium">Personal Information</h4>
           <Button variant="ghost" size="sm">
@@ -84,64 +84,64 @@ export default function SettingsPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 font-poppins  text-[#797979] gap-6 ">
           <div>
-            <Label className="text-sm text-gray-600">First Name</Label>
-            <p className="font-medium">Bovie</p>
+            <Label className="text-sm text-[#797979]">First Name</Label>
+            <p className="text-xs">Bovie</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Last Name</Label>
-            <p className="font-medium">Wealth</p>
+            <Label className="text-sm text-[#797979]">Last Name</Label>
+            <p className="text-xs">Wealth</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Bio</Label>
-            <p className="font-medium">I'm a vendor specializing in handcrafted home goods and accessories</p>
+            <Label className="text-sm text-[#797979]">Bio</Label>
+            <p className="text-xs">I'm a vendor specializing in handcrafted home goods and accessories</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Email Address</Label>
-            <p className="font-medium">Boviewealth@gmail.com</p>
+            <Label className="text-sm text-[#797979]">Email Address</Label>
+            <p className="text-xs">Boviewealth@gmail.com</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Phone Number</Label>
-            <p className="font-medium">+234 706 387 0050</p>
+            <Label className="text-sm text-[#797979]">Phone Number</Label>
+            <p className="text-xs">+234 706 387 0050</p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-3  border rounded-md p-2">
         <div className="flex items-center justify-between">
-          <h4 className="text-lg font-medium">Business Information</h4>
+          <h4 className="text-base font-medium">Business Information</h4>
           <Button variant="ghost" size="sm">
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 font-poppins  text-[#797979] gap-6 ">
           <div>
-            <Label className="text-sm text-gray-600">Business Name</Label>
-            <p className="font-medium">Bovie</p>
+            <Label className="text-sm text-[#797979]">Business Name</Label>
+            <p className="text-xs">Bovie</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Business Address</Label>
-            <p className="font-medium">Wealth</p>
+            <Label className="text-sm text-[#797979]">Business Address</Label>
+            <p className="text-xs">Wealth</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Social Media Handles</Label>
-            <p className="font-medium">Boviewealth1</p>
+            <Label className="text-sm text-[#797979]">Social Media Handles</Label>
+            <p className="text-xs">Boviewealth1</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Business Email Address</Label>
-            <p className="font-medium">Boviewealth@gmail.com</p>
+            <Label className="text-sm text-[#797979]">Business Email Address</Label>
+            <p className="text-xs">Boviewealth@gmail.com</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Business Number</Label>
-            <p className="font-medium">+234 706 387 0050</p>
+            <Label className="text-sm text-[#797979]">Business Number</Label>
+            <p className="text-xs">+234 706 387 0050</p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-3  border rounded-md p-2">
         <div className="flex items-center justify-between">
           <h4 className="text-lg font-medium">Address Information</h4>
           <Button variant="ghost" size="sm">
@@ -150,26 +150,26 @@ export default function SettingsPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 font-poppins  text-[#797979] gap-6">
           <div>
-            <Label className="text-sm text-gray-600">Country</Label>
-            <p className="font-medium">Bovie</p>
+            <Label className="text-sm text-[#797979]">Country</Label>
+            <p className="text-xs">Bovie</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">City/ State</Label>
-            <p className="font-medium">Wealth</p>
+            <Label className="text-sm text-[#797979]">City/ State</Label>
+            <p className="text-xs">Wealth</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Street Name & Number</Label>
-            <p className="font-medium">Boviewealth1</p>
+            <Label className="text-sm text-[#797979]">Street Name & Number</Label>
+            <p className="text-xs">Boviewealth1</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Postal Code</Label>
-            <p className="font-medium">Boviewealth@gmail.com</p>
+            <Label className="text-sm text-[#797979]">Postal Code</Label>
+            <p className="text-xs">Boviewealth@gmail.com</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Tax ID</Label>
-            <p className="font-medium">+234 706 387 0050</p>
+            <Label className="text-sm text-[#797979]">Tax ID</Label>
+            <p className="text-xs">+234 706 387 0050</p>
           </div>
         </div>
       </div>
@@ -185,38 +185,38 @@ export default function SettingsPage() {
     <div className="space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-gray-900">Store Settings</h2>
-        <p className="text-gray-600 mt-1">Configure your store details and preferences</p>
+        <p className="text-[#797979] mt-1">Configure your store details and preferences</p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-3  border rounded-md p-2">
         <div className="flex items-center justify-between">
-          <h4 className="text-lg font-medium">Store Information</h4>
+          <h4 className="text-base md:text-lg font-medium">Store Information</h4>
           <Button variant="ghost" size="sm">
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 font-poppins  text-[#797979] gap-6 ">
           <div>
-            <Label className="text-sm text-gray-600">Business Name</Label>
-            <p className="font-medium">Bovie</p>
+            <Label className="text-sm text-[#797979]">Business Name</Label>
+            <p className="text-xs">Bovie</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Business Address</Label>
-            <p className="font-medium">Wealth</p>
+            <Label className="text-sm text-[#797979]">Business Address</Label>
+            <p className="text-xs">Wealth</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Social Media Handles</Label>
-            <p className="font-medium">Boviewealth1</p>
+            <Label className="text-sm text-[#797979]">Social Media Handles</Label>
+            <p className="text-xs">Boviewealth1</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Business Email Address</Label>
-            <p className="font-medium">Boviewealth@gmail.com</p>
+            <Label className="text-sm text-[#797979]">Business Email Address</Label>
+            <p className="text-xs">Boviewealth@gmail.com</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-600">Business Number</Label>
-            <p className="font-medium">+234 706 387 0050</p>
+            <Label className="text-sm text-[#797979]">Business Number</Label>
+            <p className="text-xs">+234 706 387 0050</p>
           </div>
         </div>
       </div>
@@ -230,9 +230,9 @@ export default function SettingsPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 font-poppins  text-[#797979] gap-6 ">
           <div>
-            <Label className="text-sm text-gray-600 mb-2 block">Currency</Label>
+            <Label className="text-sm text-[#797979] mb-2 block">Currency</Label>
             <Select defaultValue="naira">
               <SelectTrigger>
                 <SelectValue />
@@ -245,7 +245,7 @@ export default function SettingsPage() {
             </Select>
           </div>
           <div>
-            <Label className="text-sm text-gray-600 mb-2 block">Time Zone</Label>
+            <Label className="text-sm text-[#797979] mb-2 block">Time Zone</Label>
             <Select defaultValue="eastern">
               <SelectTrigger>
                 <SelectValue />
@@ -263,10 +263,10 @@ export default function SettingsPage() {
           <div className="flex items-start space-x-3">
             <Checkbox id="vacation" />
             <div className="space-y-1">
-              <Label htmlFor="vacation" className="font-medium">
+              <Label htmlFor="vacation" className="text-xs">
                 Vacation Mode
               </Label>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[#797979]">
                 When enabled, your store will be temporarily closed and customers will see a vacation message.
               </p>
             </div>
@@ -276,7 +276,7 @@ export default function SettingsPage() {
 
       <div className="flex gap-4 pt-6">
         <Button variant="outline">Cancel</Button>
-        <Button>Save Changes</Button>
+        <Button className="bg-[#002F7A]">Save Changes</Button>
       </div>
     </div>
   )
@@ -285,56 +285,56 @@ export default function SettingsPage() {
     <div className="space-y-8">
       <div>
         <h2 className="text-xl font-semibold text-gray-900">Notification Settings</h2>
-        <p className="text-gray-600 mt-1">Configure how and when you receive notification</p>
+        <p className="text-[#797979] mt-1">Configure how and when you receive notification</p>
       </div>
 
       <div className="space-y-8">
         <div>
           <h4 className="text-lg font-medium mb-4">Email Notifications</h4>
-          <div className="space-y-4">
+          <div className="space-y-4 font-poppins text-[#797979] ">
             <div className="flex items-start space-x-3">
               <Checkbox id="new-orders" defaultChecked />
               <div className="space-y-1">
-                <Label htmlFor="new-orders" className="font-medium">
+                <Label htmlFor="new-orders" className="text-sm">
                   New orders
                 </Label>
-                <p className="text-sm text-gray-600">Receive an email when a new order is placed</p>
+                <p className="text-sm text-[#797979]">Receive an email when a new order is placed</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <Checkbox id="order-status" defaultChecked />
               <div className="space-y-1">
-                <Label htmlFor="order-status" className="font-medium">
+                <Label htmlFor="order-status" className="text-sm">
                   Order status updates
                 </Label>
-                <p className="text-sm text-gray-600">Receive an email when an order status changed</p>
+                <p className="text-sm text-[#797979]">Receive an email when an order status changed</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <Checkbox id="low-stock" defaultChecked />
               <div className="space-y-1">
-                <Label htmlFor="low-stock" className="font-medium">
+                <Label htmlFor="low-stock" className="text-sm">
                   Low stock alerts
                 </Label>
-                <p className="text-sm text-gray-600">Receive an email when a product is running low on stock</p>
+                <p className="text-sm text-[#797979]">Receive an email when a product is running low on stock</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <Checkbox id="payment-received" defaultChecked />
               <div className="space-y-1">
-                <Label htmlFor="payment-received" className="font-medium">
+                <Label htmlFor="payment-received" className="text-sm">
                   Payment received
                 </Label>
-                <p className="text-sm text-gray-600">Receive an email when a payment is processed</p>
+                <p className="text-sm text-[#797979]">Receive an email when a payment is processed</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <Checkbox id="product-review" />
               <div className="space-y-1">
-                <Label htmlFor="product-review" className="font-medium">
+                <Label htmlFor="product-review" className="text-xs">
                   Product review
                 </Label>
-                <p className="text-sm text-gray-600">Receive an email when a customer review your product</p>
+                <p className="text-sm text-[#797979]">Receive an email when a customer review your product</p>
               </div>
             </div>
           </div>
@@ -346,19 +346,19 @@ export default function SettingsPage() {
             <div className="flex items-start space-x-3">
               <Checkbox id="push-new-orders" defaultChecked />
               <div className="space-y-1">
-                <Label htmlFor="push-new-orders" className="font-medium">
+                <Label htmlFor="push-new-orders" className="text-sm">
                   New orders
                 </Label>
-                <p className="text-sm text-gray-600">Receive a push notification when a new order is placed</p>
+                <p className="text-sm text-[#797979]">Receive a push notification when a new order is placed</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
               <Checkbox id="push-new-messages" defaultChecked />
               <div className="space-y-1">
-                <Label htmlFor="push-new-messages" className="font-medium">
+                <Label htmlFor="push-new-messages" className="text-sm">
                   New Messages
                 </Label>
-                <p className="text-sm text-gray-600">Receive a push notification when you get a new messages</p>
+                <p className="text-sm text-[#797979]">Receive a push notification when you get a new messages</p>
               </div>
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function SettingsPage() {
 
       <div className="flex gap-4 pt-6">
         <Button variant="outline">Cancel</Button>
-        <Button>Save Changes</Button>
+        <Button className="bg-[#002F7A]">Save Changes</Button>
       </div>
     </div>
   )
@@ -375,49 +375,49 @@ export default function SettingsPage() {
   const renderSecuritySection = () => (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Security Settings</h2>
-        <p className="text-gray-600 mt-1">Manage your account security and authentication settings</p>
+        <h2 className="text-lg md:text-xl font-semibold text-gray-900">Security Settings</h2>
+        <p className="text-[#000] font-poppins  mt-1">Manage your account security and authentication settings</p>
       </div>
 
       <div className="space-y-8">
-        <div>
+        <div className="rounded-md border p-2 font-poppins ">
           <h4 className="text-lg font-medium mb-4">Change Password</h4>
           <div className="space-y-4 max-w-md">
             <div>
-              <Label htmlFor="current-password">Enter Current password</Label>
+              <Label htmlFor="current-password" className="mb-1">Enter Current password</Label>
               <Input id="current-password" type="password" />
             </div>
             <div>
-              <Label htmlFor="new-password">Enter New password</Label>
+              <Label htmlFor="new-password" className="mb-1">Enter New password</Label>
               <Input id="new-password" type="password" />
             </div>
             <div>
-              <Label htmlFor="confirm-password">Confirm New password</Label>
+              <Label htmlFor="confirm-password" className="mb-1">Confirm New password</Label>
               <Input id="confirm-password" type="password" />
             </div>
-            <Button>Update Password</Button>
+            <Button className="bg-[#002F7A]">Update Password</Button>
           </div>
         </div>
 
         <div>
           <h4 className="text-lg font-medium">Two factor authentication</h4>
-          <p className="text-gray-600 text-sm mb-4">Add an extra layer of security to your account</p>
+          <p className="text-[#797979] text-sm mb-4">Add an extra layer of security to your account</p>
         </div>
 
-        <div>
-          <h4 className="text-lg font-medium mb-4">Active sessions</h4>
+        <div className="rounded-md border p-2 ">
+          <h4 className="text-base md:text-lg font-medium mb-4">Active sessions</h4>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-[#F3F6FD]">
               <div>
-                <p className="font-medium">Chrome on Macbook pro</p>
-                <p className="text-sm text-gray-600">Last active : Just now Lagos state, Nigeria</p>
+                <p className="text-xs">Chrome on Macbook pro</p>
+                <p className="text-sm text-[#797979]">Last active : Just now Lagos state, Nigeria</p>
               </div>
               <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Current</span>
             </div>
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-[#F3F6FD]">
               <div>
-                <p className="font-medium">Safari on iphone</p>
-                <p className="text-sm text-gray-600">Last active : 2hrs ago Lagos state, Nigeria</p>
+                <p className="text-xs">Safari on iphone</p>
+                <p className="text-sm text-[#797979]">Last active : 2hrs ago Lagos state, Nigeria</p>
               </div>
               <Button variant="destructive" size="sm">
                 Revoke
@@ -429,7 +429,7 @@ export default function SettingsPage() {
 
       <div className="flex gap-4 pt-6">
         <Button variant="outline">Cancel</Button>
-        <Button>Save Changes</Button>
+        <Button className="bg-[#002F7A]">Save Changes</Button>
       </div>
     </div>
   )
@@ -437,31 +437,31 @@ export default function SettingsPage() {
   const renderHelpSection = () => (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Help & Support</h2>
-        <p className="text-gray-600 mt-1">Find answers to common questions and get support</p>
+        <h2 className="text-lg md:text-xl font-semibold text-gray-700">Help & Support</h2>
+        <p className="text-[#797979] mt-1 ">Find answers to common questions and get support</p>
       </div>
 
       <div className="space-y-6">
-        <h4 className="text-lg font-medium">Frequently Asked Question</h4>
+        <h4 className="text-base md:text-lg font-medium">Frequently Asked Question</h4>
 
         <div className="space-y-4">
-          <div className="border rounded-lg p-4">
+          <div className="bg-[#F3F6FD] font-poppins rounded-lg p-4">
             <h5 className="font-medium mb-2">How do I process a refund</h5>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm font-poppins  text-[#797979]">
               To process a refund, go to the order details page, click on "action" button and select issues refund,
               follow the prompt to process a refund.
             </p>
           </div>
-          <div className="border rounded-lg p-4">
+          <div className="bg-[#F3F6FD] font-poppins rounded-lg p-4">
             <h5 className="font-medium mb-2">How do I add a new product?</h5>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm font-poppins  text-[#797979]">
               To process a refund, go to the order details page, click on "action" button and select issues refund,
               follow the prompt to process a refund.
             </p>
           </div>
-          <div className="border rounded-lg p-4">
+          <div className="bg-[#F3F6FD] rounded-lg font-poppins p-4">
             <h5 className="font-medium mb-2">How do I change my store settings</h5>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm   text-[#797979]">
               To process a refund, go to the order details page, click on "action" button and select issues refund,
               follow the prompt to process a refund.
             </p>
@@ -469,10 +469,10 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div>
-          <h4 className="text-lg font-medium">Help & Support</h4>
-          <p className="text-gray-600 text-sm">
+          <h4 className="text-base md:text-lg font-medium">Help & Support</h4>
+          <p className="text-[#797979] text-sm">
             Need help with something not covered in the FAQs? Our support team is here to help you.
           </p>
         </div>
@@ -486,7 +486,7 @@ export default function SettingsPage() {
             <Label htmlFor="message">Message</Label>
             <Textarea id="message" placeholder="Please describe your issues in detail" rows={4} />
           </div>
-          <Button>Send Message</Button>
+          <Button className="bg-[#002F7A]">Send Message</Button>
         </div>
       </div>
     </div>
@@ -521,7 +521,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">Account Settings</h1>
-                <p className="text-sm text-gray-600">Everything is here</p>
+                <p className="text-sm text-[#797979]">Everything is here</p>
               </div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -538,7 +538,7 @@ export default function SettingsPage() {
                       key={item.id}
                       onClick={() => setActiveSection(item.id)}
                       className={` text-center py-2 px-2 md:px-3 lg:px-4 rounded-lg text-sm font-medium ${
-                        activeSection === item.id ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-300 bg-gray-200"
+                        activeSection === item.id ? "bg-blue-100 text-blue-700" : "text-[#797979] hover:bg-gray-300 bg-gray-200"
                       }`}
                     >
                       {item.label}

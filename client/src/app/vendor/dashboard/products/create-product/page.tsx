@@ -188,258 +188,523 @@ export default function AddProductPage() {
       setCurrentStep(currentStep + 1);
     }
   };
-  const renderStepOne = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Product Images - Left Side */}
-      <div className="bg-white rounded-lg border overflow-hidden">
-        <div className="p-6 border-b">
-          <h2 className="text-base md:text-lg font-medium">Product Images</h2>
-        </div>
-        <div className="p-4 space-y-4">
-          <DropZone
-            onDrop={handleImageDrop}
-            accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+//   const renderStepOne = () => (
+//     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+//       {/* Product Images - Left Side */}
+//       <div className="bg-white rounded-lg border overflow-hidden">
+//         <div className="p-6 border-b">
+//           <h2 className="text-base md:text-lg font-medium">Product Images</h2>
+//         </div>
+//         <div className="p-4 space-y-4">
+//           <DropZone
+//             onDrop={handleImageDrop}
+//             accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
            
-          >
-            <div className="aspect-square bg-gray-100 max-h-[227px] w-full rounded-lg overflow-hidden flex items-center justify-center">
-              {formData.images.length > 0 ? (
-                <img
-                  src={URL.createObjectURL(formData.images[0])}
-                  alt="Product"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center font-light text-gray-400">
-                  <Plus className="w-8 h-8 mb-2" />
-                  <p>Click or drag to upload main image</p>
-                </div>
-              )}
-            </div>
-          </DropZone>
+//           >
+//             <div className=" bg-gray-100 max-h-[227px] w-full rounded-lg overflow-hidden flex items-center justify-center">
+//               {formData.images.length > 0 ? (
+//                 <img
+//                   src={URL.createObjectURL(formData.images[0])}
+//                   alt="Product"
+//                   className="w-full h-full object-cover"
+//                 />
+//               ) : (
+//                 <div className="flex flex-col items-center justify-center font-light text-gray-400">
+//                   <Plus className="w-8 h-8 mb-2" />
+//                   <p>Click or drag to upload main image</p>
+//                 </div>
+//               )}
+//             </div>
+//           </DropZone>
 
-          <div className="flex gap-3">
-            {formData.images.slice(0, 2).map((image, index) => (
-              <div key={index} className="relative w-10 h-10">
-                <img
-                  src={URL.createObjectURL(image)}
-                  alt={`Thumbnail ${index + 1}`}
-                  className="w-full h-full object-cover rounded-lg"
-                />
+//           <div className="flex gap-3">
+//             {formData.images.slice(0, 2).map((image, index) => (
+//               <div key={index} className="relative w-10 h-10">
+//                 <img
+//                   src={URL.createObjectURL(image)}
+//                   alt={`Thumbnail ${index + 1}`}
+//                   className="w-full h-full object-cover rounded-lg"
+//                 />
+//                 <button
+//                   onClick={(e) => {
+//                     e.stopPropagation();
+//                     removeImage(index);
+//                   }}
+//                   className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+//                 >
+//                   <X className="w-3 h-3 text-white" />
+//                 </button>
+//               </div>
+//             ))}
+
+//             {formData.images.length < 2 && (
+//               <DropZone
+//                 onDrop={handleImageDrop}
+//                 accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+//               >
+//                 <div className="w-10 h-10 border-2 border-dashed border-blue-400 rounded-lg flex items-center justify-center bg-blue-50">
+//                   <Plus className="w-4 h-4 text-blue-500" />
+//                 </div>
+//               </DropZone>
+//             )}
+//           </div>
+
+//           {/* Video Upload */}
+//           <DropZone
+//             onDrop={handleVideoDrop}
+//             accept={{ "video/*": [".mp4", ".mov", ".avi"] }}
+//           >
+//             <div className="border-2 border-dashed border-blue-400 rounded-lg p-8 bg-blue-50">
+//               {formData.videos.length > 0 ? (
+//                 <div className="relative">
+//                   <video controls className="w-full">
+//                     <source src={URL.createObjectURL(formData.videos[0])} />
+//                   </video>
+//                   <button
+//                     onClick={(e) => {
+//                       e.stopPropagation();
+//                       setFormData((prev) => ({
+//                         ...prev,
+//                         videos: [],
+//                       }));
+//                     }}
+//                     className="absolute top-2 right-2 bg-red-500 rounded-full p-1"
+//                   >
+//                     <X className="w-3 h-3 text-white" />
+//                   </button>
+//                 </div>
+//               ) : (
+//                 <>
+//                   <Plus className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+//                   <p className="text-sm text-blue-600 font-medium">
+//                     Click or Drag to add video
+//                   </p>
+//                 </>
+//               )}
+//             </div>
+//           </DropZone>
+//         </div>
+//       </div>
+
+//       <div>
+//         <div className="bg-white rounded-lg border">
+//           <div className="p-6 border-b">
+//             <h2 className="text-base md:text-lg font-medium">Product Details</h2>
+//           </div>
+//           <div className="p-4 md:p-6 space-y-4">
+//             <div>
+//               <Label
+//                 htmlFor="productName"
+//                 className="text-sm font-medium text-gray-700 mb-2 block"
+//               >
+//                 Product Name
+//               </Label>
+//               <Input
+//                 id="productName"
+//                 placeholder="Nike Baseball Cap"
+//                 value={formData.productName}
+//                 onChange={(e) => updateFormData("productName", e.target.value)}
+//                 className="text-light placeholder:font-light"
+//               />
+//             </div>
+
+//             <div>
+//               <Label
+//                 htmlFor="productDescription"
+//                 className="text-sm font-medium text-gray-700 mb-2 block"
+//               >
+//                 Product Description
+//               </Label>
+//               <Textarea
+//                 id="productDescription"
+//                 placeholder="Elevate your everyday style with the Nike Baseball Cap..."
+//                 value={formData.productDescription}
+//                 onChange={(e) =>
+//                   updateFormData("productDescription", e.target.value)
+//                 }
+//                 rows={6}
+//                 className="text-sm"
+//               />
+//             </div>
+
+//             <div className="grid grid-cols-2 gap-4">
+//               <div>
+//                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
+//                   Categories
+//                 </Label>
+//                 <Select
+//                   value={formData.categories}
+//                   onValueChange={(value) => updateFormData("categories", value)}
+//                 >
+//                   <SelectTrigger>
+//                     <SelectValue placeholder="Nike Baseball Cap" />
+//                   </SelectTrigger>
+//                   <SelectContent>
+//                     <SelectItem value="caps">Baseball Caps</SelectItem>
+//                     <SelectItem value="clothing">Clothing</SelectItem>
+//                     <SelectItem value="accessories">Accessories</SelectItem>
+//                   </SelectContent>
+//                 </Select>
+//               </div>
+
+//               <div>
+//                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
+//                   Product Condition
+//                 </Label>
+//                 <Select
+//                   value={formData.productCondition}
+//                   onValueChange={(value) =>
+//                     updateFormData("productCondition", value)
+//                   }
+//                 >
+//                   <SelectTrigger>
+//                     <SelectValue placeholder="New" />
+//                   </SelectTrigger>
+//                   <SelectContent>
+//                     <SelectItem value="new">New</SelectItem>
+//                     <SelectItem value="used">Used</SelectItem>
+//                     <SelectItem value="refurbished">Refurbished</SelectItem>
+//                   </SelectContent>
+//                 </Select>
+//               </div>
+//             </div>
+
+//             <div className="grid grid-cols-2 gap-4">
+//               <div>
+//                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
+//                   Subcategory
+//                 </Label>
+//                 <Select
+//                   value={formData.subcategory}
+//                   onValueChange={(value) =>
+//                     updateFormData("subcategory", value)
+//                   }
+//                 >
+//                   <SelectTrigger>
+//                     <SelectValue placeholder="Nike" />
+//                   </SelectTrigger>
+//                   <SelectContent>
+//                     <SelectItem value="nike">Nike</SelectItem>
+//                     <SelectItem value="adidas">Adidas</SelectItem>
+//                     <SelectItem value="puma">Puma</SelectItem>
+//                   </SelectContent>
+//                 </Select>
+//               </div>
+
+//               <div>
+//                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
+//                   Detailed condition description
+//                 </Label>
+//                 <Input placeholder="Additional notes on the condition..." />
+//               </div>
+//             </div>
+
+//             <div className="grid grid-cols-2 gap-4">
+//               <div>
+//                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
+//                   Brand Name
+//                 </Label>
+//                 <Input
+//                   placeholder="Nike"
+//                   value={formData.brandName}
+//                   onChange={(e) => updateFormData("brandName", e.target.value)}
+//                 />
+//               </div>
+
+//               <div>
+//                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
+//                   SKU (Stock Keeping Unit)
+//                 </Label>
+//                 <Input
+//                   placeholder="NIKE-CAP-BLACK-001"
+//                   value={formData.sku}
+//                   onChange={(e) => updateFormData("sku", e.target.value)}
+//                 />
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//         <div className="lg:col-span-2 gap-1 flex justify-between mt-3">
+//           <Button variant="outline" onClick={handleBack} className="flex-1">
+//             Back
+//           </Button>
+//           <Button
+//             onClick={handleNext}
+//             className="bg-[#002F7A] hover:bg-blue-700 flex-1"
+//           >
+//             Next
+//           </Button>
+//         </div>
+//       </div>
+
+//       {/* Action Buttons */}
+//     </div>
+//   );
+const renderStepOne = () => (
+  <div className="grid grid-cols-1 overflow-y-auto lg:grid-cols-2 gap-8 max-w-full overflow-hidden">
+    <div className="bg-white rounded-lg border overflow-hidden min-w-0">
+      <div className="p-6 border-b">
+        <h2 className="text-base md:text-lg font-medium">Product Images</h2>
+      </div>
+      <div className="p-4 space-y-4 font-poppins ">
+        <DropZone
+          onDrop={handleImageDrop}
+          accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+        >
+          <div className="bg-gray-100 h-[227px] w-full rounded-lg overflow-hidden flex items-center justify-center">
+            {formData.images.length > 0 ? (
+              <img
+                src={URL.createObjectURL(formData.images[0])}
+                alt="Product"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center font-light text-gray-400 p-4">
+                <Plus className="w-8 h-8 mb-2 flex-shrink-0" />
+                <p className="text-center text-sm">Click or drag to upload main image</p>
+              </div>
+            )}
+          </div>
+        </DropZone>
+
+        {/* Thumbnail Images Row */}
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {formData.images.slice(0, 2).map((image, index) => (
+            <div key={index} className="relative w-10 h-10 flex-shrink-0">
+              <img
+                src={URL.createObjectURL(image)}
+                alt={`Thumbnail ${index + 1}`}
+                className="w-full h-full object-cover rounded-lg"
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeImage(index);
+                }}
+                className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 hover:bg-red-600 transition-colors"
+              >
+                <X className="w-3 h-3 text-white" />
+              </button>
+            </div>
+          ))}
+
+          {formData.images.length < 2 && (
+            <DropZone
+              onDrop={handleImageDrop}
+              accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
+            >
+              <div className="w-10 h-10 border-2 border-dashed border-blue-400 rounded-lg flex items-center justify-center bg-[#FDF8F3] hover:bg-blue-100 transition-colors flex-shrink-0">
+                <Plus className="w-4 h-4 text-blue-500" />
+              </div>
+            </DropZone>
+          )}
+        </div>
+
+        {/* Video Upload */}
+        <DropZone
+          onDrop={handleVideoDrop}
+          accept={{ "video/*": [".mp4", ".mov", ".avi"] }}
+        >
+          <div className="border-2 border-dashed border-blue-400 rounded-lg p-4 bg-[#FDF8F3] hover:bg-blue-100 transition-colors">
+            {formData.videos.length > 0 ? (
+              <div className="relative w-full">
+                <video 
+                  controls 
+                  className="w-full max-h-48 rounded"
+                  style={{ maxWidth: '100%' }}
+                >
+                  <source src={URL.createObjectURL(formData.videos[0])} />
+                </video>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    removeImage(index);
+                    setFormData((prev) => ({
+                      ...prev,
+                      videos: [],
+                    }));
                   }}
-                  className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+                  className="absolute top-2 right-2 bg-red-500 rounded-full p-1 hover:bg-red-600 transition-colors"
                 >
                   <X className="w-3 h-3 text-white" />
                 </button>
               </div>
-            ))}
-
-            {formData.images.length < 2 && (
-              <DropZone
-                onDrop={handleImageDrop}
-                accept={{ "image/*": [".png", ".jpg", ".jpeg"] }}
-              >
-                <div className="w-10 h-10 border-2 border-dashed border-blue-400 rounded-lg flex items-center justify-center bg-blue-50">
-                  <Plus className="w-4 h-4 text-blue-500" />
-                </div>
-              </DropZone>
+            ) : (
+              <div className="text-center py-4">
+                <Plus className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                <p className="text-sm text-blue-600 font-medium">
+                  Click or Drag to add video
+                </p>
+              </div>
             )}
           </div>
-
-          {/* Video Upload */}
-          <DropZone
-            onDrop={handleVideoDrop}
-            accept={{ "video/*": [".mp4", ".mov", ".avi"] }}
-          >
-            <div className="border-2 border-dashed border-blue-400 rounded-lg p-8 bg-blue-50">
-              {formData.videos.length > 0 ? (
-                <div className="relative">
-                  <video controls className="w-full">
-                    <source src={URL.createObjectURL(formData.videos[0])} />
-                  </video>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFormData((prev) => ({
-                        ...prev,
-                        videos: [],
-                      }));
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 rounded-full p-1"
-                  >
-                    <X className="w-3 h-3 text-white" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <Plus className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                  <p className="text-sm text-blue-600 font-medium">
-                    Click or Drag to add video
-                  </p>
-                </>
-              )}
-            </div>
-          </DropZone>
-        </div>
+        </DropZone>
       </div>
+    </div>
 
-      <div>
-        <div className="bg-white rounded-lg border">
-          <div className="p-6 border-b">
-            <h2 className="text-base md:text-lg font-medium">Product Details</h2>
+    {/* Product Details - Right Side */}
+    <div className="min-w-0">
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="p-6 border-b">
+          <h2 className="text-base md:text-lg font-medium">Product Details</h2>
+        </div>
+        <div className="p-4 md:p-6 space-y-4 text-[#797979] font-poppins">
+          <div>
+            <Label
+              htmlFor="productName"
+              className="text-sm font-medium  mb-2 block"
+            >
+              Product Name
+            </Label>
+            <Input
+              id="productName"
+              placeholder="Nike Baseball Cap"
+              value={formData.productName}
+              onChange={(e) => updateFormData("productName", e.target.value)}
+              className="text-light placeholder:font-light w-full"
+            />
           </div>
-          <div className="p-4 md:p-6 space-y-4">
-            <div>
-              <Label
-                htmlFor="productName"
-                className="text-sm font-medium text-gray-700 mb-2 block"
+
+          <div>
+            <Label
+              htmlFor="productDescription"
+              className="text-sm font-medium  mb-2 block"
+            >
+              Product Description
+            </Label>
+            <Textarea
+              id="productDescription"
+              placeholder="Elevate your everyday style with the Nike Baseball Cap..."
+              value={formData.productDescription}
+              onChange={(e) =>
+                updateFormData("productDescription", e.target.value)
+              }
+              rows={6}
+              className="text-sm w-full resize-vertical"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="min-w-0">
+              <Label className="text-sm font-medium  mb-2 block">
+                Categories
+              </Label>
+              <Select
+                value={formData.categories}
+                onValueChange={(value) => updateFormData("categories", value)}
               >
-                Product Name
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Nike Baseball Cap" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="caps">Baseball Caps</SelectItem>
+                  <SelectItem value="clothing">Clothing</SelectItem>
+                  <SelectItem value="accessories">Accessories</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="min-w-0">
+              <Label className="text-sm font-medium  mb-2 block">
+                Product Condition
+              </Label>
+              <Select
+                value={formData.productCondition}
+                onValueChange={(value) =>
+                  updateFormData("productCondition", value)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="New" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="used">Used</SelectItem>
+                  <SelectItem value="refurbished">Refurbished</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="min-w-0">
+              <Label className="text-sm font-medium  mb-2 block">
+                Subcategory
+              </Label>
+              <Select
+                value={formData.subcategory}
+                onValueChange={(value) =>
+                  updateFormData("subcategory", value)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Nike" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nike">Nike</SelectItem>
+                  <SelectItem value="adidas">Adidas</SelectItem>
+                  <SelectItem value="puma">Puma</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="min-w-0">
+              <Label className="text-sm font-medium  mb-2 block">
+                Detailed condition description
+              </Label>
+              <Input 
+                placeholder="Additional notes on the condition..." 
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="min-w-0">
+              <Label className="text-sm font-medium  mb-2 block">
+                Brand Name
               </Label>
               <Input
-                id="productName"
-                placeholder="Nike Baseball Cap"
-                value={formData.productName}
-                onChange={(e) => updateFormData("productName", e.target.value)}
-                className="text-light placeholder:font-light"
+                placeholder="Nike"
+                value={formData.brandName}
+                onChange={(e) => updateFormData("brandName", e.target.value)}
+                className="w-full"
               />
             </div>
 
-            <div>
-              <Label
-                htmlFor="productDescription"
-                className="text-sm font-medium text-gray-700 mb-2 block"
-              >
-                Product Description
+            <div className="min-w-0">
+              <Label className="text-sm font-medium mb-2 block">
+                SKU (Stock Keeping Unit)
               </Label>
-              <Textarea
-                id="productDescription"
-                placeholder="Elevate your everyday style with the Nike Baseball Cap..."
-                value={formData.productDescription}
-                onChange={(e) =>
-                  updateFormData("productDescription", e.target.value)
-                }
-                rows={6}
-                className="text-sm"
+              <Input
+                placeholder="NIKE-CAP-BLACK-001"
+                value={formData.sku}
+                onChange={(e) => updateFormData("sku", e.target.value)}
+                className="w-full"
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Categories
-                </Label>
-                <Select
-                  value={formData.categories}
-                  onValueChange={(value) => updateFormData("categories", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Nike Baseball Cap" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="caps">Baseball Caps</SelectItem>
-                    <SelectItem value="clothing">Clothing</SelectItem>
-                    <SelectItem value="accessories">Accessories</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Product Condition
-                </Label>
-                <Select
-                  value={formData.productCondition}
-                  onValueChange={(value) =>
-                    updateFormData("productCondition", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="New" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="used">Used</SelectItem>
-                    <SelectItem value="refurbished">Refurbished</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Subcategory
-                </Label>
-                <Select
-                  value={formData.subcategory}
-                  onValueChange={(value) =>
-                    updateFormData("subcategory", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Nike" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nike">Nike</SelectItem>
-                    <SelectItem value="adidas">Adidas</SelectItem>
-                    <SelectItem value="puma">Puma</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Detailed condition description
-                </Label>
-                <Input placeholder="Additional notes on the condition..." />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Brand Name
-                </Label>
-                <Input
-                  placeholder="Nike"
-                  value={formData.brandName}
-                  onChange={(e) => updateFormData("brandName", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  SKU (Stock Keeping Unit)
-                </Label>
-                <Input
-                  placeholder="NIKE-CAP-BLACK-001"
-                  value={formData.sku}
-                  onChange={(e) => updateFormData("sku", e.target.value)}
-                />
-              </div>
             </div>
           </div>
         </div>
-        <div className="lg:col-span-2 gap-1 flex justify-between mt-3">
-          <Button variant="outline" onClick={handleBack} className="flex-1">
-            Back
-          </Button>
-          <Button
-            onClick={handleNext}
-            className="bg-[#002F7A] hover:bg-blue-700 flex-1"
-          >
-            Next
-          </Button>
-        </div>
       </div>
-
+      
       {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-3 mt-4">
+        <Button 
+          variant="outline" 
+          onClick={handleBack} 
+          className="flex-1 w-full"
+        >
+          Back
+        </Button>
+        <Button
+          onClick={handleNext}
+          className="bg-[#002F7A] hover:bg-blue-700 flex-1 w-full"
+        >
+          Next
+        </Button>
+      </div>
     </div>
-  );
+  </div>
+);
 
   const renderStepTwo = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -448,11 +713,11 @@ export default function AddProductPage() {
         <div className="p-6 border-b">
           <h2 className="text-lg font-semibold">Product Details</h2>
         </div>
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 text-[#797979]">
           <div>
             <Label
               htmlFor="productPrice"
-              className="text-sm font-medium text-gray-700 mb-2 block"
+              className="text-sm font-medium  mb-2 block"
             >
               Product Price
             </Label>
@@ -467,7 +732,7 @@ export default function AddProductPage() {
           <div>
             <Label
               htmlFor="negotiationPrice"
-              className="text-sm font-medium text-gray-700 mb-2 block"
+              className="text-sm font-medium  mb-2 block"
             >
               Negotiation Price
             </Label>
@@ -483,7 +748,7 @@ export default function AddProductPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
+              <Label className="text-sm font-medium  mb-2 block">
                 Store Quantity
               </Label>
               <Input
@@ -495,7 +760,7 @@ export default function AddProductPage() {
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-gray-700 mb-2 block">
+              <Label className="text-sm font-medium  mb-2 block">
                 Store Status
               </Label>
               <Select
@@ -515,7 +780,7 @@ export default function AddProductPage() {
           </div>
 
           <div>
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">
+            <Label className="text-sm font-medium  mb-2 block">
               Allow Bidding
             </Label>
             <Select
@@ -533,12 +798,12 @@ export default function AddProductPage() {
           </div>
 
           <div>
-            <Label className="text-sm font-medium text-gray-700 mb-3 block">
+            <Label className="text-sm font-medium mb-3 block">
               Product Variant
             </Label>
 
             <div className="mb-4">
-              <Label className="text-sm text-gray-600 mb-2 block">
+              <Label className="text-sm  mb-2 block">
                 Colours
               </Label>
               <div className="flex gap-2 mb-2">
@@ -601,11 +866,11 @@ export default function AddProductPage() {
           <div className="p-6 border-b">
             <h2 className="text-lg font-semibold">SEO & Meta Settings</h2>
           </div>
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 text-[#797979]">
             <div>
               <Label
                 htmlFor="seoTitle"
-                className="text-sm font-medium text-gray-700 mb-2 block"
+                className="text-sm font-medium  mb-2 block"
               >
                 SEO Title
               </Label>
@@ -620,7 +885,7 @@ export default function AddProductPage() {
             <div>
               <Label
                 htmlFor="metaTitle"
-                className="text-sm font-medium text-gray-700 mb-2 block"
+                className="text-sm font-medium  mb-2 block"
               >
                 Meta Title
               </Label>
@@ -638,7 +903,7 @@ export default function AddProductPage() {
             <div>
               <Label
                 htmlFor="metaDescription"
-                className="text-sm font-medium text-gray-700 mb-2 block"
+                className="text-sm font-medium  mb-2 block"
               >
                 Meta Description
               </Label>
@@ -694,11 +959,10 @@ export default function AddProductPage() {
 
   const renderStepThree = () => (
     <div className="">
-      {/* Product Images - Left Side */}
       <div className="bg-white ">
         <div className="flex pt-6">
           <div className="w-full flex md:flex lg:w-[45%] p-2 md:p-4">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 ">
             {images.map((image, index) => (
               <button
                 className={` hover:shadow-md max-w-[100px] max-h-[100px] flex justify-center items-center p-3  bg-[#E4E4EE33] rounded-xl overflow-hidden transition-all duration-200 `}
@@ -721,7 +985,7 @@ export default function AddProductPage() {
             </div>
           </div>
 
-          <div className="space-y-6 w-full md:w-[55%]">
+          <div className="space-y-6 w-full md:w-[55%] font-poppins ">
             {/* Product Title and Price */}
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -811,8 +1075,7 @@ export default function AddProductPage() {
   );
 
   return (
-    <div className=" bg-gray-50">
-      {/* Success Notifications */}
+    <div className=" h-screen overflow-y-scroll bg-gray-50">
       {showSuccessNotification && (
         <SuccessNotification
           message={showSuccessNotification}
@@ -820,9 +1083,7 @@ export default function AddProductPage() {
         />
       )}
 
-      {/* Header */}
-
-      {/* Page Header */}
+     
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
