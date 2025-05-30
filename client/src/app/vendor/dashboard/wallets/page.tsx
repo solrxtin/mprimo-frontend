@@ -264,8 +264,8 @@ const WalletPage = (props: Props) => {
   };
 
   return (
-    <div className="bg-[#f6f6f6] rounded-lg py-4 md:p-6 min-h-screen font-[family-name:var(--font-alexandria)]">
-      <div className="px-2 md:px-3 lg:px-5">
+    <div className="bg-[#f6f6f6] rounded-lg py-4 lg:p-6 min-h-screen font-[family-name:var(--font-alexandria)]">
+      <div className="px-2 md:px-4 lg:px-5">
         <div className="flex justify-between items-center mb-5">
           <div>
             <h1 className="text-xl md:text-2xl font-semibold">My Wallet</h1>

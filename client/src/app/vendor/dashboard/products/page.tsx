@@ -257,7 +257,7 @@ const ProductsPage = () => {
 
   return (
     <div className="bg-[#f6f6f6] font-[family-name:var(--font-alexandria)]">
-      <div className="p-4 md:p-6 lg:p-10">
+      <div className="p-2 md:p-4 lg:p-10">
         <div className="flex flex-col md:flex-col-reverse lg:flex-row justify-between items-start md:items-center mb-5 gap-4">
           <div className="w-full">
             <div className="flex overflow-x-auto scrollbar-hide gap-x-2 lg:gap-x-4 items-center text-[#b5b4b4] mb-1">
