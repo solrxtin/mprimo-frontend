@@ -8,6 +8,10 @@
   font-family: var(--font-poppins);
 }
 
+.font-roboto {
+  font-family: var(--font-roboto);
+}
+
 
 @layer utilities {
   @keyframes loading-bar {
@@ -98,7 +102,7 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(54.61% 0.215 262.88);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
