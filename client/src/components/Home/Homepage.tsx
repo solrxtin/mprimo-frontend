@@ -5,6 +5,8 @@ import BestDeals from './BestDeals'
 import ShopCategoriesComponent from './ByCategory'
 import ComputerAccessories from './ComputerAccessories'
 import FeaturedProducts from './FeaturedProduct'
+import CustomerReviews from './Review'
+import Cta from './Cta'
 
 const Homepage = () => {
   return (
@@ -15,6 +17,8 @@ const Homepage = () => {
      <ShopCategoriesComponent />
      <FeaturedProducts />
      <ComputerAccessories />
+     <CustomerReviews />
+     <Cta />
     </div>
  
   )

@@ -318,20 +318,21 @@ export default function ComputerAccessories() {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 max-h-[685px] overflow-hidden">
-        <div className="lg:col-span-1 order-1 hidden lg:block">
+      <div className="">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 lg:h-[685px] ">
+        <div className="lg:col-span-1 order-1 hidden lg:block h-full lg:max-h-[685px]">
           {" "}
-          <img src="/images/phoneBanner.png" alt="Acceosories Banner" className="aspect-ratio objec" />
+          <img src="/images/phoneBanner.png" alt="Acceosories Banner" className="object-contain h-full" />
         </div>
 
-        <div className="lg:col-span-3 md:col-span-2 order-1">
+        <div className="lg:col-span-3 md:col-span-2 order-1 lg:max-h-[685px]">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-10 ">
             {otherProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </div>
-      </div>
+      </div></div>
     </div>
   );
 }
