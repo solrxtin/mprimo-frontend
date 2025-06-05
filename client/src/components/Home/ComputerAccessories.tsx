@@ -73,8 +73,8 @@ const products: Product[] = [
     condition: "Brand New",
     category: "Personal",
   },
-   {
-    id: 5,
+  {
+    id: 6,
     name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
     image: "/images/tv.png",
     rating: 4.5,
@@ -84,7 +84,7 @@ const products: Product[] = [
     condition: "Brand New",
     category: "Personal",
   },
-     {
+  {
     id: 5,
     name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
     image: "/images/tv.png",
@@ -98,11 +98,11 @@ const products: Product[] = [
 ];
 
 const navCategories = [
-  "All Products",
-  "Auction",
-  "Furniture",
-  "Offer",
-  "Buy Now",
+  "All Accessories",
+  "Laptop",
+  "Keyboard",
+  "Mouse",
+  "Headphones",
 ];
 
 const StarRating = ({
@@ -213,6 +213,13 @@ const ProductCard = ({
           )}
         </h3>
 
+        <p
+          className={`font-normal text-[7px] mt-1 md:text-[8px]  text-gray-800 line-clamp-2 group-hover:text-blue-400 transition-colors `}
+        >
+          Caon 40 Series is TECNO’s latest flagship imaging and AI smartphone
+          that seamlessly combines good productivity
+        </p>
+
         {isLarge && (
           <>
             <div className="flex items-center">
@@ -232,10 +239,6 @@ const ProductCard = ({
             </p>
           </>
         )}
-
-        {/* <div className="flex items-center gap-2 mb-2 sm:mb-3">
-         
-        </div> */}
 
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex flex-col">
@@ -286,7 +289,7 @@ export default function ComputerAccessories() {
       <div className="flex flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
           <h1 className="text-base md:text-xl lg:text-4xl font-semibold text-gray-900">
-            Featured Products
+            Computer Accessories
           </h1>
         </div>
         {/* Navigation */}
@@ -315,10 +318,19 @@ export default function ComputerAccessories() {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 max-h-[685px] overflow-hidden">
+        <div className="lg:col-span-1 order-1 hidden lg:block">
+          {" "}
+          <img src="/images/phoneBanner.png" alt="Acceosories Banner" className="aspect-ratio objec" />
+        </div>
+
+        <div className="lg:col-span-3 md:col-span-2 order-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-10 ">
             {otherProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
+          </div>
+        </div>
       </div>
     </div>
   );

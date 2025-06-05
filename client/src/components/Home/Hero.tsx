@@ -204,7 +204,7 @@ const MarketplaceSection = () => {
         </div>
       </div>
 
-      <div className="flex items-center overflow-x-scroll  mt-2 md:mt-2 lg:mt-4 w-full">
+      <div className="grid  grid-cols-5 items-center overflow-x-scroll  mt-2 md:mt-2 lg:mt-4 w-full">
         {features.map((feature, index) => (
           <div key={index} className="bg-[#E2E8F0] rounded-md py-1 lg:py-[6px] px-2 md:px-3 shadow-sm hover:shadow-md transition-shadow duration-200">
             <div className="flex items-start space-x-2 md:space-x-4">

@@ -63,7 +63,7 @@ const products: Product[] = [
     category: "Wholesale",
   },
   {
-    id: 5,
+    id: 6,
     name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
     image: "/images/tv.png",
     rating: 4.5,
@@ -74,7 +74,7 @@ const products: Product[] = [
     category: "Personal",
   },
    {
-    id: 5,
+    id: 7,
     name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
     image: "/images/tv.png",
     rating: 4.5,
@@ -85,7 +85,7 @@ const products: Product[] = [
     category: "Personal",
   },
      {
-    id: 5,
+    id: 8,
     name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
     image: "/images/tv.png",
     rating: 4.5,

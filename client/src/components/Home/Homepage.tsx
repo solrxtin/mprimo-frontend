@@ -3,8 +3,8 @@ import Header from './Header'
 import MarketplaceSection from './Hero'
 import BestDeals from './BestDeals'
 import ShopCategoriesComponent from './ByCategory'
-import FeaturedProducts from './ComputerAccessories'
 import ComputerAccessories from './ComputerAccessories'
+import FeaturedProducts from './FeaturedProduct'
 
 const Homepage = () => {
   return (
