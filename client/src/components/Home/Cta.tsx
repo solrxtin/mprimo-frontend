@@ -8,7 +8,7 @@ export default function Cta() {
       <div className="md:px-[42px] lg:px-[80px] px-4x">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left Content */}
-          <div className="text-white md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18 ">
+          <div className="text-white py-8 md:py-14 lg:py-18 ">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight mb-4 md:mb-6">
               Enjoy Maximum Shopping Experience Today
             </h1>

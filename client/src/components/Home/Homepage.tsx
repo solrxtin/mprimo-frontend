@@ -7,6 +7,7 @@ import ComputerAccessories from './ComputerAccessories'
 import FeaturedProducts from './FeaturedProduct'
 import CustomerReviews from './Review'
 import Cta from './Cta'
+import Footer from './Footer'
 
 const Homepage = () => {
   return (
@@ -19,6 +20,7 @@ const Homepage = () => {
      <ComputerAccessories />
      <CustomerReviews />
      <Cta />
+     <Footer />
     </div>
  
   )
