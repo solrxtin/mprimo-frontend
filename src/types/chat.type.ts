@@ -1,20 +1,20 @@
-import mongoose from "mongoose";
+import mongoose, {Types} from "mongoose";
 
 
 export interface Chat {
   participants: [
     {
-      userId: mongoose.Schema.Types.ObjectId;
+      userId: Types.ObjectId;
       role: string;
     }
   ];
   messages: [
     {
-        senderId: mongoose.Schema.Types.ObjectId;
+        senderId: Types.ObjectId;
         content: string;
         type: 'text' | 'image' | 'file';
         fileUrl: string;
-        readBy: mongoose.Schema.Types.ObjectId;
+        readBy: Types.ObjectId;
         createdAt: Date;
     }
   ];

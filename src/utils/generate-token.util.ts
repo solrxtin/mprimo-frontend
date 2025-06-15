@@ -1,10 +1,10 @@
 import jwt from "jsonwebtoken";
 import { Response } from "express";
-import { ObjectId } from "mongoose";
+import {Types } from "mongoose";
 import RefreshToken from "../models/auth.model"
 
 // Generate both access and refresh tokens
-export const generateAccessToken = (userId: ObjectId) => {
+export const generateAccessToken = (userId: Types.ObjectId) => {
   return jwt.sign(
     { userId, type: 'access' },
     process.env.JWT_SECRET!,
@@ -13,7 +13,7 @@ export const generateAccessToken = (userId: ObjectId) => {
 };
 
 // Generate refresh token only when needed
-export const generateRefreshToken = async (userId: ObjectId) => {
+export const generateRefreshToken = async (userId: Types.ObjectId) => {
   const refreshToken = jwt.sign(
     { userId, type: 'refresh' },
     process.env.REFRESH_TOKEN_SECRET!,
@@ -32,7 +32,7 @@ export const generateRefreshToken = async (userId: ObjectId) => {
   return refreshToken;
 };
 
-export const generateTokensAndSetCookie = async (res: Response, userId: ObjectId) => {
+export const generateTokensAndSetCookie = async (res: Response, userId: Types.ObjectId) => {
   const accessToken = generateAccessToken(userId);
   const refreshToken = await generateRefreshToken(userId);
 

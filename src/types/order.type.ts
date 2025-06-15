@@ -1,12 +1,12 @@
-import mongoose, {  Document} from "mongoose"
+import mongoose, { Types, Document} from "mongoose"
 
 export interface IOrder extends Document {
-    userId: mongoose.Schema.Types.ObjectId;
+    userId: Types.ObjectId;
     items: [{
-        productId: mongoose.Schema.Types.ObjectId;
+        productId: Types.ObjectId;
         quantity: number;
         price: number;
-        vendorId: mongoose.Schema.Types.ObjectId;
+        vendorId: Types.ObjectId;
     }];
     payment: {
         method: string;

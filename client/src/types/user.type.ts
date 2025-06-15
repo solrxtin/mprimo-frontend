@@ -1,8 +1,8 @@
-import { ObjectId, Document } from "mongoose";
+import { Document } from "mongoose";
 
 
 export interface User extends Document {
-    _id: ObjectId;
+    _id: string;
     _doc: Document
     email: string;
     password?: string;
@@ -14,7 +14,7 @@ export interface User extends Document {
         sex?: string;
     };
     addresses?: Array<{
-        _id?: ObjectId;
+        _id?: string;
         type: string;
         street: string;
         city: string;

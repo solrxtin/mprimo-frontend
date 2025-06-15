@@ -47,24 +47,27 @@ router.post('/disable',
     }
 )
 
-router.post('/setup', 
-    //middleware to verify token
+
+router.post('/verify', 
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            await TwoFactorController.setup(req, res);
+            await TwoFactorController.verify(req, res);
         } catch (error) {
             next(error);
         }
     }
 )
 
-router.post('/verify', 
+router.post('/verify-backup', 
+    (req: Request, res: Response, next: NextFunction) => {
+        verifyToken(req, res, next);
+    },
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            await TwoFactorController.verify(req, res);
+            await TwoFactorController.verifyBackup(req, res);
         } catch (error) {
             next(error);
         }

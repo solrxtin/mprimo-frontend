@@ -58,7 +58,7 @@ const reviews: ReviewType[] = [
 
 const ReviewsTable = (props: Props) => {
   return (
-    <div className="mt-8 rounded-lg shadow-sm p-5 bg-white">
+    <div className="mt-8 rounded-lg shadow-sm p-2 md:p-4 lg:p-5 bg-white">
       <div className="flex flex-row justify-between items-center text-lg ">
         <h1>Recent Reviews</h1>
         <button className="flex cursor-pointer text-blue-600 items-center ">
@@ -119,11 +119,11 @@ const ReviewsTable = (props: Props) => {
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden space-y-4 p-4">
+      <div className="md:hidden space-y-4 p-2">
         {reviews.map((review) => (
           <div
             key={review.itemId}
-            className="bg-white breview rounded-lg p-4 shadow-sm"
+            className="bg-white breview rounded-lg p-4 shadow-xl hover:shadow-2xl transition-shadow duration-200"
           >
             <div className="flex justify-between items-center mb-2">
               <span className="font-medium">{review.itemId}</span>

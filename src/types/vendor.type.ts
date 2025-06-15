@@ -1,11 +1,11 @@
-import mongoose from 'mongoose';
+import mongoose, {Types} from 'mongoose';
 
 
   
 export interface Vendor {
-    _id?: mongoose.Schema.Types.ObjectId;
-    userId: mongoose.Schema.Types.ObjectId;
-    accountType: 'individual' | 'business';
+    _id?: Types.ObjectId;
+    userId: Types.ObjectId;
+    accountType: 'personal' | 'business';
     kycStatus: 'pending' | 'verified' | 'rejected';
     businessInfo?: {
         name: string;
@@ -25,6 +25,9 @@ export interface Vendor {
         bankName: string;
         swiftCode: string;
     };
+    sellingLimits?: {
+        maxProducts: number | null;
+    }
     ratings?: {
         average: number;
         count: number;

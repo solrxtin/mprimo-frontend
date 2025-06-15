@@ -1,0 +1,152 @@
+"use client";
+
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useProductListing } from "@/contexts/ProductLisitngContext";
+import { useResponsive } from "@/hooks/useResponsive";
+import { toast } from "react-toastify";
+import { useCreateProduct } from "@/hooks/useCreateProduct";
+import { useProductMapper } from "./SubmitProduct";
+import { useDeleteDraft } from "@/hooks/mutations";
+import { useProductStore } from "@/stores/useProductStore";
+
+type NavigationButtonsProps = {
+  onNext?: () => boolean | Promise<boolean>;
+  onBack?: () => void;
+  onSaveDraft?: () => void;
+  nextDisabled?: boolean;
+  currentAttributePage?: number;
+  totalAttributePages?: number;
+};
+
+export default function NavigationButtons({
+  onNext,
+  onBack,
+  onSaveDraft,
+  nextDisabled,
+  currentAttributePage,
+  totalAttributePages,
+}: NavigationButtonsProps) {
+  const { step, setStep, totalSteps, mobileTotalSteps, productDetails } =
+    useProductListing();
+  const { isMobileOrTablet } = useResponsive();
+  const createProductMutation = useCreateProduct();
+  const { mapProductDetailsToSchema } = useProductMapper();
+  const { draftId } = useProductListing();
+  const deleteDraftMutation = useDeleteDraft();
+  const { listedProducts, setListedProducts } = useProductStore();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  const handleNext = async () => {
+    if (onNext) {
+      try {
+        const result = await Promise.resolve(onNext());
+        if (result) {
+          setStep(step + 1);
+        }
+      } catch (error) {
+        console.error("Error in navigation:", error);
+      }
+    } else if (step < totalSteps) {
+      setStep(step + 1);
+    }
+  };
+
+  console.log(draftId)
+
+  const handleSubmitClick = async () => {
+    try {
+      const mappedData = mapProductDetailsToSchema();
+      const result = await createProductMutation.mutateAsync(mappedData);
+      if (result.success) {
+        toast.success("Product created successfully");
+        await deleteDraftMutation.mutateAsync(draftId);
+        const draftsFromStorage = localStorage.getItem("productDrafts");
+        const parsedDrafts = draftsFromStorage
+          ? JSON.parse(draftsFromStorage)
+          : [];
+
+        const updatedDrafts = parsedDrafts.filter(
+          (draft: any) => draft.draftId !== draftId
+        );
+
+        console.log("Updated Drafts:", updatedDrafts);
+
+        localStorage.setItem("productDrafts", JSON.stringify(updatedDrafts));
+        setListedProducts([...listedProducts, result.product]);
+        window.location.href = "/vendor/dashboard/products";
+      }
+    } catch (error: any) {
+      console.error("Error creating product:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          "Failed to create product. Please try again."
+      );
+      return null;
+    }
+  };
+
+  const isFirstStep = step === 1;
+  const isLastStep =
+    step === (isMobileOrTablet ? mobileTotalSteps : totalSteps);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col md:flex-row gap-y-3 gap-x-4 items-center justify-between py-4">
+        <button
+          onClick={handleBack}
+          disabled={isFirstStep}
+          className={`flex items-center justify-center text-sm gap-x-2 border text-[#f6b76f] hover:bg-[#f6b76f] hover:text-white border-secondary w-xs px-4 py-2 rounded-md cursor-pointer transition duration-300 ease-in-out disabled:cursor-not-allowed disabled:opacity-50`}
+        >
+          <ArrowLeft size={16} className="" />
+          <span>Back</span>
+        </button>
+        <button
+          onClick={() => onSaveDraft?.()}
+          disabled={!productDetails || Object.keys(productDetails).length < 1}
+          className="text-sm w-xs text-primary bg-[#f6b76f] px-4 py-2 rounded-md cursor-pointer transition duration-300 ease-in-out hover:bg-[#f6b76f]/80 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Save to Draft
+        </button>
+        <button
+          onClick={isLastStep ? handleSubmitClick : handleNext}
+          disabled={
+            nextDisabled || (isLastStep && createProductMutation.isPending)
+          }
+          className={`flex items-center justify-center gap-x-2 border hover:bg-[#2563eb]/80 bg-[#2563eb] w-xs text-gray-50 text-sm px-4 py-2 rounded-md cursor-pointer transition duration-300 ease-in-out ${
+            nextDisabled || (isLastStep && createProductMutation.isPending)
+              ? "opacity-50 cursor-not-allowed"
+              : ""
+          }`}
+        >
+          <span>
+            {isLastStep
+              ? createProductMutation.isPending
+                ? "Publishing..."
+                : "Publish Product"
+              : "Next"}
+          </span>
+          <ArrowRight
+            size={16}
+            className={`${isLastStep ? "hidden" : "block"}`}
+          />
+        </button>
+      </div>
+      <>
+        {currentAttributePage && totalAttributePages && (
+          <div className="text-sm text-gray-400 flex items-center gap-x-2">
+            <p>{currentAttributePage}</p>
+            <p>/</p>
+            <p>{totalAttributePages}</p>
+          </div>
+        )}
+      </>
+    </div>
+  );
+}

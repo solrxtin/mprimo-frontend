@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { X, Box, ShoppingBag, MessageSquare, CheckCircle } from "lucide-react";
 import Image from "next/image";
+import { useNotifications } from "@/contexts/NotificationContext";
 
 type NotificationType = "review" | "order" | "product-listed" | "message";
 
@@ -138,21 +139,8 @@ const NotificationModal = ({
   onClose,
   anchorEl,
 }: NotificationModalProps) => {
-  const [notifications, setNotifications] =
-    useState<Notification[]>(mockNotifications);
-  if (!isOpen) return null;
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })));
-  };
-
-  const markAsRead = (id: string) => {
-    setNotifications(
-      notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  };
-
+  const { notifications, unreadCount, markAsRead, markAllAsRead } =
+    useNotifications();
   const getPosition = () => {
     if (!anchorEl) return {};
 
@@ -170,18 +158,16 @@ const NotificationModal = ({
       <div className="fixed inset-0" onClick={onClose}></div>
 
       <div
-        className="fixed z-50 bg-white w-full max-w-md max-h-[80vh] overflow-auto shadow-lg"
+        className="fixed z-50 bg-white w-full max-w-md max-h-[80vh] overflow-auto border border-gray-300 shadow-lg"
         style={{
-            top: position.top || "60px",
-            right: window.innerWidth < 768 ? "0" : (position.right || "16px"),
-            left: window.innerWidth < 768 ? "0" : "auto",
-            height: window.innerWidth < 768 ? "calc(100vh - 60px)" : "auto",
-            maxHeight: window.innerWidth < 768 ? "none" : "80vh",
-          }}
+          top: position.top || "60px",
+          right: window.innerWidth < 768 ? "0" : position.right || "16px",
+          left: window.innerWidth < 768 ? "0" : "auto",
+          height: window.innerWidth < 768 ? "calc(100vh - 60px)" : "auto",
+          maxHeight: window.innerWidth < 768 ? "none" : "80vh",
+        }}
       >
         {/* Triangle pointer at top */}
-        <div className="absolute -top-2 right-2 w-20 h-20 bg-white transform rotate-45 border-t border-l border-gray-600"></div>
-
         <div className="sticky top-0 bg-white z-50 border-b border-b-[#dcdee4] font-[family-name:var(--font-inter)]">
           <div className="flex justify-between items-center p-4">
             <div className="flex items-center gap-x-1">
@@ -205,9 +191,9 @@ const NotificationModal = ({
               )}
               <button
                 onClick={onClose}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-50 hover:text-gray-700 bg-red-500 rounded-full p-0.5 "
               >
-                <X size={20} />
+                <X size={16} strokeWidth={4}/>
               </button>
             </div>
           </div>
@@ -220,7 +206,7 @@ const NotificationModal = ({
             </div>
           ) : (
             <div className="">
-              {notifications.map((notification) => (
+              {notifications.map((notification: any) => (
                 <div
                   key={notification.id}
                   className={`p-4 border-b border-b-[#dcdee4] ${

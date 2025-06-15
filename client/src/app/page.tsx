@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { toastConfigError } from "./config/toast.config";
 
+
 export default function Home() {
   const { user, setUser } = useUserStore();
   const { mutate: logoutUser } = useLogoutUser();

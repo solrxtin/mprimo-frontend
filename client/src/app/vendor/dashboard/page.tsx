@@ -32,11 +32,11 @@ const page = (props: Props) => {
             value={256}
           />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-5">
-          <div className="col-span-1 lg:col-span-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
+          <div className="col-span-1 xl:col-span-8">
             <SalesOverview />
           </div>
-          <div className="col-span-1 lg:col-span-4">
+          <div className="col-span-1 xl:col-span-4">
             <SalesActivity />
           </div>
         </div>

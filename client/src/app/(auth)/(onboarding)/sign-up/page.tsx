@@ -6,6 +6,8 @@ import React from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import BusinessRegistration from "@/components/BusinessRegistration";
 import PersonalRegistrationForm from "@/components/PersonalRegistrationForm";
+import { useRouter } from "next/navigation";
+import { useUserStore } from "@/stores/useUserStore";
 
 type Props = {};
 
@@ -15,10 +17,23 @@ const SignUpPage = (props: Props) => {
   );
   const [isCallingGoogle, setIsCallingGoogle] = useState(false)
 
+  const router = useRouter();
+  const { user } = useUserStore();
+
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
+
+  if (user) {
+    return null; 
+  }
+
+
   const handleAccountTypeChange = (type: "personal" | "business") => {
     setAccountType(type);
   };
-
 
   const handleGoogleLogin = async () => {
     setIsCallingGoogle(true)

@@ -99,7 +99,7 @@ const OrderTable = (props: Props) => {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   return (
     <div className="mt-8 rounded-lg shadow-sm">
-      <div className="grid md:grid-cols-6 lg:grid-cols-12 gap-4 p-5 border-b border-gray-200 bg-white">
+      <div className="grid md:grid-cols-6 lg:grid-cols-12 gap-4 p-5 border-b border-gray-200 bg-white text-xs">
         <div className="relative col-span-6">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-400" />
@@ -125,7 +125,7 @@ const OrderTable = (props: Props) => {
             className="flex items-center border border-gray-200 rounded-md px-3 py-2 cursor-pointer"
             onClick={() => setShowStatusDropdown(!showStatusDropdown)}
           >
-            <span className="text-sm mr-2">Status</span>
+            <span className="text-xs mr-2">Status</span>
             {!showStatusDropdown ? (
               <ChevronDown size={16} className="ml-2 text-gray-400" />
             ) : (
@@ -171,7 +171,7 @@ const OrderTable = (props: Props) => {
 
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto mt-5 shadow-md">
-        <table className="min-w-full bg-white">
+        <table className="min-w-full bg-white text-xs">
           <thead>
             <tr className="bg-[#f2f7ff] text-black">
               <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
@@ -203,19 +203,19 @@ const OrderTable = (props: Props) => {
           <tbody className="bg-white divide-y divide-gray-200">
             {orders.map((order) => (
               <tr key={order.orderId} className="hover:bg-gray-50">
-                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                   {order.orderId}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
                   {order.customer}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
                   £{order.amount.toFixed(2)}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
                   {order.date}
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 max-w-[200px] truncate">
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500 max-w-[200px] truncate">
                   {order.address}
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap">
@@ -228,10 +228,10 @@ const OrderTable = (props: Props) => {
                       order.orderStatus.slice(1)}
                   </span>
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
                   {order.items.length} item(s)
                 </td>
-                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
                   <button className="text-blue-600 hover:text-blue-900 flex items-center gap-1">
                     <Eye size={16} />
                     <span>View</span>
@@ -261,20 +261,20 @@ const OrderTable = (props: Props) => {
                   order.orderStatus.slice(1)}
               </span>
             </div>
-            <div className="text-sm text-gray-500 mb-1">
+            <div className="text-xs text-gray-500 mb-1">
               <span className="font-medium">Customer:</span> {order.customer}
             </div>
-            <div className="text-sm text-gray-500 mb-1">
+            <div className="text-xs text-gray-500 mb-1">
               <span className="font-medium">Amount:</span> £
               {order.amount.toFixed(2)}
             </div>
-            <div className="text-sm text-gray-500 mb-1">
+            <div className="text-xs text-gray-500 mb-1">
               <span className="font-medium">Date:</span> {order.date}
             </div>
-            <div className="text-sm text-gray-500 mb-1">
+            <div className="text-xs text-gray-500 mb-1">
               <span className="font-medium">Address:</span> {order.address}
             </div>
-            <div className="text-sm text-gray-500 mb-1">
+            <div className="text-xs text-gray-500 mb-1">
               <span className="font-medium">Items:</span>{" "}
               {order.items.join(", ")}
             </div>

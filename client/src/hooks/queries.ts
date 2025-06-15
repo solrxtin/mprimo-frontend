@@ -1,6 +1,7 @@
 
 // Example query using TanStack Query (React Query)
 import { toastConfigError } from '@/app/config/toast.config';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 
@@ -28,6 +29,67 @@ export const useGoogleLogin = () => {
     refetchOnWindowFocus: false,
     enabled: false,
     retry: false
+  });
+};
+
+// Fetch categories
+const fetchCategories = async () => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/categories');
+  if (!response.ok) {
+    throw new Error('Failed to fetch categories');
+  }
+  const data = await response.json();
+  console.log("Raw API response:", data);
+  return data; // Return the entire response object
+};
+
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 24 * 60 * 60 * 1000, // 1 day
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
+};
+
+const fetchUserSubscriptions = async () => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/push/user');
+  if (!response.ok) {
+    throw new Error('Failed to fetch user subscriptions');
+  }
+  const data = await response.json();
+  console.log("User subscriptions:", data);
+  return data;
+};
+
+export const useUserSubscriptions = () => {
+  return useQuery({
+    queryKey: ['userSubscriptions'],
+    queryFn: fetchUserSubscriptions,
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
+};
+
+const fetchVendorProducts = async (vendorId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/vendor/${vendorId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch user subscriptions');
+  }
+  const data = await response.json();
+  console.log("Vendor products:", data);
+  return data.products;
+};
+
+export const useVendorProducts = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendorProducts', vendorId],
+    queryFn: () => fetchVendorProducts(vendorId),
+    enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 };
 

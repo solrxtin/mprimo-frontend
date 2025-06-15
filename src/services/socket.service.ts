@@ -7,7 +7,7 @@ export class SocketService {
   constructor(server: HttpServer) {
     this.io = new SocketServer(server, {
       cors: {
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || true,
+        origin: ["http://localhost:3000"],
         methods: ["GET", "POST"],
         credentials: true
       }
@@ -63,6 +63,10 @@ export class SocketService {
   // Method to emit events to a specific client
   public emitToClient(socketId: string, event: string, data: any): void {
     this.io.to(socketId).emit(event, data);
+  }
+
+  getIO() {
+    return this.io
   }
 }
 

@@ -102,10 +102,10 @@ router.post(
   }
 );
 
-// 3 Registeration attempts per IP per day
+// 5 attempts per hour per IP
 router.post(
   "/register-vendor",
-  rateLimitMiddleware.register,
+  // rateLimitMiddleware.auth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await signupVendor(req, res);

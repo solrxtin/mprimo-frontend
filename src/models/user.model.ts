@@ -22,6 +22,12 @@ const userSchema = new mongoose.Schema<User>(
         return this.socialLogins?.length === 0;
       },
     },
+    businessName: {
+      type: String,
+      trim: true,
+      maxlength: [100, "First name cannot exceed 50 characters"],
+      required: false,
+    },
     profile: {
       firstName: {
         type: String,
@@ -100,7 +106,7 @@ const userSchema = new mongoose.Schema<User>(
           validate: {
             validator: (value: string) => {
               // Basic international postal code validation
-              return /^[a-zA-Z0-9\- ]{3,10}$/.test(value);
+              return /^[A-Za-z0-9 -]{2,10}$/.test(value);
             },
             message: "Invalid postal code format",
           },
@@ -158,12 +164,12 @@ const userSchema = new mongoose.Schema<User>(
     preferences: {
       language: {
         type: String,
-        enum: ["en", "es", "fr", "de", "it"],
+        enum: ["en", "es", "fr", "de", "it"], //work on these 
         default: "en",
       },
       currency: {
         type: String,
-        enum: ["USD", "EUR", "GBP", "JPY", "CAD", "NGN"],
+        enum: ["USD", "EUR", "GBP", "JPY", "CAD", "NGN"], //work on these
         default: "USD",
       },
       notifications: {
@@ -184,11 +190,26 @@ const userSchema = new mongoose.Schema<User>(
     verificationToken: String,
     verificationTokenExpiresAt: Date,
     twoFactorAuth: {
-      enabled: { type: Boolean, default: false },
-      secret: { type: String },
-      tempSecret: { type: String },
-      backupCodes: [{ type: String }],
-    },
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      secret: {
+        type: String,
+        default: null
+      },
+      tempSecret: {
+        type: String,
+        default: null
+      },
+      backupCodes: [{
+        code: String,
+        used: {
+          type: Boolean,
+          default: false
+        }
+      }]
+    }
   },
   {
     timestamps: true,

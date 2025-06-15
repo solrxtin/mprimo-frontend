@@ -30,14 +30,14 @@ const ChatContainerHeader = (props: Props) => {
                     <p className="bg-green-100 text-green-800 p-1 px-2 rounded-md">
                       online
                     </p>
-                    <div className="absolute size-2 rounded-full right-[-1] top-0 bg-green-500 " />
+                    <div className="absolute size-2 rounded-full right-[-1] top-0 bg-green-500 animate-pulse" />
                   </div>
                 ) : (
                   <div className="relative opacit-70">
                     <p className="bg-red-100 text-red-800 p-1 px-2 rounded-md">
                       offline
                     </p>
-                    <div className="absolute size-2 rounded-full right-[-1] top-0 bg-red-500 " />
+                    <div className="absolute size-2 rounded-full right-[-1] top-0 bg-red-500" />
                   </div>
                 )}
               </div>

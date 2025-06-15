@@ -1,6 +1,6 @@
 // app/onboarding/layout.tsx
 import { PasswordResetProvider } from "@/contexts/PasswordResetContext";
-import Stepper from "@/components/Stepper";
+import Stepper from "./(components)/Stepper";
 import Navigator from "./(components)/Navigator";
 
 

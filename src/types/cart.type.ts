@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
+import mongoose, {Types} from "mongoose";
 
 
 export interface Wishlist {
-    userId: mongoose.Schema.Types.ObjectId;
+    userId: Types.ObjectId;
     items: {
-        productId: mongoose.Schema.Types.ObjectId;
+        productId: Types.ObjectId;
         addedAt: Date;
         priceWhenAdded: number;
     }[];
@@ -13,9 +13,9 @@ export interface Wishlist {
 }
 
 export interface Cart {
-    userId: mongoose.Schema.Types.ObjectId;
+    userId: Types.ObjectId;
     items: {
-        productId: mongoose.Schema.Types.ObjectId;
+        productId: Types.ObjectId;
         quantity: number;
     }[];
     lastUpdated: Date;

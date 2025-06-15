@@ -187,4 +187,92 @@ export class CategoryService {
       .limit(limit)
       .populate("parent", "name slug");
   }
+  static async getAllCategories(): Promise<{ categories: ICategory[] }> {
+    // Fetch all categories sorted by creation date
+    const categories = await CategoryModel.find({})
+      .sort({ createdAt: -1 })
+      .populate("parent", "name slug");
+
+    return { categories };
+  }
+  // static async getAllCategories(
+  //   page = 1,
+  //   limit = 10,
+  //   filter: Record<string, any> = {}
+  // ): Promise<{ categories: ICategory[]; total: number; totalPages: number }> {
+  //   const skip = (page - 1) * limit;
+
+  //   const query = { ...filter };
+
+  //   const total = await CategoryModel.countDocuments(query);
+  //   const totalPages = Math.ceil(total / limit);
+
+  //   const categories = await CategoryModel.find(query)
+  //     .sort({ createdAt: -1 })
+  //     .skip(skip)
+  //     .limit(limit)
+  //     .populate("parent", "name slug");
+
+  //   return {
+  //     categories,
+  //     total,
+  //     totalPages,
+  //   };
+  // }
+
+  static async getCombinedAttributes(
+    categoryId: string,
+    subCategoryId?: string
+  ): Promise<{
+    attributes: ICategory["attributes"];
+    categoryName: string;
+    subCategoryName?: string;
+  }> {
+    // Get main category
+    const category = await CategoryModel.findById(categoryId);
+    if (!category) {
+      throw createError(404, "Category not found");
+    }
+
+    let combinedAttributes = [...category.attributes];
+    let subCategory = null;
+
+    // Get subcategory if provided
+    if (subCategoryId) {
+      subCategory = await CategoryModel.findById(subCategoryId);
+      if (!subCategory) {
+        throw createError(404, "Subcategory not found");
+      }
+
+      // Verify subcategory is a child of the main category
+      if (!subCategory.path.includes(category.slug)) {
+        throw createError(
+          400,
+          "Subcategory does not belong to the specified category"
+        );
+      }
+
+      // Merge attributes, avoiding duplicates by name
+      subCategory.attributes.forEach((subAttr) => {
+        if (!combinedAttributes.some((attr) => attr.name === subAttr.name)) {
+          combinedAttributes.push(subAttr);
+        }
+      });
+    }
+
+    return {
+      attributes: combinedAttributes,
+      categoryName: category.name,
+      subCategoryName: subCategory?.name,
+    };
+  }
+
+  static async categoryExists(categoryId: string): Promise<boolean> {
+    try {
+      const exists = await CategoryModel.exists({ _id: categoryId });
+      return !!exists;
+    } catch (error) {
+      return false;
+    }
+  }
 }

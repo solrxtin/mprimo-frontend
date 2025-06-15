@@ -1,4 +1,5 @@
 "use client";
+
 import { usePasswordReset } from "@/contexts/PasswordResetContext";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -7,7 +8,6 @@ const steps = ["Send Token", "Token Verification", "Password Reset"];
 
 export default function Stepper() {
   const { step } = usePasswordReset();
-  console.log("Current Step:", step);
 
   return (
     <div className="flex items-center justify-between gap-x-2 relative">
