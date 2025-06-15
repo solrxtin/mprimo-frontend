@@ -5,7 +5,8 @@ import type React from "react";
 
 
 import { useState, useCallback } from "react";
-import { Star, Heart, MessageCircle } from 'lucide-react';
+import { Star, Heart, MessageCircle, X } from 'lucide-react';
+import { BidModal1 } from "@/components/BidModal";
 
 const ProductInfo: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState(0);
@@ -54,7 +55,7 @@ const ProductInfo: React.FC = () => {
   };
 
   return (
-    <div className="md:px-[42px] lg:px-[80px] px-4 py-8 mt-8 md:mt-10 lg:mt-14  ">
+    <div className="md:px-[42px] lg:px-[80px] px-4  mt-8 md:mt-10 lg:mt-14  ">
     <div className=" p-3 md:p-5 lg:p-6   border border-[#ADADAD4D]">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
         {/* Product Images Section */}
@@ -228,6 +229,10 @@ const ProductInfo: React.FC = () => {
         </div>
       </div>
       </div>
+<BidModal1 isBid={true} closeBid={()=>{}}/>
+
+   
+
     </div>
   );
 };

@@ -6,6 +6,8 @@ import { useState, useCallback } from "react";
 import { Star, Heart, MessageCircle } from "lucide-react";
 import ProductInfo from "./(component)/ProductInfo";
 import Header from "@/components/Home/Header";
+import ProductDetailsTabs from "./(component)/MoreDeatilsTab";
+import ReviewsPage from "./(component)/Review";
 
 const ProductPage: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState(0);
@@ -58,6 +60,8 @@ const ProductPage: React.FC = () => {
       <Header />
 
       <ProductInfo />
+      <ProductDetailsTabs/>
+      <ReviewsPage />
     </div>
   );
 };

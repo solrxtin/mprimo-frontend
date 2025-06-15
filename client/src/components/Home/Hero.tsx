@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Package, Shield, ShoppingCart, MapPin, Users } from 'lucide-react';
+import Link from 'next/link';
 
 const MarketplaceSection = () => {
   const [currentSlide, setCurrentSlide] = useState<number>(0);
@@ -195,9 +196,11 @@ const MarketplaceSection = () => {
               <div className="flex-1">
                 <h3 className=" text-gray-900 mb-3">Apple Airpods Max - Silver</h3>
                 <div className="text-sm lg:text-base font-medium  text-gray-900 mb-3">₦770,000</div>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm  transition-colors duration-200">
-                  View Details
-                </button>
+               <Link href="/product-details">
+                 <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm  transition-colors duration-200">
+                   View Details
+                 </button>
+               </Link>
               </div>
             </div>
           </div> 
