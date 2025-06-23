@@ -5,7 +5,7 @@ import { useUserStore } from "@/stores/useUserStore";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { toastConfigError } from "./config/toast.config";
-import Homepage from "@/components/Home/Homepage";
+import Homepage from "./home/layout";
 
 export default function Home() {
   const { user, setUser } = useUserStore();

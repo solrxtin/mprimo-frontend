@@ -19,7 +19,7 @@ const page = (props: Props) => {
           <AnalyticsCard
             title="Sales Total"
             percentageIncrease={12.8}
-            amount={200000000}
+            amount={20000000}
           />
           <AnalyticsCard
             title="Total Orders"

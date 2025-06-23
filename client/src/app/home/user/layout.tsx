@@ -8,7 +8,6 @@ import { ReactNode } from 'react';
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
    <div className="min-h-screen font-roboto bg-gray-50">
-      <Header />
 
       <div className="flex">
         <div className="hidden lg:block">

@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
 
 const ShopCategoriesComponent = () => {
   const [activeCategory, setActiveCategory] = useState("All Kinds");
@@ -152,10 +152,10 @@ const ShopCategoriesComponent = () => {
             ))}
           </div>
 
-          <button className="flex text-xs md:text-sm underline items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
+          <Link href="/home/categories" className="flex text-xs md:text-sm underline items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
             Browse All Categories
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </Link>
         </div>
       </div>
 

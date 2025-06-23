@@ -57,7 +57,6 @@ const ProductPage: React.FC = () => {
 
   return (
   <div className=" font-roboto">
-      <Header />
 
       <ProductInfo />
       <ProductDetailsTabs/>

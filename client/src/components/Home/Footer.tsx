@@ -11,7 +11,7 @@ const Footer: React.FC = () => {
   };
 
   return ( 
-    <footer className="bg-white py-10 md:py-16 md:px-[42px] lg:px-[80px] px-4">
+    <footer className="bg-gradient-to-t from-[#B4CCFF] to-[#EDF2FB] py-10 md:py-16 md:px-[42px] lg:px-[80px] px-4">
       <div className="max-w-7xl mx-auto">
         {/* Newsletter Section */}
         <div className="mb-16">

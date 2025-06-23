@@ -57,14 +57,17 @@ const Header = () => {
       <div className=" bg-secondary md:px-[42px] lg:px-[80px] px-4 py-2 md:py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <img
-              src="/images/mprimoLogo.png"
-              alt="mprimoLogo image"
-              className=" h-[32px] md:h-[42px] lg:h-[48px] w-[90px] md:w-[110px] lg:w-[180px]"
-            />
-          </div>
+          <Link href="/home">
+            <div className="flex items-center gap-2">
+              <img
+                src="/images/mprimoLogo.png"
+                alt="mprimoLogo image"
+                className=" h-[32px] md:h-[42px] lg:h-[48px] w-[90px] md:w-[110px] lg:w-[180px]"
+              />
+            </div>
+          </Link>
 
+          
           {/* Search bar */}
           <div className="flex-1 font-normal hidden md:block">
             <div className=" flex mx-auto max-w-2xl  bg-white  py-[5px] rounded-4xl">
@@ -87,19 +90,27 @@ const Header = () => {
             <button className="text-white hover:bg-blue-700 md:hidden">
               <Search className="w-5 h-5 " />
             </button>
-            <Link href="user"> <button className="text-white hover:bg-blue-700">
-              <User className="w-5 h-5 " />
-            </button></Link> 
-            <Link href="wishlist"> <button className="text-white hover:bg-blue-700">
-              <Heart className="w-5 h-5 mr-2" />
-            </button></Link> 
-           <Link href="my-cart"> <button className="text-white hover:bg-blue-700 relative">
-              <ShoppingCart className="w-5 h-5 mr-2" />
+            <Link href="/home/user">
+              {" "}
+              <button className="text-white hover:bg-blue-700">
+                <User className="w-5 h-5 " />
+              </button>
+            </Link>
+            <Link href="/home/wishlist">
+              {" "}
+              <button className="text-white hover:bg-blue-700">
+                <Heart className="w-5 h-5 mr-2" />
+              </button>
+            </Link>
+            <Link href="/home/my-cart">
+              {" "}
+              <button className="text-white hover:bg-blue-700 relative">
+                <ShoppingCart className="w-5 h-5 mr-2" />
 
-              <span className="absolute -top-2 right-0 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                2
-              </span>
-            </button>
+                <span className="absolute -top-2 right-0 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  2
+                </span>
+              </button>
             </Link>
             {/* <Button
               variant="ghost"
@@ -234,10 +245,14 @@ const Header = () => {
           />
 
           <div className="mb-6 md:mb-9 mt-5 md:mt-8">
-            <FullButton action={() => {}} color="blue" name="Business Enterprise" />
-              <button className="text-center mt-6 w-full text-tdark">
-                Personal Sales
-              </button>
+            <FullButton
+              action={() => {}}
+              color="blue"
+              name="Business Enterprise"
+            />
+            <button className="text-center mt-6 w-full text-tdark">
+              Personal Sales
+            </button>
           </div>
         </div>
       </Modal>
