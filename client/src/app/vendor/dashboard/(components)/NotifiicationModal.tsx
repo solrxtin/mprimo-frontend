@@ -4,7 +4,7 @@ import { X, Box, ShoppingBag, MessageSquare, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import { useNotifications } from "@/contexts/NotificationContext";
 
-type NotificationType = "review" | "order" | "product-listed" | "message";
+type NotificationType = "review" | "order" | "product-listed" | "message" | 'offer';
 
 interface Notification {
   id: string;
@@ -129,6 +129,8 @@ const NotificationIcon = ({ type }: { type: NotificationType }) => {
       return <Box className="text-green-500" size={18} />;
     case "message":
       return <MessageSquare className="text-purple-500" size={18} />;
+    case 'offer':
+      return <Box className="text-green-500" size={18} />;
     default:
       return null;
   }

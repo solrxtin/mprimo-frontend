@@ -8,6 +8,7 @@ import { useCreateProduct } from "@/hooks/useCreateProduct";
 import { useProductMapper } from "./SubmitProduct";
 import { useDeleteDraft } from "@/hooks/mutations";
 import { useProductStore } from "@/stores/useProductStore";
+import { useRouter } from "next/navigation";
 
 type NavigationButtonsProps = {
   onNext?: () => boolean | Promise<boolean>;
@@ -34,6 +35,7 @@ export default function NavigationButtons({
   const { draftId } = useProductListing();
   const deleteDraftMutation = useDeleteDraft();
   const { listedProducts, setListedProducts } = useProductStore();
+  const router = useRouter()
 
   const handleBack = () => {
     if (onBack) {
@@ -79,8 +81,8 @@ export default function NavigationButtons({
         console.log("Updated Drafts:", updatedDrafts);
 
         localStorage.setItem("productDrafts", JSON.stringify(updatedDrafts));
-        setListedProducts([...listedProducts, result.product]);
-        window.location.href = "/vendor/dashboard/products";
+        setListedProducts([result.product, ...listedProducts]);
+        router.push("/vendor/dashboard/products");
       }
     } catch (error: any) {
       console.error("Error creating product:", error);

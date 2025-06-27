@@ -6,6 +6,12 @@ import createError from "http-errors";
 import { MongoError } from "../types/mongo.type";
 import Order from "../models/order.model";
 import mongoose, { Types } from "mongoose";
+import redisService from "./redis.service";
+import { IVendor } from "../types/vendor.type";
+import Notification from "../models/notification.model";
+import { socketService } from "..";
+import Vendor from "../models/vendor.model";
+import User from "../models/user.model";
 
 function isMongoError(error: any): error is MongoError {
   return error.code !== undefined && typeof error.code === "number";
@@ -77,7 +83,10 @@ export class ProductService {
       .populate("category.main");
   }
 
-  static async getSimilarProducts(productId: string, count = 5): Promise<ProductType[]> {
+  static async getSimilarProducts(
+    productId: string,
+    count = 5
+  ): Promise<ProductType[]> {
     const product = await ProductModel.findById(productId);
     if (!product) {
       throw createError(404, "Product not found");
@@ -86,7 +95,7 @@ export class ProductService {
     return ProductModel.find({
       _id: { $ne: productId },
       "category.main": product.category.main,
-      status: "active"
+      status: "active",
     })
       .limit(count)
       .populate("vendorId", "name email");
@@ -102,6 +111,37 @@ export class ProductService {
       throw createError(404, "Product not found");
     }
     return product;
+  }
+
+  static async getProductBySlug(slug: string): Promise<ProductType> {
+    const product = await ProductModel.findOne({slug})
+    .populate("vendorId", "name email")
+    .populate("category.main")
+    .populate("category.sub");
+
+  if (!product) {
+    throw createError(404, "Product not found");
+  }
+  return product;
+  }
+
+  static async getProductsByCategory(categoryId: string, page = 1, limit = 10) {
+    // Find the category and its descendants
+    const category = await CategoryModel.findById(categoryId);
+    if (!category) {
+      throw createError(404, "Category not found");
+    }
+
+    // Get all products in this category or its subcategories
+    const query = {
+      $or: [
+        { "category.main": categoryId },
+        { "category.sub": categoryId },
+        { "category.path": { $in: [category.slug] } },
+      ],
+    };
+
+    return this.getProducts(query, page, limit);
   }
 
   static async updateProduct(
@@ -149,7 +189,10 @@ export class ProductService {
     return product;
   }
 
-  static async deleteProduct(id: string, vendorId: Types.ObjectId): Promise<void> {
+  static async deleteProduct(
+    id: string,
+    vendorId: Types.ObjectId
+  ): Promise<void> {
     const result = await ProductModel.findOneAndDelete({ _id: id, vendorId });
     if (!result) {
       throw createError(404, "Product not found");
@@ -158,17 +201,26 @@ export class ProductService {
 
   static async updateInventory(
     id: string,
-    vendorId: Types.ObjectId,
+    vendor: IVendor,
     quantity: number,
     operation: "add" | "subtract"
   ): Promise<ProductType> {
+    const lock = await redisService.acquireLock(id, vendor?._id!.toString(), 10000); // Lock for 10 seconds max
+
+    if (!lock) {
+      throw createError(
+        429,
+        "Too many concurrent inventory updates. Please retry."
+      );
+    }
+
     const update =
       operation === "add"
         ? { $inc: { "inventory.quantity": quantity } }
         : { $inc: { "inventory.quantity": -quantity } };
 
     const product = await ProductModel.findOneAndUpdate(
-      { _id: id, vendorId },
+      { _id: id, vendorId: vendor?._id! },
       update,
       { new: true, runValidators: true }
     );
@@ -178,26 +230,47 @@ export class ProductService {
     }
 
     // Check if inventory is below lowStockAlert
-if (
-  product.inventory?.lowStockAlert !== undefined && 
-  product.inventory.listing?.type === "instant" &&
-  product.inventory.listing.instant?.quantity !== undefined &&
-  product.inventory.listing.instant.quantity <= product.inventory.lowStockAlert
-) {
-  // Implement low stock notification logic here
-  console.log(`Low stock alert for product ${product.name}`);
-}
+    if (
+      product.inventory?.lowStockAlert !== undefined &&
+      product.inventory.listing?.type === "instant" &&
+      product.inventory.listing.instant?.quantity !== undefined &&
+      product.inventory.listing.instant.quantity <=
+        product.inventory.lowStockAlert
+    ) {
+      // Implement low stock notification logic here
+      console.log(`Low stock alert for product ${product.name}`);
+      // Create notification
+      const notification = await Notification.create({
+        userId: vendor.userId,
+        message: `${product.name} (Black) - Only ${product.inventory.listing.instant.quantity} left`,
+        title: "Low stock alert",
+        type: "product",
+        case: "low-stock",
+        data: {
+          // redirectUrl: `/vendor/orders/${order._id}`,
+          // entityId: order._id,
+          // entityType: "order",
+        },
+        read: false,
+      });
+  
+      // Send socket notification
+      socketService.notifyVendor(vendor?._id!, {
+        event: "saleActivitiy",
+        notification
+      });
+    }
 
-// Update status if out of stock
-if (
-  (product.inventory.listing?.type === "auction" && 
-   product.inventory.listing.auction?.quantity === 0) || 
-  (product.inventory.listing?.type === "instant" && 
-   product.inventory.listing.instant?.quantity === 0)
-) {
-  product.status = "outOfStock";
-  await product.save();
-}
+    // Update status if out of stock
+    if (
+      (product.inventory.listing?.type === "auction" &&
+        product.inventory.listing.auction?.quantity === 0) ||
+      (product.inventory.listing?.type === "instant" &&
+        product.inventory.listing.instant?.quantity === 0)
+    ) {
+      product.status = "outOfStock";
+      await product.save();
+    }
 
     return product;
   }
@@ -222,26 +295,54 @@ if (
 
   static async updateAnalytics(
     id: string,
-    type: "view" | "purchase"
+    type: "view" | "purchase" | "addToCart" | "wishlist"
   ): Promise<void> {
-    const update: any = {
-      $inc: {
-        "analytics.views": type === "view" ? 1 : 0,
-        "analytics.purchases": type === "purchase" ? 1 : 0,
-      },
-    };
-
-    const product = await ProductModel.findByIdAndUpdate(id, update, {
-      new: true,
-    });
-
-    if (product) {
-      // Update conversion rate
-      product.analytics.conversionRate =
-        product.analytics.purchases / product.analytics.views || 0;
+    const updateFields: Record<string, number> = {};
+  
+    switch (type) {
+      case "view":
+        updateFields["analytics.views"] = 1;
+        break;
+      case "purchase":
+        updateFields["analytics.purchases"] = 1;
+        break;
+      case "addToCart":
+        updateFields["analytics.addToCart"] = 1;
+        break;
+      case "wishlist":
+        updateFields["analytics.wishlist"] = 1;
+        break;
+      default:
+        throw new Error("Invalid analytics event type");
+    }
+  
+    const product = await ProductModel.findByIdAndUpdate(
+      id,
+      { $inc: updateFields },
+      { new: true }
+    );
+  
+    if (!product) return;
+  
+    let shouldSave = false;
+  
+    if (["view", "purchase"].includes(type)) {
+      const { views, purchases } = product.analytics;
+      const newRate =
+        views > 0 ? parseFloat(((purchases / views) * 100).toFixed(2)) : 0;
+  
+      if (product.analytics.conversionRate !== newRate) {
+        product.analytics.conversionRate = newRate;
+        shouldSave = true;
+      }
+    }
+  
+    // Save if conversion rate changed or if the event is not view/purchase
+    if (shouldSave || ["addToCart", "wishlist"].includes(type)) {
       await product.save();
     }
   }
+  
 
   static async searchProducts(
     query: string,
@@ -270,25 +371,6 @@ if (
     };
 
     return this.getProducts(searchQuery, page, limit);
-  }
-
-  static async getProductsByCategory(categoryId: string, page = 1, limit = 10) {
-    // Find the category and its descendants
-    const category = await CategoryModel.findById(categoryId);
-    if (!category) {
-      throw createError(404, "Category not found");
-    }
-
-    // Get all products in this category or its subcategories
-    const query = {
-      $or: [
-        { "category.main": categoryId },
-        { "category.sub": categoryId },
-        { "category.path": { $in: [category.slug] } },
-      ],
-    };
-
-    return this.getProducts(query, page, limit);
   }
 
   static async addReview(
@@ -352,7 +434,7 @@ if (
       throw createError(404, "Category not found");
     }
 
-    return category.attributes.filter(attr => attr.required);
+    return category.attributes.filter((attr) => attr.required);
   }
 
   static async saveDraft(draftData: any, userId: Types.ObjectId): Promise<any> {
@@ -377,11 +459,14 @@ if (
   }
 
   static async getDrafts(userId: Types.ObjectId): Promise<any[]> {
-    return ProductDraft.find({ userId })
-      .sort({ lastUpdated: -1 });
+    return ProductDraft.find({ userId }).sort({ lastUpdated: -1 });
   }
 
-  static async updateDraft(draftId: string, draftData: any, userId: Types.ObjectId): Promise<any> {
+  static async updateDraft(
+    draftId: string,
+    draftData: any,
+    userId: Types.ObjectId
+  ): Promise<any> {
     const draft = await ProductDraft.findOneAndUpdate(
       { draftId, userId },
       { ...draftData, userId },
@@ -391,48 +476,15 @@ if (
     return draft;
   }
 
-  static async deleteDraft(draftId: string, userId: Types.ObjectId): Promise<boolean> {
+  static async deleteDraft(
+    draftId: string,
+    userId: Types.ObjectId
+  ): Promise<boolean> {
     const result = await ProductDraft.findOneAndDelete({
       draftId,
-      userId
+      userId,
     });
 
     return !!result;
-  }
-
-  static async createOrder(
-    userId: Types.ObjectId,
-    items: Array<{ productId: string; quantity: number; price: number }>,
-    shippingAddress: any,
-    paymentMethod: string
-  ): Promise<any> {
-    // This is a placeholder for order creation
-    // Implement the actual order creation logic here
-    
-    // Update product inventory
-    for (const item of items) {
-      await this.updateInventory(
-        item.productId,
-        userId, // This might need adjustment based on the implementation
-        item.quantity,
-        "subtract"
-      );
-    }
-
-    // Create order record
-    const order = await Order.create({
-      userId: new mongoose.Types.ObjectId(userId),
-      items: items.map(item => ({
-        productId: new mongoose.Types.ObjectId(item.productId),
-        quantity: item.quantity,
-        price: item.price
-      })),
-      shippingAddress,
-      paymentMethod,
-      status: "processing",
-      totalAmount: items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    });
-
-    return order;
   }
 }

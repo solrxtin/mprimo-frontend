@@ -10,12 +10,14 @@ import { toast } from "react-toastify";
 import { toastConfigError, toastConfigInfo, toastConfigSuccess } from "@/app/config/toast.config";
 import { useGoogleLogin } from "@/hooks/queries";
 import TwoFactorVerification from "@/components/TwoFactorVerification";
+import { useProductStore } from "@/stores/useProductStore";
 
 const LoginPage = () => {
   const [requires2FA, setRequires2FA] = useState(false);
   const [userId, setUserId] = useState("");
   const router = useRouter();
-  const { user, setUser, setVendor } = useUserStore();
+  const { user, setUser } = useUserStore();
+  const {setVendor} = useProductStore();
 
   const { data, isFetching: isCallingGoogle, error, refetch, isFetched } = useGoogleLogin();
 

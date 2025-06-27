@@ -37,14 +37,5 @@ router.delete(
 
 router.post("/notify", controller.sendToAll);
 
-router.post(
-  "/notify/vendor",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    await controller.notifyVendor(req, res);
-  }
-);
 
 export default router;

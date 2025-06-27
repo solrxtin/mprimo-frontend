@@ -18,6 +18,7 @@ import { verifyToken } from "../middlewares/verify-token.middleware";
 import { generateTokensAndSetCookie } from "../utils/generate-token.util";
 import { rateLimitMiddleware } from "../middlewares/rate-limit.middleware";
 import User from "../models/user.model";
+import { IUser } from "../types/user.type";
 
 const router = Router();
 /**
@@ -244,7 +245,7 @@ router.get(
   passport.authenticate("google", { failureRedirect: "http://localhost:3000/login" }),
   async (req: Request, res: Response) => {
     try {
-      const user = req.user as User;
+      const user = req.user as IUser;
 
       if (!user._id) {
         return res.redirect("http://localhost:3000/login");

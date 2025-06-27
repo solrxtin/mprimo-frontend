@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Category from "../models/category.model";
 
 export const validateProductData = async (productData: any) => {
-    console.log("Product data is: ", productData)
+  console.log("Product data is: ", productData);
   try {
     const {
       name,
@@ -36,11 +36,27 @@ export const validateProductData = async (productData: any) => {
     // Validate listing type and required fields
     const listingType = inventory.listing.type;
     if (listingType === "instant") {
-      if (
-        inventory.listing.instant?.salePrice == null ||
-        inventory.listing.instant?.quantity == null
-      ) {
-        throw new Error("Instant listing requires salePrice and quantity");
+      const hasVariants = Array.isArray(variants) && variants.length > 0;
+      if (!hasVariants) {
+        if (
+          inventory.listing.instant?.salePrice == null ||
+          inventory.listing.instant?.quantity == null
+        ) {
+          throw new Error(
+            "Instant listing requires salePrice and quantity when no variants are provided"
+          );
+        }
+      } else {
+        // When variants exist, we don't require `quantity`, but we should validate `salePrice`
+        if (inventory.listing.instant?.salePrice == null) {
+          throw new Error("Sale price is required even when using variants");
+        }
+
+        if (inventory.listing.instant?.quantity != null) {
+          console.warn(
+            "Note: Quantity will be ignored because variants are provided."
+          );
+        }
       }
     } else if (listingType === "auction") {
       const { startBidPrice, reservePrice, startTime, endTime, bidIncrement } =
@@ -147,17 +163,22 @@ export const validateProductData = async (productData: any) => {
 
     let selectedCategory;
 
-    if (category.sub?.length > 0) selectedCategory = await Category.findById(category.sub[category.sub.length - 1])
-    else selectedCategory = mainCategory
+    if (category.sub?.length > 0)
+      selectedCategory = await Category.findById(
+        category.sub[category.sub.length - 1]
+      );
+    else selectedCategory = mainCategory;
 
     if (selectedCategory && selectedCategory.productDimensionsRequired) {
-        if (
-            !shipping.dimensions?.length ||
-            !shipping.dimensions?.width ||
-            !shipping.dimensions?.height
-          ) {
-            throw new Error("Shipping information is incomplete: Product dimensions required");
-          }
+      if (
+        !shipping.dimensions?.length ||
+        !shipping.dimensions?.width ||
+        !shipping.dimensions?.height
+      ) {
+        throw new Error(
+          "Shipping information is incomplete: Product dimensions required"
+        );
+      }
     }
 
     // Validate images

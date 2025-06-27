@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import { Vendor } from "../types/vendor.type";
+import { IVendor } from "../types/vendor.type";
 
-const vendorSchema = new mongoose.Schema<Vendor>(
+const vendorSchema = new mongoose.Schema<IVendor>(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -171,6 +171,6 @@ vendorSchema.methods.updateKYCStatus = async function (newStatus: string) {
   this.kycStatus = newStatus;
   return this.save();
 };
-const Vendor = mongoose.model<Vendor>("Vendor", vendorSchema);
+const Vendor = mongoose.model<IVendor>("Vendor", vendorSchema);
 
 export default Vendor;

@@ -15,11 +15,14 @@ dotenv.config();
 import pushNotificationRoutes from "./routes/push-notification.routes";
 import authRoutes from "./routes/auth.routes";
 import categoryRoutes from "./routes/category.routes";
-import productRoutes from "./routes/product.route";
+import orderRoutes from "./routes/order.routes";
+import productRoutes from "./routes/product.routes";
+import notificationRoutes from "./routes/notifications.routes";
 import analyticsRoutes from "./routes/analytics.routes";
 import twoFactorRoutes from "./routes/two-factor.routes";
 import walletRoutes from "./routes/wallet.route";
 import adminRoutes from "./routes/admin.routes";
+import dashboardRoutes from "./routes/dashboard.routes"
 import { requestLogger } from "./middlewares/request-logger.middleware";
 import { errorLogger } from "./middlewares/error-logger.middleware";
 import { LoggerService } from "./services/logger.service";
@@ -104,10 +107,13 @@ app.use("/api/v1/push", pushNotificationRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/two-factor", twoFactorRoutes);
 app.use("/api/v1/wallets", walletRoutes);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/orders", orderRoutes);
 
 app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to see if it's up
 
@@ -118,7 +124,7 @@ app.get("/docs-json", (req, res) => {
 });
 
 // Error logging middleware should be last
-// app.use(errorLogger);
+app.use(errorLogger);
 
 export default app;
 

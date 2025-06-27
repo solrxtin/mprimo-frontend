@@ -95,6 +95,8 @@ type ShippingType = {
 };
 
 export type ProductType = {
+  _id?: string;
+  slug: string;
   vendorId: string;
   name: string;
   brand: string;

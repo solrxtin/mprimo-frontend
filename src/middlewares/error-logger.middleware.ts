@@ -14,12 +14,18 @@ export const errorLogger = (
     url: req.url,
     body: req.body,
     query: req.query,
-    params: req.params
+    params: req.params,
   });
 
-  res.status(500).json({
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal Server Error'
-      : error.message
+  // More specific error handling
+  const statusCode = error.name === "ValidationError"
+    ? 400 // Bad Request
+    : error.name === "UnauthorizedError"
+    ? 401 // Unauthorized
+    : 500; // Internal Server Error (default)
+
+  res.status(statusCode).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production' ? 'An error occurred' : error.message,
   });
 };

@@ -1,7 +1,8 @@
-import mongoose, { Schema, CallbackError } from "mongoose";
+import mongoose, { CallbackError } from "mongoose";
 import { ProductType } from "../types/product.type";
 import crypto from "crypto";
 import Vendor from "./vendor.model";
+import slugify from 'slugify';
 
 function generateSKU() {
   // Random 12-character alphanumeric string (uppercase)
@@ -18,7 +19,7 @@ interface Attribute {
 const productSchema = new mongoose.Schema<ProductType>(
   {
     vendorId: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
       required: [true, "Vendor ID is required"],
     },
@@ -28,6 +29,13 @@ const productSchema = new mongoose.Schema<ProductType>(
       trim: true,
       minlength: [3, "Product name must be at least 3 characters"],
       maxlength: [100, "Product name cannot exceed 100 characters"],
+    },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
     },
     brand: {
       type: String,
@@ -62,13 +70,13 @@ const productSchema = new mongoose.Schema<ProductType>(
     category: {
       type: {
         main: {
-          type: Schema.Types.ObjectId,
+          type: mongoose.Schema.Types.ObjectId,
           ref: "Category",
           required: [true, "Main category is required"],
         },
         sub: [
           {
-            type: Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             ref: "Category",
           },
         ],
@@ -171,6 +179,14 @@ const productSchema = new mongoose.Schema<ProductType>(
             default: 1.0,
             min: [0.01, "Bid increment must be at least 0.01"],
           },
+          isStarted: {
+            type: Boolean,
+            default: false
+          },
+          isExpired: {
+            type: Boolean,
+            default: false
+          }
         },
       },
     },
@@ -335,6 +351,16 @@ const productSchema = new mongoose.Schema<ProductType>(
         min: [0, "Views cannot be negative"],
         default: 0,
       },
+      addToCart: {
+        type: Number,
+        min: [0, "Add to cart count cannot be negative"],
+        default: 0,
+      },
+      wishlist: {
+        type: Number,
+        min: [0, "Wishlist count cannot be negative"],
+        default: 0,
+      },
       purchases: {
         type: Number,
         min: [0, "Purchases cannot be negative"],
@@ -360,6 +386,10 @@ const productSchema = new mongoose.Schema<ProductType>(
               type: Boolean,
               default: false,
             },
+            rejected: {
+              type: Boolean,
+              default: false,
+            },
             createdAt: {
               type: Date,
               default: Date.now,
@@ -377,6 +407,10 @@ const productSchema = new mongoose.Schema<ProductType>(
               type: Boolean,
               default: false,
             },
+            rejected: {
+              type: Boolean,
+              default: false,
+            },
           },
         ],
       },
@@ -388,10 +422,21 @@ const productSchema = new mongoose.Schema<ProductType>(
           ref: "User",
           required: true,
         },
-        amount: {
+        maxAmount: {
           type: Number,
-          required: true,
-          min: [0.01, "Bid amount must be at least 0.01"],
+          validate: {
+            validator: function (value: number) {
+              if (this.inventory?.listing?.type !== "auction") return true;
+              const startBid = this.inventory.listing.auction?.startBidPrice;
+              return typeof value === "number" && startBid &&  value >= startBid;
+            },
+            message: "Bid amount must meet auction requirements"
+,
+          },
+        },
+        currentAmount: {
+          type: Number,
+          required: true
         },
         createdAt: {
           type: Date,
@@ -426,6 +471,25 @@ productSchema.index({ "category.sub": 1 });
 productSchema.index({ "price.amount": 1 });
 productSchema.index({ "inventory.quantity": 1 });
 productSchema.index({ status: 1 });
+
+productSchema.pre('validate', async function (next) {
+  if (this.isModified('name') || !this.slug) {
+    const baseSlug = slugify(this.name, { lower: true, strict: true });
+    let slug = baseSlug;
+    let counter = 0;
+
+    // Check for uniqueness in the database
+    while (await mongoose.models.Product.findOne({ slug })) {
+      counter++;
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000); // e.g. 5632
+      slug = `${baseSlug}-${randomSuffix}`;
+      if (counter > 5) break; // avoid infinite loop
+    }
+
+    this.slug = slug;
+  }
+  next();
+});
 
 // Pre-save middleware to update category path
 productSchema.pre("save", async function (next) {

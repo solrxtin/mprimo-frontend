@@ -1,13 +1,14 @@
 import mongoose, { Types, Document} from "mongoose"
 
+export interface ItemType {
+    productId: Types.ObjectId;
+    quantity: number;
+    price: number;
+}
+
 export interface IOrder extends Document {
     userId: Types.ObjectId;
-    items: [{
-        productId: Types.ObjectId;
-        quantity: number;
-        price: number;
-        vendorId: Types.ObjectId;
-    }];
+    items: ItemType[];
     payment: {
         method: string;
         status: 'pending' | 'completed' | 'failed' | 'refunded';

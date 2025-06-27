@@ -3,10 +3,20 @@
 import { useCategories, useVendorProducts } from "@/hooks/queries";
 import { useProductStore } from "@/stores/useProductStore";
 import { ProductType } from "@/types/product.type";
-import { Plus, ChevronDown, Filter, Search, FolderMinus } from "lucide-react";
+import {
+  Plus,
+  ChevronDown,
+  Filter,
+  Search,
+  FolderMinus,
+  Ellipsis,
+  X,
+  EyeClosed,
+  Eye,
+  Trash,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
-import { formatDistanceToNow, format } from "date-fns";
 
 type Props = {};
 
@@ -33,6 +43,7 @@ const ProductsPage = () => {
   const [category, setCategory] = useState("");
   const [filter, setFilter] = useState("");
   const [status, setStatus] = useState("");
+
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -46,8 +57,9 @@ const ProductsPage = () => {
   const [displayedProducts, setDisplayedProducts] = useState<
     ProductType[] | []
   >([]);
-  const { data: vendorProducts, isLoading } = useVendorProducts(vendor?._id!);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
+  const { data: vendorProducts, isLoading } = useVendorProducts(vendor?._id!);
   const router = useRouter();
 
   useEffect(() => {
@@ -125,13 +137,31 @@ const ProductsPage = () => {
     return pageNumbers;
   };
 
-  const toggleOffer = (index: number) => {
-    const updatedProducts = [...productList];
-    // send request to API on success toggle below
-    updatedProducts[index].inventory.listing.type === "instant" &&
-      (updatedProducts[index].inventory.listing.instant!.acceptOffer! =
-        !updatedProducts[index].inventory.listing.instant?.acceptOffer);
+  const toggleOffer = (id: string) => {
+    const updatedProducts = listedProducts.map((product) => {
+      if (product._id !== id) return product;
+
+      if (product.inventory?.listing?.type === "instant") {
+        return {
+          ...product,
+          inventory: {
+            ...product.inventory,
+            listing: {
+              ...product.inventory.listing,
+              instant: {
+                ...product.inventory.listing.instant!,
+                acceptOffer: !product.inventory.listing.instant?.acceptOffer,
+              },
+            },
+          },
+        };
+      }
+
+      return product;
+    });
+
     setProductList(updatedProducts);
+    setListedProducts(updatedProducts);
   };
 
   const getStatusColor = (status: string) => {
@@ -147,11 +177,24 @@ const ProductsPage = () => {
     }
   };
 
+  const toggleDropdown = (productId: string) => {
+    setOpenDropdownId((prev) => (prev === productId ? null : productId));
+  };
+
+  const handleDelete = (productId: string) => {
+    console.log("Delete:", productId);
+    // trigger confirmation or delete
+  };
+
+  const handleCloseDropdown = () => {
+    setOpenDropdownId(null);
+  };
+
   if (isLoading)
     return (
-      <div className="flex justify-center items-center bg-white">
+      <div className="flex justify-center items-center bg-white h-screen w-full">
         <div className="flex gap-x-2 items-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-[#002f7a]" />
+          <div className="animate-spin rounded-full size-10 border-t-2 border-b-2 border-[#002f7a]" />
           <p className="text-sm text-gray-500">Loading...</p>
         </div>
       </div>
@@ -176,7 +219,7 @@ const ProductsPage = () => {
                 }`}
                 onClick={() => {
                   setActiveTab("all");
-                  setProductList(vendorProducts);
+                  setProductList(listedProducts);
                 }}
               >
                 All products
@@ -188,7 +231,7 @@ const ProductsPage = () => {
                 onClick={() => {
                   setActiveTab("active");
                   setProductList(
-                    vendorProducts.filter(
+                    listedProducts?.filter(
                       (product: ProductType) => product.status === "active"
                     )
                   );
@@ -205,7 +248,7 @@ const ProductsPage = () => {
                 onClick={() => {
                   setActiveTab("outOfStock");
                   setProductList(
-                    vendorProducts.filter(
+                    listedProducts?.filter(
                       (product: ProductType) => product.status === "outOfStock"
                     )
                   );
@@ -227,7 +270,7 @@ const ProductsPage = () => {
                 Draft
               </div>
             </div>
-            <p className="font-[family-name:var(--font-poppins)] text-xs md:text-xs text-[#323232]">
+            <p className="font-[family-name:var(--font-poppins)] text-[11px] md:text-xs text-[#323232]">
               Welcome back, Bovie! Here's what is happening with your store
               today.
             </p>
@@ -243,7 +286,7 @@ const ProductsPage = () => {
           </button>
         </div>
 
-        {productList.length > 0 ? (
+        {productList?.length > 0 ? (
           <>
             <div className="bg-white rounded-lg shadow-sm">
               <div className="grid md:grid-cols-6 lg:grid-cols-12 gap-4 p-5 border-b border-gray-300 items-center text-sm">
@@ -490,7 +533,7 @@ const ProductsPage = () => {
                                   ? "bg-blue-600 justify-end"
                                   : "bg-gray-300 justify-start"
                               }`}
-                              onClick={() => toggleOffer(index)}
+                              onClick={() => toggleOffer(product?._id!)}
                             >
                               <div className="size-3 bg-white rounded-full mx-0.5" />
                             </div>
@@ -510,15 +553,49 @@ const ProductsPage = () => {
                           </span>
                         </td>
 
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                              product.status
-                            )}`}
+                        <td className="px-4 py-4 whitespace-nowrap relative">
+                          <button
+                            onClick={() => toggleDropdown(product?._id!)}
+                            className="cursor-pointer"
                           >
-                            {product.status.charAt(0).toUpperCase() +
-                              product.status.slice(1)}
-                          </span>
+                            <Ellipsis size={20} className="text-gray-500" />
+                          </button>
+
+                          {openDropdownId === product._id && (
+                            <div className="absolute right-0 -mt-10 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                              <div className="flex justify-between items-center px-2 py-1 border-b border-gray-200">
+                                <span className="text-sm font-medium">
+                                  Actions
+                                </span>
+                                <button onClick={handleCloseDropdown}>
+                                  <X
+                                    size={16}
+                                    className="text-gray-500 cursor-pointer"
+                                  />
+                                </button>
+                              </div>
+                              <ul className="">
+                                <li
+                                  className="p-2 hover:bg-gray-100 cursor-pointer flex gap-x-1 items-center"
+                                  onClick={() =>
+                                    router.push(`products/${product.slug}`)
+                                  }
+                                >
+                                  <Eye size={14} />
+                                  <p className="text-xs">View</p>
+                                </li>
+                                <li
+                                  className="p-2 hover:bg-gray-100 cursor-pointer flex gap-x-1 items-center"
+                                  onClick={() =>
+                                    console.log("Delete", product?._id!)
+                                  }
+                                >
+                                  <Trash size={14} />
+                                  <p className="text-xs">Delete</p>
+                                </li>
+                              </ul>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -528,9 +605,9 @@ const ProductsPage = () => {
 
               {/* Mobile */}
               <div className="md:hidden space-y-4 p-4">
-                {displayedProducts.map((product, index) => (
+                {displayedProducts.map((product) => (
                   <div
-                    key={index}
+                    key={product._id}
                     className="bg-white border rounded-lg p-4 shadow-sm"
                   >
                     <div className="flex justify-between items-center mb-2">
@@ -559,38 +636,63 @@ const ProductsPage = () => {
                     </div>
                     <div className="text-xs text-gray-500 mb-1">
                       <span className="font-medium">Category:</span>{" "}
-                      {/* {product.category} */}
+                      {Array.isArray(product?.category?.sub) &&
+                      product.category.sub.length > 0
+                        ? typeof product.category.sub[
+                            product.category.sub.length - 1
+                          ] !== "string"
+                          ? (
+                              product.category.sub[
+                                product.category.sub.length - 1
+                              ] as { name: string }
+                            )?.name
+                          : ""
+                        : typeof product.category.main !== "string"
+                        ? (product.category.main as { name: string })?.name
+                        : ""}
                     </div>
                     <div className="text-xs text-gray-500 mb-1">
-                      <span className="font-medium">Price:</span> £
-                      {/* {product.price.toFixed(2)} */}
+                      <span className="font-medium">Price:</span>
+                      {product.inventory.listing.type === "instant" ? (
+                        <span>
+                          {typeof product.country !== "string"
+                            ? product.country.currency
+                            : ""}{" "}
+                          {product.inventory.listing.instant?.price ?? "N/A"}
+                        </span>
+                      ) : (
+                        "N/A"
+                      )}
                     </div>
                     <div className="text-xs text-gray-500 mb-1">
                       <span className="font-medium">Stock:</span>{" "}
-                      {/* {product.stock > 0 ? (
-                        product.stock
-                      ) : (
-                        <span className="text-red-500">Out of stock</span>
-                      )} */}
+                      {product.inventory.listing.type === "instant"
+                        ? product.inventory.listing.instant?.quantity ?? "N/A"
+                        : product.inventory.listing.auction?.quantity ?? "N/A"}
                     </div>
-                    <div className="flex justify-between items-center mt-3">
+                    <div className="flex justify-between items-center">
                       {product.inventory.listing.type === "instant" && (
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500">
                             Accept Offer:
                           </span>
                           <div
-                            className={`w-10 h-5 rounded-full flex items-center cursor-pointer ${
+                            className={`w-8 h-4 rounded-full flex items-center cursor-pointer ${
                               product.inventory.listing.instant?.acceptOffer
                                 ? "bg-blue-600 justify-end"
                                 : "bg-gray-300 justify-start"
                             }`}
-                            onClick={() => toggleOffer(index)}
+                            onClick={() => toggleOffer(product?._id!)}
                           >
-                            <div className="w-4 h-4 bg-white rounded-full mx-0.5"></div>
+                            <div className="size-3 bg-white rounded-full mx-0.5"></div>
                           </div>
                         </div>
                       )}
+                    </div>
+                    <div className="mt-2">
+                      <button className="bg-primary text-white px-3 py-2 rounded-md text-sm">
+                        View Detail
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -598,7 +700,7 @@ const ProductsPage = () => {
             </div>
 
             {/* Pagination */}
-            <div className="px-4 py-5 bg-white border-t border-gray-200 sm:px-6 flex items-center justify-between">
+            <div className="mt-2 md:mt-0 px-4 py-5 bg-white border-t border-gray-200 sm:px-6 flex items-center justify-between">
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs text-gray-700">
@@ -727,24 +829,36 @@ const ProductsPage = () => {
             </div>
           </>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm flex flex-col gap-y-4 justify-center items-center h-[85%] xl:h-[92%] animate-fade-in-up">
-            <div className="flex gap-x-2 items-center">
-              <p className="text-xl text-gray-600">No product listed</p>
-              <FolderMinus
-                size={32}
-                className="text-[#002f7a] animate-bounce-slow"
-              />
-            </div>
-            <button
-              className="bg-[#002f7a] text-white px-4 md:px-6 py-2 md:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-[#00245a] transition-all duration-300 transform hover:scale-[1.03] w-full md:w-auto justify-center"
-              onClick={() => {
-                router.push("/vendor/dashboard/products/create-product");
-              }}
-            >
-              <p className="whitespace-nowrap cursor-pointer">Add Product</p>
-              <Plus size={18} />
-            </button>
-          </div>
+          <>
+            {vendorProducts && vendorProducts.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm flex flex-col gap-y-4 justify-center items-center p-2 h-[85%] xl:h-[92%] animate-fade-in-up">
+                <div className="flex gap-x-2 items-center">
+                  <p className="text-xl text-gray-600">No product listed</p>
+                  <FolderMinus
+                    size={32}
+                    className="text-[#002f7a] animate-bounce-slow"
+                  />
+                </div>
+                <button
+                  className="bg-[#002f7a] text-white px-4 md:px-6 py-2 md:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-[#00245a] transition-all duration-300 transform hover:scale-[1.03] w-full md:w-auto justify-center"
+                  onClick={() => {
+                    router.push("/vendor/dashboard/products/create-product");
+                  }}
+                >
+                  <p className="whitespace-nowrap cursor-pointer">
+                    Add Product
+                  </p>
+                  <Plus size={18} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-center mt-20">
+                <p className="text-xl text-[#2563EB] font-semibold">
+                  Nothing to display
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

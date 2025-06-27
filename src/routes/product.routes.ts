@@ -1,50 +1,51 @@
 // src/routes/product.route.ts
 import { Router, Request, Response, NextFunction } from "express";
-import { ProductController } from "../controllers/product.controller";
+import { acceptCounterOffer, acceptOffer, makeCounterOffer, placeProxyBid, ProductController, rejectCounterOffer, rejectOffer } from "../controllers/product.controller";
 import { verifyToken } from "../middlewares/verify-token.middleware";
 import { authorizeRole } from "../middlewares/authorize-role.middleware";
 import { ProductService } from "../services/product.service";
-import { uploadImage, uploadImageToCloudinary } from '../config/multer.config';
+import { uploadImage, uploadImageToCloudinary } from "../config/multer.config";
 
 const router = Router();
 
 // ==================== PUBLIC ROUTES ====================
 
 // Upload route
-router.post('/upload', uploadImage, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    if (!req.file) {
-      res.status(400).json({
-        success: false,
-        message: "No image provided"
-      });
-      return;
-    }
-    
-    const result = await uploadImageToCloudinary(req.file.path);
-    
-    res.status(200).json({
-      success: true,
-      message: "Image uploaded successfully!",
-      imageUrl: result.url
-    });
-  } catch (error) {
-    console.error(error);
-    next(error);
-  }
-});
-
-// Get all products
-router.get(
-  "/",
+router.post(
+  "/upload",
+  uploadImage,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await ProductController.getProducts(req, res, next);
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: "No image provided",
+        });
+        return;
+      }
+
+      const result = await uploadImageToCloudinary(req.file.path);
+
+      res.status(200).json({
+        success: true,
+        message: "Image uploaded successfully!",
+        imageUrl: result.url,
+      });
     } catch (error) {
+      console.error(error);
       next(error);
     }
   }
 );
+
+// Get all products
+router.get("/", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await ProductController.getProducts(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Search products
 router.get(
@@ -58,7 +59,7 @@ router.get(
   }
 );
 
-// Get products by category
+// Get products by categoryId
 router.get(
   "/category/:categoryId",
   async (req: Request, res: Response, next: NextFunction) => {
@@ -72,7 +73,7 @@ router.get(
 
 // Get top products
 router.get(
-  "/top",
+  "/topProducts",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.getTopProducts(req, res, next);
@@ -96,8 +97,6 @@ router.get(
     }
   }
 );
-
-
 
 // Get related products
 router.get(
@@ -124,8 +123,8 @@ router.get(
 );
 
 // Track product events (view, click, etc.)
-router.post(
-  "/:id/track/:eventType",
+router.get(
+  "/:id/track",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.trackProductEvent(req, res, next);
@@ -153,19 +152,19 @@ router.post(
 );
 
 // Process checkout
-router.post(
-  "/checkout",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.checkout(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// router.post(
+//   "/checkout",
+//   (req: Request, res: Response, next: NextFunction) => {
+//     verifyToken(req, res, next);
+//   },
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.checkout(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
 // ==================== PRODUCT DRAFTS ROUTES ====================
 
@@ -297,11 +296,19 @@ router.get(
 );
 
 // Get single product
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await ProductController.getProduct(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get(
-  "/:id",
+  "/slug/:slug",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await ProductController.getProduct(req, res, next);
+      await ProductController.getProductBySlug(req, res, next);
     } catch (error) {
       next(error);
     }
@@ -356,6 +363,234 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.addVariant(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Cart Routes
+router.post(
+  "/cart",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.addToCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/cart/merge",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.mergeCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.delete(
+  "/cart/:productId",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.addToCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get(
+  "/cart",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.addToCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.delete(
+  "/cart",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.addToCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Wishlist routes
+router.post(
+  "/wishlist/:productId",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.addToCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.delete(
+  "/wishlist/:productId",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.addToCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get(
+  "/wishlist",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.addToCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.delete(
+  "/wishlist",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.addToCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Offer routes
+router.post(
+  "/offer/:productId",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.makeOffer(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/offer/:productId/counter",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await makeCounterOffer(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/offer/:vendorId/accept",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await acceptOffer(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/offer/:vendorId/accept-counter-offer",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await acceptCounterOffer(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/offer/:vendorId/reject",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await rejectOffer(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/offer/:vendorId/reject-counter-offer",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await rejectCounterOffer(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Bidding route
+router.post(
+  "/bid/:productId",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await placeProxyBid(req, res, next);
     } catch (error) {
       next(error);
     }

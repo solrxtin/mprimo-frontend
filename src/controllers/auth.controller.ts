@@ -22,6 +22,7 @@ import { CryptoPaymentService } from "../services/crypto-payment.service"
 import getCountryPreferences from "../utils/get-country-preferences";
 import Vendor from "../models/vendor.model";
 import { tokenWatcher } from "..";
+import { IVendor } from "../types/vendor.type";
 
 const logger = LoggerService.getInstance();
 const generateVerificationCode = () =>
@@ -171,7 +172,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    let vendor: Vendor | null = null;
+    let vendor: IVendor | null = null;
     if ((user.role==="personal" && user.canMakeSales) || user.role==="business") {
       const proposedVendor = await Vendor.findOne({userId: user._id})
       vendor = proposedVendor ? proposedVendor : null;
@@ -506,7 +507,6 @@ export const resendPasswordChangeEmail = async (
   res: Response
 ) => {
   const { email } = req.body;
-  console.log(email);
   if (!email) {
     return res
       .status(400)

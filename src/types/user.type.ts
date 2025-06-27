@@ -1,6 +1,15 @@
 import { Types, Document } from "mongoose";
 
-export interface User extends Document {
+export interface ICart {
+  productId: Types.ObjectId;
+  quantity: number;
+  selectedVariant?: string;
+  price: number;
+  addedAt?: Date;
+}
+
+
+export interface IUser extends Document {
   _id: Types.ObjectId;
   _doc: Document;
   email: string;
@@ -48,6 +57,8 @@ export interface User extends Document {
     totalOrders?: number;
     totalSpent?: number;
   };
+  cart?: ICart[];
+  wishlist?: Types.ObjectId[];
   createdAt?: Date;
   updatedAt?: Date;
   resetPasswordToken?: string;

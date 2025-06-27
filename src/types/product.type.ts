@@ -16,17 +16,19 @@ type InventoryType = {
     instant?: {
       acceptOffer?: boolean;
       price?: number;
-      salePrice?: number;
-      quantity?: number;
+      salePrice: number;
+      quantity: number;
     };
     auction?: {
       startBidPrice?: number;
       reservePrice?: number;
       buyNowPrice?: number;
-      startTime?: Date;
-      endTime?: Date;
-      quantity?: number;
+      startTime: Date;
+      endTime: Date;
+      quantity: number;
       bidIncrement?: number;
+      isStarted?: boolean;
+      isExpired?: boolean;
     };
   };
 };
@@ -51,15 +53,16 @@ type ReviewType = {
 
 type BidType = {
   userId: Types.ObjectId;
-  amount: number;
+  maxAmount: number;
+  currentAmount: number;
   createdAt: Date;
   isWinning?: boolean;
 };
 
 type OfferType = {
   userId: Types.ObjectId;
-  userOffers: { amount: number; accepted: boolean; createdAt: Date }[];
-  counterOffers: { amount: number; accepted: boolean; createdAt: Date }[];
+  userOffers: { amount: number; accepted?: boolean; rejected?: boolean; createdAt?: Date }[];
+  counterOffers: { amount: number; accepted?: boolean; rejected?: boolean; createdAt?: Date }[];
 };
 
 type AnalyticsType = {
@@ -85,8 +88,10 @@ type ShippingType = {
 };
 
 export type ProductType = {
+  _id?: Types.ObjectId;
   vendorId: Types.ObjectId;
   name: string;
+  slug: string;
   brand: string;
   description: string;
   condition: "new" | "used" | "refurbished";

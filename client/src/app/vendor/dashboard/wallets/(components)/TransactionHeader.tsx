@@ -15,7 +15,7 @@ const TransactionHeader = ({
   setSearchTerm,
 }: TransactionHeaderProps) => {
   return (
-    <div className="flex flex-col md:flex-row items-center justify-between gap-2 b-4  w-full mt-2">
+    <div className="flex flex-col md:flex-row items-center justify-between gap-2 mb-4  w-full mt-2">
       <div className="relative w-full">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search size={18} className="text-gray-400" />
@@ -28,7 +28,7 @@ const TransactionHeader = ({
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-      <div className="flex gap-x-2 items-center lg:self-center w-full">
+      <div className="flex gap-x-2 items-center justify-between md:justify-end  w-full">
         <div className="relative">
           <input
             type="date"

@@ -1,13 +1,40 @@
+"use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import AnalyticsCard from "./(components)/AnalyticsCard";
+import AnalyticsCardSkeleton from "./(components)/skeletons/AnalyticsCardSkeleton";
 import SalesOverview from "./(components)/SalesOverview";
-import RecentOrders from "./(components)/RecentOrders";
+import SalesOverviewSkeleton from "./(components)/skeletons/SalesOverviewSkeleton";
 import SalesActivity from "./(components)/SalesActivity";
+import SalesActivitySkeleton from "./(components)/skeletons/SalesActivitySkeleton";
+import RecentOrders from "./(components)/RecentOrders";
+import RecentOrdersSkeleton from "./(components)/skeletons/RecentOrdersSkeleton";
+import { useProductStore } from "@/stores/useProductStore";
+import { useSocket } from "@/hooks/useSocket";
+import { useUserNotifications, useVendorAnalytics } from "@/hooks/queries";
 
 type Props = {};
 
-const page = (props: Props) => {
+const Page = (props: Props) => {
+  const { vendor } = useProductStore();
+  const socket = useSocket();
+  const { data, isFetching: isLoading } = useVendorAnalytics(vendor?._id!);
+
+  useUserNotifications();
+
+  useEffect(() => {
+    if (!vendor || !socket) return;
+
+    const handleConnect = () => {
+      socket.emit("registerVendor", vendor._id);
+    };
+
+    socket.on("connect", handleConnect);
+    return () => {
+      socket.off("connect", handleConnect);
+    };
+  }, [socket, vendor]);
+
   return (
     <div className="bg-[#f6f6f6] font-[family-name:var(--font-alexandria)]">
       <div className="p-4 md:p-10">
@@ -15,37 +42,39 @@ const page = (props: Props) => {
         <p className="mb-5 font-[family-name:var(--font-poppins)]">
           Welcome back, Bovie! Here's what is happening with your store today.
         </p>
+
+        {/* Analytics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-          <AnalyticsCard
-            title="Sales Total"
-            percentageIncrease={12.8}
-            amount={200000000}
-          />
-          <AnalyticsCard
-            title="Total Orders"
-            percentageIncrease={6.4}
-            value={1340}
-          />
-          <AnalyticsCard
-            title="Total Products"
-            percentageIncrease={-12.8}
-            value={256}
-          />
+          {isLoading ? (
+            <>
+              <AnalyticsCardSkeleton />
+              <AnalyticsCardSkeleton />
+              <AnalyticsCardSkeleton />
+            </>
+          ) : (
+            <>
+              <AnalyticsCard title="Sales Total" percentageIncrease={data.change.revenue} amount={data.currentData.totalRevenue} />
+              <AnalyticsCard title="Total Orders" percentageIncrease={data.change.sales} value={data.currentData.totalSales} />
+              <AnalyticsCard title="Total Products" percentageIncrease={data.change.productCount} value={data.currentData.productCount} />
+            </>
+          )}
         </div>
+
+        {/* Sales Overview & Activity */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
           <div className="col-span-1 xl:col-span-8">
-            <SalesOverview />
+            {isLoading ? <SalesOverviewSkeleton /> : <SalesOverview currentData={data.currentData} dailySales={data.dailySales} />}
           </div>
           <div className="col-span-1 xl:col-span-4">
-            <SalesActivity />
+            {isLoading ? <SalesActivitySkeleton /> : <SalesActivity />}
           </div>
         </div>
-        <div className="">
-          <RecentOrders />
-        </div>
+
+        {/* Recent Orders */}
+        {isLoading ? <RecentOrdersSkeleton /> : <RecentOrders />}
       </div>
     </div>
   );
 };
 
-export default page;
+export default Page;

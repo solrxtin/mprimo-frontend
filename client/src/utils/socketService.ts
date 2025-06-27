@@ -21,7 +21,6 @@ class SocketService {
     if (!this.socket) {
       // Replace with your actual Socket.IO endpoint
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5800';
-      
       this.socket = io(socketUrl, {
         withCredentials: true,
         transports: ['websocket', 'polling'],
@@ -29,7 +28,6 @@ class SocketService {
           userId
         }
       });
-
       this.setupEventHandlers();
     }
     

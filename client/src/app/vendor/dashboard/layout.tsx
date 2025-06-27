@@ -4,6 +4,8 @@ import Header from "./(components)/Header";
 import Sidebar from "./(components)/Sidebar";
 import { useUserStore } from "@/stores/useUserStore";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
   children,
@@ -14,6 +16,7 @@ export default function DashboardLayout({
   const [isLoading, setIsLoading] = useState(true);
 
   const { user } = useUserStore();
+  const router = useRouter()
 
   useEffect(() => {
     // Check if user store has been initialized
@@ -36,7 +39,8 @@ export default function DashboardLayout({
       if (!user) {
         window.location.href = "/login";
       } else if (user.role === "personal" && !user.canMakeSales) {
-        window.location.href = "/";
+        toast.error("You don't have permission to access this page. Please upgrade your account");
+        router.push("/");
       }
     }
   }, [user, isLoading]);

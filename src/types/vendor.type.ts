@@ -2,7 +2,7 @@ import mongoose, {Types} from 'mongoose';
 
 
   
-export interface Vendor {
+export interface IVendor {
     _id?: Types.ObjectId;
     userId: Types.ObjectId;
     accountType: 'personal' | 'business';

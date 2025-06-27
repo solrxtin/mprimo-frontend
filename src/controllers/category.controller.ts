@@ -152,6 +152,12 @@ export class CategoryController {
 
   static async getCategory(req: Request, res: Response, next: NextFunction) {
     try {
+      if (!req.params.id) {
+        return res.status(400).json({
+          success: false,
+          message: "Category ID is required",
+        });
+      }
       const category = await CategoryService.getCategory(req.params.id);
       res.json({ category });
     } catch (error) {
@@ -165,6 +171,13 @@ export class CategoryController {
     next: NextFunction
   ) {
     try {
+      const slug = req.params.slug;
+      if (!slug) {
+        return res.status(400).json({
+          success: false,
+          message: "Category slug is required",
+        });
+      }
       const category = await CategoryService.getCategoryBySlug(req.params.slug);
       res.json({ category });
     } catch (error) {
@@ -178,6 +191,12 @@ export class CategoryController {
     next: NextFunction
   ) {
     try {
+      if (!req.query.parentId) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid request. parentId is required",
+        });
+      }
       const categories = await CategoryService.getCategoryTree(
         req.query.parentId as string
       );
@@ -193,6 +212,12 @@ export class CategoryController {
     next: NextFunction
   ) {
     try {
+      if (!req.params.id) {
+        return res.status(400).json({
+          success: false,
+          message: "Category ID is required",
+        });
+      }
       const path = await CategoryService.getCategoryPath(req.params.id);
       res.json({ path });
     } catch (error) {
@@ -234,11 +259,22 @@ export class CategoryController {
     next: NextFunction
   ) {
     try {
-      const categories = await CategoryService.searchCategories(
-        req.query.q as string,
-        Number(req.query.limit)
-      );
-      res.json({ categories });
+      const query = (req.query.q as string)?.trim();
+      const limit = Number(req.query.limit) || 10;
+
+      if (!query || query.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: "Query must be at least 2 characters long",
+        });
+      }
+
+      const categories = await CategoryService.searchCategories(query, limit);
+
+      return res.status(200).json({
+        success: true,
+        categories,
+      });
     } catch (error) {
       next(error);
     }
@@ -256,8 +292,7 @@ export class CategoryController {
       //   ? JSON.parse(req.query.filter as string)
       //   : {};
 
-      const { categories } =
-        await CategoryService.getAllCategories();
+      const { categories } = await CategoryService.getAllCategories();
       res.json({
         categories,
         // pagination: {
@@ -278,7 +313,8 @@ export class CategoryController {
     next: NextFunction
   ) {
     try {
-      const { category, subCategory } = req.query;
+      const { category } = req.query;
+      const subCategory = req.query.subCategory as string | undefined;
 
       if (!category) {
         return res.status(400).json({
@@ -289,7 +325,7 @@ export class CategoryController {
 
       const result = await CategoryService.getCombinedAttributes(
         category as string,
-        subCategory as string
+        subCategory
       );
 
       res.json({

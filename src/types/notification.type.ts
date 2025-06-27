@@ -1,9 +1,10 @@
 import mongoose, {Types} from "mongoose";
 
-export interface Notification {
+export interface INotification {
     userId: Types.ObjectId;
     title: string;
-    type: 'order' | 'payment' | 'promotion' | 'system' | 'chat';
+    case: string;
+    type: 'order' | 'payment' | 'promotion' | 'system' | 'chat' | 'offer' | 'bid';
     message: string;
     data: {
         redirectUrl: string;

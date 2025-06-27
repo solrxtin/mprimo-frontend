@@ -73,6 +73,56 @@ export const useUserSubscriptions = () => {
   });
 };
 
+const fetchProductBySlug = async (slug: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/slug/${slug}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch product');
+  }
+  const data = await response.json();
+  console.log("Product data:", data);
+  return data;
+};
+
+export const useFetchProductBySlug = (slug: string) => {
+  return useQuery({
+    queryKey: ['product', slug],
+    queryFn: () => fetchProductBySlug(slug),
+    enabled: !!slug,
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
+};
+
+const fetchProductAnalytics = async (
+  entityType: string,
+  entityId: string,
+  timeframe = "daily"
+) => {
+  const response = await fetchWithAuth(
+    `http://localhost:5800/api/v1/analytics/${entityType}/${entityId}?timeframe=${timeframe}`
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch product analytics");
+  }
+  const data = await response.json();
+  console.log("Product analytics:", data);
+  return data;
+};
+
+export const useFetchProductAnalytics = (
+  entityId: string,
+  timeframe = "daily"
+) => {
+  return useQuery({
+    queryKey: ["product-analytics", entityId, timeframe],
+    queryFn: () => fetchProductAnalytics("product", entityId, timeframe),
+    enabled: !!entityId,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+
 const fetchVendorProducts = async (vendorId: string) => {
   const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/vendor/${vendorId}`);
   if (!response.ok) {
@@ -93,3 +143,58 @@ export const useVendorProducts = (vendorId: string) => {
   });
 };
 
+const fetchVendorAnalytics= async (vendorId: string, range="7days") => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/dashboard/vendors/${vendorId}/analytics?range=${range}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch user subscriptions');
+  }
+  const data = await response.json();
+  console.log("Vendor analytics:", data);
+  return data;
+};
+
+export const useVendorAnalytics= (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendorAnalytics', vendorId],
+    queryFn: () => fetchVendorAnalytics(vendorId),
+    enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+const fetchUserNotifications = async() => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/notifications`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch user notifications');
+  }
+  const data = await response.json();
+  return data.notifications;
+};
+
+export const useUserNotifications = () => {
+  return useQuery({
+    queryKey: ['userNotifications'],
+    queryFn: fetchUserNotifications,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+const fetchVendorOrders = async (vendorId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/orders/vendors/${vendorId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch vendor orders');
+  }
+  const data = await response.json();
+  return data;
+};
+
+export const useVendorOrders = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendorOrders', vendorId],
+    queryFn: () => fetchVendorOrders(vendorId),
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};

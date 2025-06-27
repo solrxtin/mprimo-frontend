@@ -16,8 +16,8 @@ const poppins = Poppins({
 
 const roboto = Roboto({
   variable: "--font-roboto",
-  subsets: ["latin"]
-})
+  subsets: ["latin"],
+});
 
 const inter = Inter({
   variable: "--font-inter",

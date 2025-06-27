@@ -49,7 +49,7 @@ const categorySchema = new Schema<ICategory>(
       trim: true,
     },
     parent: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       default: null,
     },
@@ -66,7 +66,7 @@ const categorySchema = new Schema<ICategory>(
     attributes: [
       {
         _id: {
-          type: Schema.Types.ObjectId,
+          type: mongoose.Schema.Types.ObjectId,
           default: () => new mongoose.Types.ObjectId(),
           auto: true,
         },
@@ -108,18 +108,18 @@ const categorySchema = new Schema<ICategory>(
       default: true,
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     updatedBy: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
     metadata: {
       type: Map,
-      of: Schema.Types.Mixed,
+      of: mongoose.Schema.Types.Mixed,
     },
   },
   {
