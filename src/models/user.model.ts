@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import { User } from "../types/user.type";
+import {IUser} from "../types/user.type"
 
-const userSchema = new mongoose.Schema<User>(
+const userSchema = new mongoose.Schema<IUser>(
   {
     email: {
       type: String,
@@ -21,6 +21,12 @@ const userSchema = new mongoose.Schema<User>(
         // Only require password if no social logins exist
         return this.socialLogins?.length === 0;
       },
+    },
+    businessName: {
+      type: String,
+      trim: true,
+      maxlength: [100, "First name cannot exceed 50 characters"],
+      required: false,
     },
     profile: {
       firstName: {
@@ -100,7 +106,7 @@ const userSchema = new mongoose.Schema<User>(
           validate: {
             validator: (value: string) => {
               // Basic international postal code validation
-              return /^[a-zA-Z0-9\- ]{3,10}$/.test(value);
+              return /^[A-Za-z0-9 -]{2,10}$/.test(value);
             },
             message: "Invalid postal code format",
           },
@@ -158,12 +164,11 @@ const userSchema = new mongoose.Schema<User>(
     preferences: {
       language: {
         type: String,
-        enum: ["en", "es", "fr", "de", "it"],
+        enum: ["en", "es", "fr", "de", "it"], //work on these 
         default: "en",
       },
       currency: {
         type: String,
-        enum: ["USD", "EUR", "GBP", "JPY", "CAD", "NGN"],
         default: "USD",
       },
       notifications: {
@@ -173,22 +178,70 @@ const userSchema = new mongoose.Schema<User>(
       },
       marketing: { type: Boolean, default: false },
     },
+    
     activity: {
       lastLogin: Date,
       lastPurchase: Date,
       totalOrders: { type: Number, default: 0, min: 0 },
       totalSpent: { type: Number, default: 0, min: 0 },
     },
+    cart: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          default: 1,
+          min: 1,
+        },
+        selectedVariant: {
+          type: String,
+        },
+        price: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        addedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      }
+    ],
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      }
+    ],
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
     verificationToken: String,
     verificationTokenExpiresAt: Date,
     twoFactorAuth: {
-      enabled: { type: Boolean, default: false },
-      secret: { type: String },
-      tempSecret: { type: String },
-      backupCodes: [{ type: String }],
-    },
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      secret: {
+        type: String,
+        default: null
+      },
+      tempSecret: {
+        type: String,
+        default: null
+      },
+      backupCodes: [{
+        code: String,
+        used: {
+          type: Boolean,
+          default: false
+        }
+      }]
+    }
   },
   {
     timestamps: true,
@@ -198,6 +251,6 @@ const userSchema = new mongoose.Schema<User>(
   }
 );
 
-const User = mongoose.model<User>("User", userSchema);
+const User = mongoose.model<IUser>("User", userSchema);
 
 export default User;

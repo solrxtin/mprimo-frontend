@@ -24,7 +24,7 @@ const Input: React.FC<InputProps> = ({
       {/* Label positioned top-left inside border */}
       <label
         htmlFor={id}
-        className="absolute -top-2 left-3 px-1 text-xs bg-white text-black z-10"
+        className="absolute -top-2 left-3 text-xs bg-white text-black z-10"
       >
         {label}
       </label>
@@ -36,7 +36,7 @@ const Input: React.FC<InputProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className={`w-full px-3 py-3 text-sm md:text-xs border rounded-md shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 ${
+        className={`w-full px-3 py-3 text-xs md:text-xs border rounded-md shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 ${
           error
             ? "border-red-500 text-red-700 focus:ring-red-300"
             : "border-gray-300 text-gray-500 focus:ring-gray-400"
@@ -45,7 +45,7 @@ const Input: React.FC<InputProps> = ({
 
       {/* Error message */}
       {error && (
-        <p className="mt-1 text-xs md:text-sm text-red-500 font-medium">{error}</p>
+        <p className="mt-1 text-xs md:text-xs text-red-500 font-medium">{error}</p>
       )}
     </div>
   );

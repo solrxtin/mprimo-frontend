@@ -1,8 +1,8 @@
-import { ObjectId, Document } from "mongoose";
+import { Document, Types } from "mongoose";
 
 
-export interface User extends Document {
-    _id: ObjectId;
+export interface IUser {
+    _id: string;
     _doc: Document
     email: string;
     password?: string;
@@ -14,7 +14,7 @@ export interface User extends Document {
         sex?: string;
     };
     addresses?: Array<{
-        _id?: ObjectId;
+        _id?: string;
         type: string;
         street: string;
         city: string;
@@ -39,13 +39,21 @@ export interface User extends Document {
             sms?: boolean;
         },
         marketing?: boolean;
-    },
+    };
     activity: {
         lastLogin?: Date;
         lastPurchase?: Date;
         totalOrders?: number;
         totalSpent?: number;
     };
+    cart?: Array<{
+        product: Types.ObjectId;
+        quantity: number;
+        price: number;
+        selectedVariant: string;
+        addedAt: Date;
+    }>; 
+    wishlist?: Array<Types.ObjectId>;
     createdAt?: Date;
     updatedAt?: Date;
     resetPasswordToken?: string;

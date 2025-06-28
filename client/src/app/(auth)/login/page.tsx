@@ -2,41 +2,62 @@
 
 import LoginForm from "@/components/LoginForm";
 import Link from "next/link";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 import { useRouter } from "next/navigation";
-import {useUserStore} from "@/stores/useUserStore";
-import {toast} from "react-toastify"
+import { useUserStore } from "@/stores/useUserStore";
+import { toast } from "react-toastify";
 import { toastConfigError, toastConfigInfo, toastConfigSuccess } from "@/app/config/toast.config";
-import {useGoogleLogin} from "@/hooks/queries"
-
-
+import { useGoogleLogin } from "@/hooks/queries";
+import TwoFactorVerification from "@/components/TwoFactorVerification";
+import { useProductStore } from "@/stores/useProductStore";
 
 const LoginPage = () => {
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [userId, setUserId] = useState("");
   const router = useRouter();
   const { user, setUser } = useUserStore();
+  const {setVendor} = useProductStore();
 
-  const {data, isFetching: isCallingGoogle, error, refetch, isFetched} = useGoogleLogin()
+  const { data, isFetching: isCallingGoogle, error, refetch, isFetched } = useGoogleLogin();
 
-  if (user && !user.isEmailVerified) {
+  if (user && user.role==="personal" && !user.isEmailVerified) {
     router.push("/email-verification");
     toast.info("Please verify your email", toastConfigInfo);
     return null;
   }
 
   const handleGoogleLogin = () => {
-    refetch()
-  }
-  
+    refetch();
+  };
+
+  // Add this function to handle successful login from LoginForm
+  const handleLoginSuccess = (userData: any) => {
+    if (userData.has2faEnabled) {
+      setUserId(userData.user._id);
+      setRequires2FA(true);
+      
+    } else {
+      setUser(userData.user);
+      router.push("/");
+    }
+  };
+
   useEffect(() => {
     if (isFetched && data && !error) {
-      setUser(data.user)
-      toast.success(data.message, toastConfigSuccess)
-      router.push("/");
+      setUser(data.user);
+      if (data.vendor) setVendor(data.vendor)
+      if (data.requires2FA) {
+        setUserId(data.user._id);
+        setRequires2FA(true);
+      } else {
+        toast.success(data.message, toastConfigSuccess);
+        router.push("/");
+      }
     } else if (isFetched && error) {
-      toast.error(error.message, toastConfigError)
+      toast.error(error.message, toastConfigError);
     }
-  }, [isFetched])
+  }, [isFetched]);
 
   return (
     <div className="flex flex-col md:flex-row gap-6 md:gap-x-8 justify-center items-center min-h-screen p-4 bg-gray-200">
@@ -45,15 +66,22 @@ const LoginPage = () => {
           <FaArrowLeft className="text-gray-600" size={32} />
         </div>
       </Link>
-      <div className="bg-white shadow-md rounded-xl px-6 md:px-20 lg:px-40 pt-6 pb-8 w-full max-w-3xl font-[family-name:var(--font-alexandria)] mt-4 md:mt-8">
-        <h2 className="text-2xl font-semibold text-center">
-          Welcome Back
-        </h2>
-        <p className="text-gray-600 text-center text-sm mb-6">
-          Continue shopping effortlessly
-        </p>
+      
+      {requires2FA ? (
+        <TwoFactorVerification 
+          userId={userId}
+          onCancel={() => setRequires2FA(false)}
+        />
+      ) : (
+        <div className="bg-white shadow-md rounded-xl px-6 md:px-20 lg:px-40 pt-6 pb-8 w-full max-w-3xl font-[family-name:var(--font-alexandria)] mt-4 md:mt-8">
+          <h2 className="text-2xl font-semibold text-center">
+            Welcome Back
+          </h2>
+          <p className="text-gray-600 text-center text-sm mb-6">
+            Continue shopping effortlessly
+          </p>
           <div className="md:px-10">
-            <LoginForm />
+            <LoginForm onLoginSuccess={handleLoginSuccess} />
             <div className="relative my-4 border-b-2 border-gray-300 w-3/4 mx-auto mb-4">
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-4 text-gray-500">
                 or
@@ -92,16 +120,8 @@ const LoginPage = () => {
               </Link>
             </p>
           </div>
-        {/* <p className="mt-4 text-center text-black text-sm">
-          Forgot your password?{" "}
-          <a
-            href="/user/forgot-password"
-            className="text-blue-500 hover:text-blue-800"
-          >
-            Reset Password
-          </a>
-        </p> */}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

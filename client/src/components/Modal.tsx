@@ -1,37 +1,88 @@
-import React from "react";
-interface ModalProps {
+// src/components/Modal.tsx
+"use client";
+
+import React, { useEffect, useRef } from "react";
+import { X } from "lucide-react";
+
+type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  title: string;
   children: React.ReactNode;
-}
+  onConfirm: () => void;
+  confirmText?: string;
+  cancelText?: string;
+};
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
-  const modalStyle = {
-    display: isOpen ? "block" : "none",
-  };
+const Modal = ({ 
+  isOpen, 
+  onClose, 
+  title, 
+  children, 
+  onConfirm,
+  confirmText = "Confirm",
+  cancelText = "Cancel" 
+}: ModalProps) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+      document.addEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "auto";
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
   return (
-    <div
-      style={modalStyle}
-      className="fixed inset-0 z-[99999999999] overflow-y-auto"
-      aria-labelledby="modal-title"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex items-center justify-end min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div
-          onClick={onClose}
-          className="fixed inset-0 transition-opacity bg-[#29292938] "
-          aria-hidden="true"
-        ></div>
-        {/* <!-- This element is to trick the browser into centering the modal contents. --> */}
-        <span
-          className="hidden sm:inline-block sm:align-middle sm:h-screen"
-          aria-hidden="true"
-        >
-          &#8203;
-        </span>
-
-        {children}
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xs">  
+      <div 
+        ref={modalRef}
+        className="bg-gray-50 rounded-lg border border-gray-200 shadow-xl w-full max-w-md mx-4 overflow-hidden text-gray-800"
+      >
+        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <h3 className="text-md font-medium text-gray-500">{title}</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={20} className="text-red-800 bg-red-50 border" />
+          </button>
+        </div>
+        
+        <div className="p-4 text-blue-800">{children}</div>
+        
+        <div className="p-4 border-t border-gray-200 flex justify-end gap-x-2">
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 border border-blue-600 rounded-md text-blue-600"
+          >
+            {cancelText}
+          </button>
+          <button 
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md"
+          >
+            {confirmText}
+          </button>
+        </div>
       </div>
     </div>
   );

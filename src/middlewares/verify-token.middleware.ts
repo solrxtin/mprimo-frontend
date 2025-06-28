@@ -1,10 +1,10 @@
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Response, Request, NextFunction } from "express";
 import User from "../models/user.model";
-import { ObjectId } from "mongoose";
+import { Types } from "mongoose";
 
 interface CustomJwtPayload extends JwtPayload {
-  userId: ObjectId;
+  userId: Types.ObjectId;
 }
 
 export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {

@@ -1,9 +1,9 @@
-import mongoose from "mongoose";
+import mongoose, {Types} from "mongoose";
 
 export interface Payment {
-    _id: mongoose.Schema.Types.ObjectId;
-    orderId: mongoose.Schema.Types.ObjectId;
-    userId: mongoose.Schema.Types.ObjectId;
+    _id: Types.ObjectId;
+    orderId: Types.ObjectId;
+    userId: Types.ObjectId;
     amount: number;
     currency: string;
     method: string;

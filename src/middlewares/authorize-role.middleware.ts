@@ -1,5 +1,6 @@
 import { Response, Request, NextFunction } from "express";
 import User from "../models/user.model";
+import { IUser } from "../types/user.type";
 
 type UserRole = "personal" | "business" | "admin";
 
@@ -22,7 +23,7 @@ export const authorizeRole = (roles: UserRole[] = []) => {
 export const authorizeVendor = () => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (req.user) {
-      const user = req.user as User;
+      const user = req.user as IUser;
       if (user.role === "personal" && user.status === "inactive") {
         return res.status(403).json({
           message: "Permissions not granted",

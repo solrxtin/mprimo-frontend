@@ -1,13 +1,14 @@
-import mongoose from "mongoose";
+import mongoose, {Types} from "mongoose";
 
-export interface Notification {
-    userId: mongoose.Schema.Types.ObjectId;
+export interface INotification {
+    userId: Types.ObjectId;
     title: string;
-    type: 'order' | 'payment' | 'promotion' | 'system' | 'chat';
+    case: string;
+    type: 'order' | 'payment' | 'promotion' | 'system' | 'chat' | 'offer' | 'bid';
     message: string;
     data: {
         redirectUrl: string;
-        entityId: mongoose.Schema.Types.ObjectId;
+        entityId: Types.ObjectId;
         entityType: string;
     };
     isRead: boolean;

@@ -7,10 +7,14 @@ import  { toast } from "react-toastify";
 import { toastConfigError, toastConfigSuccess } from "@/app/config/toast.config";
 import { useRouter } from "next/navigation";
 import {useLoginUser} from "@/hooks/mutations";
+import { useProductStore } from "@/stores/useProductStore";
 
-type Props = {};
+interface LoginFormProps {
+  onLoginSuccess?: (data: any) => void;
+}
 
-const LoginForm = (props: Props) => {
+
+const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess })=> {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState({
@@ -19,6 +23,7 @@ const LoginForm = (props: Props) => {
   });
 
   const { setUser } = useUserStore();
+  const { setVendor } = useProductStore();
   const router = useRouter();
   const { mutate: loginUser, isPending } = useLoginUser();
 
@@ -53,12 +58,17 @@ const LoginForm = (props: Props) => {
     // Perform validation and submit the form if valid
     if (validateForm()) {
       // Submit the form
-      console.log("Form submitted successfully!");
       loginUser(
         { email, password },
         {
           onSuccess: (data) => {
+            if (onLoginSuccess) {
+              if (data.has2faEnabled) {
+                onLoginSuccess(data)
+              }
+            }
             setUser(data.user);
+            setVendor(data.vendor);
             toast.success("Login successful", toastConfigSuccess);
             router.push("/");
           },

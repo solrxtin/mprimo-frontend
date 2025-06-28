@@ -6,9 +6,9 @@ type Props = {};
 
 const page = (props: Props) => {
   return (
-    <div className="bg-[#f6f6f6] rounded-lg shadow-md p-4 lg:p-6 min-h-screen font-[family-name:var(--font-alexandria)]">
+    <div className="bg-[#f6f6f6] rounded-lg shadow-md p-2 md:p-4 lg:p-6 min-h-screen font-[family-name:var(--font-alexandria)]">
       <div className="px-2 lg:px-5">
-        <div className="flex flex-col-reverse md:flex-row gap-y-2 justify-between items-center mb-5">
+        <div className="flex flex-col-reverse md:flex-row gap-y-4 justify-between items-center mb-5">
           <div className="self-start">
             <h1 className="text-lg font-semibold">Review Overview</h1>
             <p className="text-xs text-gray-800 font-[family-name:var(--font-poppins)]">

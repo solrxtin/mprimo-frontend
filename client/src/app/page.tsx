@@ -5,16 +5,19 @@ import { useUserStore } from "@/stores/useUserStore";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { toastConfigError } from "./config/toast.config";
+import { useProductStore } from "@/stores/useProductStore";
+
 import Homepage from "./home/layout";
 
 export default function Home() {
-  const { user, setUser } = useUserStore();
+  const { user, logout } = useUserStore();
   const { mutate: logoutUser } = useLogoutUser();
 
   const handleLogoutClicked = () => {
     logoutUser(undefined, {
       onSuccess: (data) => {
-        setUser(null);
+        logout();
+        useProductStore.getState().clearProductStore();
       },
       onError: (error) => {
         console.error("Logout failed:", error);

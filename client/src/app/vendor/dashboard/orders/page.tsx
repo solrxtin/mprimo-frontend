@@ -6,7 +6,7 @@ type Props = {};
 
 const page = (props: Props) => {
   return (
-    <div className="bg-[#f6f6f6] rounded-lg shadow-md p-4 lg:p-6 min-h-screen font-[family-name:var(--font-alexandria)]">
+    <div className="bg-[#f6f6f6] rounded-lg shadow-md p-2 md:p-4 lg:p-6 min-h-screen font-[family-name:var(--font-alexandria)]">
       <div className="px-2 lg:px-5">
         <h1 className="text-lg font-semibold">My Orders</h1>
         <p className="text-xs text-gray-800 font-[family-name:var(--font-poppins)]">

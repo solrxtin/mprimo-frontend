@@ -1,5 +1,7 @@
-import mongoose from "mongoose";
+import mongoose, { CallbackError } from "mongoose";
 import { IOrder } from "../types/order.type";
+import Product from "./product.model";
+import Vendor from "./vendor.model";
 
 const orderSchema = new mongoose.Schema<IOrder>(
   {
@@ -25,11 +27,6 @@ const orderSchema = new mongoose.Schema<IOrder>(
           type: Number,
           required: [true, "Price is required"],
           min: [0.01, "Price must be at least 0.01"],
-        },
-        vendorId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Vendor",
-          required: [true, "Vendor ID is required"],
         },
       },
     ],
@@ -80,7 +77,6 @@ const orderSchema = new mongoose.Schema<IOrder>(
       currency: {
         type: String,
         required: [true, "Currency is required"],
-        enum: ["USD", "EUR", "GBP", "JPY", "CAD"],
         uppercase: true,
         default: "USD",
       },
@@ -153,10 +149,10 @@ const orderSchema = new mongoose.Schema<IOrder>(
       status: {
         type: String,
         enum: {
-          values: ["processing", "shipped", "delivered", "returned"],
+          values: ["pending", "processing", "shipped", "delivered", "returned"],
           message: "Invalid shipping status",
         },
-        default: "processing",
+        default: "pending",
       },
       estimatedDelivery: {
         type: Date,
@@ -174,7 +170,7 @@ const orderSchema = new mongoose.Schema<IOrder>(
     status: {
       type: String,
       enum: {
-        values: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+        values: ["pending", "processing", "delivered", "cancelled"],
         message: "Invalid order status",
       },
       default: "pending",
@@ -226,6 +222,49 @@ orderSchema.pre("save", function (next) {
   }
 
   next();
+});
+
+orderSchema.post("save", async function (doc, next) {
+  try {
+    // Ensure it's a new order (not an update)
+    if (!doc.isNew) return next();
+
+    const order = doc;
+    const vendorSalesMap = new Map();
+
+    // Group items by vendor and sum their totals
+    for (const item of order.items) {
+      const product = await Product.findById(item.productId).select("vendorId");
+      if (!product) continue;
+
+      const vendorId = product.vendorId.toString();
+      const salesCount = item.quantity;
+      const revenue = item.quantity * item.price;
+
+      const current = vendorSalesMap.get(vendorId) || { totalSales: 0, totalRevenue: 0 };
+      vendorSalesMap.set(vendorId, {
+        totalSales: current.totalSales + salesCount,
+        totalRevenue: current.totalRevenue + revenue,
+      });
+    }
+
+    // Update each vendor's analytics
+    await Promise.all(
+      Array.from(vendorSalesMap.entries()).map(async ([vendorId, { totalSales, totalRevenue }]) => {
+        await Vendor.findByIdAndUpdate(vendorId, {
+          $inc: {
+            "analytics.totalSales": totalSales,
+            "analytics.totalRevenue": totalRevenue,
+          },
+        });
+      })
+    );
+
+    next();
+  } catch (error) {
+    console.error("Error updating vendor analytics:", error);
+    next(error as CallbackError);
+  }
 });
 
 const Order = mongoose.model<IOrder>("Order", orderSchema);

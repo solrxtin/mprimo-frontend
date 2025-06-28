@@ -4,6 +4,9 @@ import "./globals.css";
 import TanstackProvider from "@/providers/TanstackProvider";
 import { ToastContainer, Slide } from "react-toastify";
 import Script from "next/script";
+import { TokenRefresher } from "@/components/TokenRefresher";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import SocketInitializer from "@/components/SocketInitializer";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -14,8 +17,8 @@ const poppins = Poppins({
 const roboto = Roboto({
   variable: "--font-roboto",
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-  subsets: ["latin"]
-})
+  subsets: ["latin"],
+});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -45,7 +48,11 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <TanstackProvider>
-          {children}
+          <TokenRefresher />
+          <NotificationProvider>
+            <SocketInitializer />
+            {children}
+          </NotificationProvider>
           <ToastContainer transition={Slide} />
         </TanstackProvider>
         {/* Script to remove Grammarly attributes that cause hydration errors */}
@@ -70,6 +77,22 @@ export default function RootLayout({
               // Set up a mutation observer to handle future changes
               const observer = new MutationObserver(removeGrammarlyAttributes);
               observer.observe(document.body, { attributes: true });
+            }
+          `}
+        </Script>
+        {/* Register service worker for push notifications */}
+        <Script id="register-service-worker" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                  .then(function(registration) {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                  })
+                  .catch(function(error) {
+                    console.error('Service Worker registration failed:', error);
+                  });
+              });
             }
           `}
         </Script>

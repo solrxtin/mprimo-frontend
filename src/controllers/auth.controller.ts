@@ -1,8 +1,7 @@
 import { Response, Request } from "express";
 import jwt from "jsonwebtoken";
-import { ObjectId } from "mongoose";
+import { Types } from "mongoose";
 import bcrypt from "bcrypt";
-import * as crypto from "crypto";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
@@ -20,6 +19,10 @@ import sendPasswordResetSuccessfulEmail from "../mails/send-password-reset-succe
 import sendVerificationEmail from "../mails/send-verification.mail";
 import sendWelcomeEmail from "../mails/send-welcome-message.mail";
 import { CryptoPaymentService } from "../services/crypto-payment.service"
+import getCountryPreferences from "../utils/get-country-preferences";
+import Vendor from "../models/vendor.model";
+import { tokenWatcher } from "..";
+import { IVendor } from "../types/vendor.type";
 
 const logger = LoggerService.getInstance();
 const generateVerificationCode = () =>
@@ -104,7 +107,7 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
     // Save user to database
     const savedUser = await User.create(newUser);
     const wallet = await cryptoService.createWallet(savedUser._id)
-    console.log(wallet)
+    tokenWatcher.addAddressToWatch(wallet.address)
     logger.debug("User created successfully", {
       userId: savedUser._id,
     });
@@ -154,6 +157,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Find user by email
     const user = await User.findOne({ email });
+    
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -169,6 +173,12 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    let vendor: IVendor | null = null;
+    if ((user.role==="personal" && user.canMakeSales) || user.role==="business") {
+      const proposedVendor = await Vendor.findOne({userId: user._id})
+      vendor = proposedVendor ? proposedVendor : null;
+    }
+
     const has2faEnabled = user.twoFactorAuth.enabled || false;
     if (has2faEnabled) {
       return res.status(200).json({
@@ -178,6 +188,7 @@ export const login = async (req: Request, res: Response) => {
           ...user._doc,
           password: undefined,
         },
+        vendor,
         has2faEnabled,
       });
     }
@@ -202,7 +213,9 @@ export const login = async (req: Request, res: Response) => {
         ...user._doc,
         password: undefined,
       },
+      vendor,
       has2faEnabled,
+      requires2FA: true
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -496,7 +509,6 @@ export const resendPasswordChangeEmail = async (
   res: Response
 ) => {
   const { email } = req.body;
-  console.log(email);
   if (!email) {
     return res
       .status(400)
@@ -546,34 +558,49 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     }
 
     try {
-      // Verify the refresh token
+      // First verify the token without hitting the database
       const decoded = jwt.verify(
         refreshToken,
         process.env.REFRESH_TOKEN_SECRET!
-      ) as { userId: ObjectId; type: string };
+      ) as { userId: Types.ObjectId; type: string; exp: number };
 
-      if (!decoded)
-        return res.status(401).json({ message: "Invalid refresh token" });
-
-      // Find token in database
-      const storedToken = await RefreshToken.findOne({
-        userId: decoded.userId,
-      });
-
-      if (!storedToken) {
-        return res.status(401).json({ message: "Invalid refresh token" });
+      // Check token type
+      if (decoded.type !== 'refresh') {
+        return res.status(401).json({ message: "Invalid token type" });
       }
 
-      // Generate only a new access token
+      // Generate a new access token
       const newAccessToken = generateAccessToken(decoded.userId);
 
-      // Set only the new access token cookie
+      // Set the new access token cookie
       res.cookie("accessToken", newAccessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-        maxAge: 15 * 60 * 1000,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Updated for cross-site compatibility
+        path: '/', // Ensure cookie is available across the site
+        maxAge: 15 * 60 * 1000, // 15 minutes
       });
+
+      // Only check the database periodically (e.g., when token is close to expiry)
+      // This reduces database load for frequent token refreshes
+      const tokenExpiryTime = decoded.exp * 1000; // Convert to milliseconds
+      const timeUntilExpiry = tokenExpiryTime - Date.now();
+      const refreshThreshold = 24 * 60 * 60 * 1000; // 1 day in milliseconds
+
+      // Only verify against database if token is close to expiry or randomly (10% chance)
+      if (timeUntilExpiry < refreshThreshold || Math.random() < 0.1) {
+        const storedToken = await RefreshToken.findOne({
+          userId: decoded.userId,
+          token: refreshToken
+        });
+
+        if (!storedToken) {
+          // Token was revoked or doesn't exist
+          res.clearCookie("accessToken");
+          res.clearCookie("refreshToken");
+          return res.status(401).json({ message: "Invalid refresh token" });
+        }
+      }
 
       return res.json({
         success: true,
@@ -581,15 +608,10 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       });
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        // Only generate new refresh token if the current one is expired
-       await generateTokensAndSetCookie(
-          res,
-          req.userId!
-        );
-
-        return res.json({
-          success: true
-        });
+        // Token has expired, clear cookies
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
+        return res.status(401).json({ message: "Refresh token expired" });
       }
 
       return res.status(401).json({ message: "Invalid refresh token" });
@@ -658,43 +680,37 @@ interface IAddress {
 // Vendor
 export const signupVendor = async (req: Request, res: Response) => {
   try {
-    //TODO: Make sure phone uses international format
-    const { email, password, firstName, lastName, phoneNumber, sex } = req.body;
+    const { businessName, businessEmail, password, country, street, city, state, postalCode } = req.body;
 
     // Validate input
-    if (!email || !password || !firstName || !lastName || !phoneNumber || sex) {
+    if (!businessEmail || !password || !businessName || !country || !street || !city || !state || !postalCode) {
       return res.status(400).json({
         message:
-          "Email, password, phoneNumber, sex, first name, and last name are required",
+          "Business email, Business name, password, country, street, city, state, postalCode are required",
       });
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: businessEmail });
     if (existingUser) {
-      return res.status(409).json({ message: "Email already registered" });
+      return res.status(409).json({ message: "Business email already registered" });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = generateVerificationCode();
-    const verificationTokenHash = await bcrypt.hash(verificationToken, 10);
+    const preferences = getCountryPreferences(country);
 
     // Create new user
     const newUser = {
-      email,
+      email: businessEmail,
       password: hashedPassword,
-      profile: {
-        firstName,
-        lastName,
-        phoneNumber: phoneNumber,
-        sex,
-      },
-      role: "vendor",
+      businessName: businessName,
+      country: country,
+      role: "business",
       status: "active",
       preferences: {
-        language: "en",
-        currency: "USD",
+        language: preferences.language,
+        currency: preferences.currency,
         notifications: {
           email: true,
           push: true,
@@ -707,21 +723,37 @@ export const signupVendor = async (req: Request, res: Response) => {
         totalOrders: 0,
         totalSpent: 0,
       },
-      verificationToken: verificationTokenHash,
-      verificationTokenExpiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
     };
 
     // Save user to database
     const savedUser = await User.create(newUser);
-    await sendVerificationEmail(email, verificationToken);
+    const wallet = await cryptoService.createWallet(savedUser._id)
+    tokenWatcher.addAddressToWatch(wallet.address)
     logger.debug("User created successfully", {
       userId: savedUser._id,
     });
+   
+    const vendor = await Vendor.create({
+      userId: savedUser._id,
+      accountType: "business",
+      businessInfo: {
+        name: businessName,
+        address: {
+          city,
+          street,
+          state,
+          country,
+          postalCode
+        }
+      }
+    })
+
     return res.status(201).json({
-      message: "User created successfully",
+      message: "Business created successfully. Please proceed with verification",
       user: {
         ...savedUser._doc,
         password: undefined,
+        vendor
       },
     });
   } catch (error) {

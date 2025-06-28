@@ -93,7 +93,7 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
     <div
       className={`
       fixed md:static top-0 left-0 h-full bg-white shadow-md z-40
-      w-64 md:w-32 lg:w-64 transform transition-transform duration-300 ease-in-out font-[family-name:var(--font-alexandria)]
+      w-64 md:w-32 lg:w-44 xl:w-52 transform transition-transform duration-300 ease-in-out font-[family-name:var(--font-alexandria)]
       ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
     `}
     >

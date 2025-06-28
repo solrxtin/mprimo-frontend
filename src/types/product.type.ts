@@ -1,75 +1,114 @@
-import mongoose from 'mongoose';
+import { Types } from "mongoose";
 
-export interface Review {
-    userId: mongoose.Schema.Types.ObjectId;
-    rating: number;
-    comment: string;
-    createdAt?: Date;
-}
+type ListingType = "instant" | "auction";
 
-export interface Offer {
-   amount: number;
-   accepted: boolean
-}
+type CategoryType = {
+  main: Types.ObjectId;
+  sub?: Types.ObjectId[];
+  path?: string[];
+};
 
-export interface Offers {
-    userId: mongoose.Schema.Types.ObjectId
-    userOffers: Offer[];
-}
+type InventoryType = {
+  sku?: string;
+  lowStockAlert?: number;
+  listing: {
+    type: ListingType;
+    instant?: {
+      acceptOffer?: boolean;
+      price?: number;
+      salePrice: number;
+      quantity: number;
+    };
+    auction?: {
+      startBidPrice?: number;
+      reservePrice?: number;
+      buyNowPrice?: number;
+      startTime: Date;
+      endTime: Date;
+      quantity: number;
+      bidIncrement?: number;
+      isStarted?: boolean;
+      isExpired?: boolean;
+    };
+  };
+};
 
-export interface Product {
-    vendorId: mongoose.Schema.Types.ObjectId;
-    name: string;
-    description: string;
-    category: {
-        main: string;
-        sub: string;
-    };
-    price: {
-        amount: number;
-        currency: string;
-    };
-    inventory: {
-        quantity: number;
-        sku: string;
-        lowStockAlert: number;
-    };
-    images: string[];
-    specifications: [{
-        key: String,
-      value: String
-    }];
-    shipping: {
-        weight: number;
-        dimensions: {
-            length: number;
-            width: number;
-            height: number;
-        };
-        restrictions: string[];
-    };
-    status: 'active' | 'inactive' | 'outOfStock';
-    reviews: Review[] | [];
-    rating: number;
-    variants: [
-        {
-            name: string;
-            options: [
-                {
-                    value: string;
-                    price: number;
-                    inventory: number;
-                }
-            ]
-        }
-    ];
-    analytics: {
-        views: number;
-        purchases: number;
-        conversionRate: number;
-    };
-    offers: Offers[];
-    allowOffer: boolean;
-    createdAt?: Date;
-    updatedAt?: Date;
-}
+type VariantOptionType = {
+  value: string;
+  price: number;
+  inventory: number;
+};
+
+type VariantType = {
+  name: string;
+  options: VariantOptionType[];
+};
+
+type ReviewType = {
+  userId: Types.ObjectId;
+  rating: number;
+  comment: string;
+  createdAt: Date;
+};
+
+type BidType = {
+  userId: Types.ObjectId;
+  maxAmount: number;
+  currentAmount: number;
+  createdAt: Date;
+  isWinning?: boolean;
+};
+
+type OfferType = {
+  userId: Types.ObjectId;
+  userOffers: { amount: number; accepted?: boolean; rejected?: boolean; createdAt?: Date }[];
+  counterOffers: { amount: number; accepted?: boolean; rejected?: boolean; createdAt?: Date }[];
+};
+
+type AnalyticsType = {
+  views: number;
+  purchases: number;
+  conversionRate: number;
+};
+
+type SpecificationType = {
+  key: string;
+  value: string;
+};
+
+type ShippingType = {
+  weight: number;
+  unit: "kg" | "lbs";
+  dimensions: {
+    length: number;
+    width: number;
+    height: number;
+  };
+  restrictions?: ("hazardous" | "fragile" | "perishable" | "oversized" | "none")[];
+};
+
+export type ProductType = {
+  _id?: Types.ObjectId;
+  vendorId: Types.ObjectId;
+  name: string;
+  slug: string;
+  brand: string;
+  description: string;
+  condition: "new" | "used" | "refurbished";
+  conditionDescription?: string;
+  category: CategoryType;
+  country: Types.ObjectId;
+  inventory: InventoryType;
+  images: string[];
+  specifications: SpecificationType[];
+  shipping: ShippingType;
+  status: "active" | "inactive" | "outOfStock";
+  reviews: ReviewType[];
+  rating: number;
+  variants: VariantType[];
+  analytics: AnalyticsType;
+  offers: OfferType[];
+  bids: BidType[];
+  createdAt?: Date;
+  updatedAt?: Date;
+};

@@ -1,7 +1,7 @@
-import mongoose from "mongoose"
+import mongoose, {Types} from "mongoose"
 
 export interface Analytics {
-    entityId: mongoose.Schema.Types.ObjectId;
+    entityId: Types.ObjectId;
     entityType: string;
     metrics: {
         views: number;

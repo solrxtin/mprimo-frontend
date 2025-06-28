@@ -6,10 +6,12 @@ export interface IPushSubscription {
     p256dh: string;
     auth: string;
   };
+  deviceId: string;
   userId?: string;
   userAgent?: string;
   createdAt: Date;
   updatedAt: Date;
+  lastUpdated: Date;
 }
 
 const pushSubscriptionSchema = new mongoose.Schema<IPushSubscription>({
@@ -19,6 +21,14 @@ const pushSubscriptionSchema = new mongoose.Schema<IPushSubscription>({
     auth: { type: String, required: true }
   },
   userId: { type: String },
+  deviceId: {
+    type: String,
+    required: true
+  },
+  lastUpdated: {
+    type: Date,
+    default: Date.now
+  },
   userAgent: { type: String },
 }, { timestamps: true });
 

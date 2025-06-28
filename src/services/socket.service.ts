@@ -1,13 +1,18 @@
 import { Server as SocketServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
+import { IOrder } from '../types/order.type';
+import { Types } from 'mongoose';
+import { INotification } from '../types/notification.type';
 
 export class SocketService {
   private io: SocketServer;
+  vendorSockets = new Map();
+  userSockets = new Map(); 
 
   constructor(server: HttpServer) {
     this.io = new SocketServer(server, {
       cors: {
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || true,
+        origin: ["http://localhost:3000"],
         methods: ["GET", "POST"],
         credentials: true
       }
@@ -43,9 +48,34 @@ export class SocketService {
         }
       });
 
+      socket.on("registerVendor", (vendorId: string) => {
+        this.vendorSockets.set(vendorId, socket.id); // Map vendor ID to socket ID
+        console.log(`Vendor ${vendorId} registered with socket ID: ${socket.id}`);
+      });
+
+      socket.on("registerUser", (userId: string) => {
+        this.userSockets.set(userId, socket.id); // Map vendor ID to socket ID
+      });
+
+      socket.onAny((event, ...args) => {
+        console.log("Received event:", event, args);
+      });
+      
       // Handle disconnection
       socket.on('disconnect', () => {
         console.log(`Client disconnected: ${socket.id}`);
+        // Remove vendor from map on disconnect
+        this.vendorSockets.forEach((value, key) => {
+          if (value === socket.id) {
+            this.vendorSockets.delete(key);
+          }
+        });
+        // Remove user from map on disconnect
+        this.userSockets.forEach((value, key) => {
+          if (value === socket.id) {
+            this.userSockets.delete(key);
+          }
+        });
       });
     });
   }
@@ -63,6 +93,36 @@ export class SocketService {
   // Method to emit events to a specific client
   public emitToClient(socketId: string, event: string, data: any): void {
     this.io.to(socketId).emit(event, data);
+  }
+
+  public notifyVendor(vendorId: Types.ObjectId, {event, notification}: {event: string; notification: INotification}): void {
+    const vendorSocketId = this.vendorSockets.get(vendorId);
+    if (vendorSocketId) {
+      this.io.to(vendorSocketId).emit(event, { notification });
+    } else {
+      console.log(`Vendor ${vendorId} is not online.`);
+    }
+  }
+
+  public notifyUser(userId: string, {event, notification}: {event: string; notification: INotification}): void {
+    const userSocketId = this.userSockets.get(userId);
+    if (userSocketId) {
+      this.io.to(userSocketId).emit(event, { notification });
+    } else {
+      console.log(`User ${userId} is not online.`);
+    }
+  }
+
+  public notifyUserForOrder(userId: any, { event, message, order }: { event: string; message: string; order: IOrder }): void {
+    const userSocketId = this.userSockets.get(userId);
+    if (userSocketId) {
+      this.io.to(userSocketId).emit(event, { message, order });
+    } else {
+      console.log(`User ${userId} is not online.`);
+    }
+  }
+  getIO() {
+    return this.io
   }
 }
 

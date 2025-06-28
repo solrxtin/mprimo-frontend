@@ -1,33 +1,50 @@
 import { User } from "@/types/user.type";
+import ICryptoWallet from "@/types/wallet.type";
 import { create } from "zustand";
 import {
-    persist,
-    createJSONStorage,
-    type PersistOptions,
-  } from "zustand/middleware";
+  persist,
+  createJSONStorage,
+  type PersistOptions,
+} from "zustand/middleware";
 
 interface UserState {
   user: User | null;
   setUser: (user: User | null) => void;
+  deviceId: string | null;
+  setDeviceId: (deviceId: any) => void;
+  wallet: ICryptoWallet | null;
+  setWallet: (wallet: ICryptoWallet | null) => void;
+  logout: () => void;
 }
 
-type PersistedState = Pick<UserState, "user">;
+type PersistedState = Pick<UserState, "user" | "deviceId" | "wallet" >;
 
 
 // Define persist configuration
 const persistConfig: PersistOptions<UserState, PersistedState> = {
-    name: "user-storage",
-    storage: createJSONStorage(() => localStorage),
-    partialize: (state) => ({ user: state.user }),
-    version: 1,
-  };
-  
+  name: "user-storage",
+  storage: createJSONStorage(() => localStorage),
+  partialize: (state) => ({
+    user: state.user,
+    deviceId: state.deviceId,
+    wallet: state.wallet,
+  }),
+  version: 1,
+};
 
 export const useUserStore = create<UserState>()(
   persist(
     (set, get) => ({
       user: null,
       setUser: (user: User | null) => set({ user }),
+      deviceId: null,
+      setDeviceId: (deviceId: string | null) => set({ deviceId }),
+      wallet: null,
+      setWallet: (wallet: ICryptoWallet | null) => set({wallet}),
+      logout: () => {
+        set({ user: null, deviceId: null, wallet: null });
+        localStorage.removeItem("user-storage"); // explicitly clear it
+      },
     }),
     persistConfig
   )
