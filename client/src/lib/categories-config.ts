@@ -41,6 +41,7 @@ export interface CategoryConfig {
 }
 
 export const categoriesConfig: Record<string, CategoryConfig> = {
+    
   "sports-fitness": {
     id: "sports-fitness",
     name: "Sports & Fitness",
