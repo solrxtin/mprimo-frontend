@@ -34,7 +34,7 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
   try {
     //TODO: Make sure phone uses international format
     const { email, password, firstName, lastName,phoneNumber, role } = req.body;
-
+console.log("body", req.body)
     // Validate input
     if (!email || !password || !firstName || !lastName || !phoneNumber || !role) {
       return res.status(400).json({

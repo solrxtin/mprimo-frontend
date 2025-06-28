@@ -8,10 +8,17 @@ import { toastConfigError } from "./config/toast.config";
 import { useProductStore } from "@/stores/useProductStore";
 
 import Homepage from "./home/layout";
+import { useEffect } from "react";
+import { Router } from "express";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const { user, logout } = useUserStore();
   const { mutate: logoutUser } = useLogoutUser();
+  const router = useRouter()
+  useEffect(()=> {
+    router.push("/home")
+  }, [])
 
   const handleLogoutClicked = () => {
     logoutUser(undefined, {

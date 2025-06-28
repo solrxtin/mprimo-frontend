@@ -3,10 +3,11 @@ import express, {Request, Response, NextFunction} from 'express';
 import { TwoFactorController } from '../controllers/two-factor.controller';
 import { verifyToken } from '../middlewares/verify-token.middleware';
 
-const twofactorrouter = express.Router();
+const router = express.Router();
 
-twofactorrouter.post('/setup', 
+router.post('/setup', 
     //middleware to verify token
+
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },
@@ -19,7 +20,7 @@ twofactorrouter.post('/setup',
     }
 )
 
-twofactorrouter.post('/enable', 
+router.post('/enable', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
@@ -33,7 +34,8 @@ twofactorrouter.post('/enable',
     }
 )
 
-twofactorrouter.post('/disable', 
+
+router.post('/disable', 
     //middleware to verify token
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
@@ -74,4 +76,4 @@ router.post('/verify-backup',
     }
 )
 
-export default twofactorrouter;
+export default router;

@@ -72,42 +72,16 @@ export class ProductController {
         message: "Product created successfully",
       });
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
-  },
-  getVendorProduct: async (req: Request, res: Response) => {
-    try {
-      const product = await Product.findOne({
-        _id: req.params.id,
-        vendorId: req.userId // Ensure product belongs to requesting vendor
-      }).populate('category.main', 'name slug path');
+  }
 
-      if (!product) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "Product not found or unauthorized" 
-        });
-      }
-
-      res.status(200).json({ 
-        success: true, 
-        data: product 
-      });
-    } catch (error) {
-      handleError(error, res);
-    }
-  },
-
-
-  // Get all products (Public) with enhanced category handling
-  getProducts: async (req: Request, res: Response) => {
+  static async getProducts(req: Request, res: Response, next: NextFunction) {
     try {
       const {
         page = 1,
         limit = 10,
         category,
-        minPrice,
-        maxPrice,
         status,
         priceRange,
         sort,
@@ -186,7 +160,7 @@ export class ProductController {
 
       res.json({ product });
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
   }
   static async getProductBySlug(
@@ -229,7 +203,7 @@ export class ProductController {
 
       res.json({ product });
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
   }
 
@@ -267,9 +241,9 @@ export class ProductController {
 
       res.status(204).send();
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
-  },
+  }
 
   static async updateInventory(
     req: Request,
@@ -307,7 +281,7 @@ export class ProductController {
       if (vendor)
         await redisService.releaseLock(productId, vendor._id.toString());
     }
-  },
+  }
 
   static async addVariant(req: Request, res: Response, next: NextFunction) {
     try {
@@ -330,14 +304,11 @@ export class ProductController {
 
       res.json({ product });
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
-  },
+  }
 
-  // Other existing methods (updateVariant, updateStatus, deleteProduct) remain the same
-  // ...
-  // Delete product (Vendor only)
-  deleteProduct: async (req: Request, res: Response) => {
+  static async searchProducts(req: Request, res: Response, next: NextFunction) {
     try {
       const {
         q,
@@ -402,7 +373,7 @@ export class ProductController {
 
       res.json(results);
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
   }
 

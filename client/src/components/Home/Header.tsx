@@ -24,6 +24,7 @@ import Modal from "../Modal";
 import { useState } from "react";
 import FullButton from "../FullButton";
 import Link from "next/link";
+import Modal2 from "../Modal2";
 
 const Header = () => {
   const [isSell, setIsSell] = useState(false);
@@ -36,7 +37,7 @@ const Header = () => {
   };
   return (
     <header className=" text-white">
-      <div className=" px-[16px] bg-secondary  md:px-[42px] lg:px-[80px] border-b-[0.5px] border-[#E2E8F0]  text-center py-2 text-sm lg:text-base font-medium flex justify-between items-center">
+      <div className=" px-[16px] bg-primary  md:px-[42px] lg:px-[80px] border-b-[0.5px] border-[#E2E8F0]  text-center py-2 text-sm lg:text-base font-medium flex justify-between items-center">
         <span>Welcome to Mprimo online store...</span>
         <p className="hidden lg:block">
           Get up to{" "}
@@ -54,7 +55,7 @@ const Header = () => {
       </div>
 
       {/* Main header */}
-      <div className=" bg-secondary md:px-[42px] lg:px-[80px] px-4 py-2 md:py-4">
+      <div className=" bg-primary md:px-[42px] lg:px-[80px] px-4 py-2 md:py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/home">
@@ -79,7 +80,7 @@ const Header = () => {
                 className="flex-1 border-0  pl-[2px] outline-0 text-[#121212]"
               />
 
-              <button className="py-[4px] font-normal md:py-2 w-[80px] text-xs md:w-[120px] lg:w-[150px] bg-secondary placeholder:text-xs  rounded-4xl mr-1  ">
+              <button className="py-[4px] font-normal md:py-2 w-[80px] text-xs md:w-[120px] lg:w-[150px] bg-primary placeholder:text-xs  rounded-4xl mr-1  ">
                 Search
               </button>
             </div>
@@ -217,7 +218,8 @@ const Header = () => {
         </div>
       </nav>
 
-      <Modal
+      <Modal2
+
         isOpen={isSell} // Replace with your state management for modal visibility
         onClose={handlecloseModal} // Replace with your state management for closing the modal
       >
@@ -255,7 +257,7 @@ const Header = () => {
             </button>
           </div>
         </div>
-      </Modal>
+      </Modal2>
     </header>
   );
 };

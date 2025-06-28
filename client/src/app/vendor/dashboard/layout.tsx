@@ -38,9 +38,14 @@ export default function DashboardLayout({
     if (!isLoading) {
       if (!user) {
         window.location.href = "/login";
-      } else if (user.role === "personal" && !user.canMakeSales) {
+      }
+      //  else if (user.role === "personal" && !user.canMakeSales) {
+      //   toast.error("You don't have permission to access this page. Please upgrade your account");
+      //   router.push("/");
+      // } 
+      else if ((user.role === "business" || user.role === "personal") && user.canMakeSales) {
         toast.error("You don't have permission to access this page. Please upgrade your account");
-        router.push("/");
+        router.push("/vendor/dashboard");
       }
     }
   }, [user, isLoading]);

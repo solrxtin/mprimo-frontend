@@ -6,6 +6,8 @@ export const toastConfigError = {
   closeOnClick: true,
   pauseOnHover: true,
   draggable: true,
+  
+
 };
 
 export const toastConfigSuccess = {

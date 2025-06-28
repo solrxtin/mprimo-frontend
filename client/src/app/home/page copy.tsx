@@ -13,14 +13,13 @@ type HomepageProps = {
   children?: React.ReactNode;
 };
 
+
+
 const Page = ({ children }: HomepageProps) => {
   return (
     <div className=" font-roboto">
-     
       <MarketplaceSection />
       <BestDeals />
-
-      
       <ShopCategoriesComponent />
       <FeaturedProducts />
       <ComputerAccessories />
