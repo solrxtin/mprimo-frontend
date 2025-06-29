@@ -14,7 +14,10 @@
     "create-admin": "ts-node src/scripts/create-admin.ts",
     "seed-categories": "ts-node src/scripts/seed-categories.ts",
     "seed-countries": "ts-node src/scripts/seed-countries.ts",
-    "generate-slug": "ts-node src/scripts/generateSlug.ts"
+    "seed-vendors": "ts-node src/scripts/seed-vendors.ts",
+    "seed-users": "ts-node src/scripts/seed-users.ts",
+    "generate-slug": "ts-node src/scripts/generateSlug.ts",
+    "generate-images": "ts-node src/scripts/generate-images.ts"
   },
   "keywords": [],
   "author": "",
