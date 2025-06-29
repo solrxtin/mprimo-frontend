@@ -41,15 +41,14 @@ const userSchema = new mongoose.Schema<IUser>(
       },
       phoneNumber: {
         type: String,
-        // validate: {
-        //   validator: (value: string) => {
-        //     // Supports international phone numbers
-        //     return /^\+?[1-9]\d{1,14}$/.test(value);
-        //   },
-        //   message:
-        //     "Invalid phone number format. Please use international format (+1234567890)",
-        // },
-        required: [true, "Phone number is required"],
+        validate: {
+          validator: (value: string) => {
+            // Match international-style numbers, allow spaces and dashes, but disallow dots
+            const pattern = /^\+?[1-9]\d{0,3}[-\s]?\(?\d{2,4}\)?[-\s]?\d{3,4}[-\s]?\d{3,4}$/;
+            return pattern.test(value);
+          },
+          message: "Invalid phone number format. Please use an international format like +234 801 234 5678",
+        }        
       },
       avatar: {
         type: String,

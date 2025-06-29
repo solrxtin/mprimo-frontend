@@ -706,6 +706,7 @@ export const signupVendor = async (req: Request, res: Response) => {
       country: country,
       role: "business",
       status: "active",
+      canMakeSales: true,
       preferences: {
         language: preferences.language,
         currency: preferences.currency,
