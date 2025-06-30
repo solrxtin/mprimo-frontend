@@ -95,8 +95,8 @@ export default function WishlistPage() {
     setItems([])
   }
     const manualBreadcrumbs: BreadcrumbItem[] = [
-    { label: "Cart", href: "/my-cart" },
-    { label: "Auction", href: null},
+    { label: "My-Wishlist", href: "/home/my-cart" },
+    // { label: "Auction", href: null},
     // { label: "Laptops", href: "/prod
     ]
     const handleBreadcrumbClick = (
@@ -126,7 +126,7 @@ export default function WishlistPage() {
 
   return (
    <>
-      <Header />
+
 
       <div className="min-h-screen font-roboto bg-gray-50 body-padding">
         <div className=" mx-auto pt-4">

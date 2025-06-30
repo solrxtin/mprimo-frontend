@@ -120,24 +120,20 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
     
-        <Breadcrumbs
-            items={manualBreadcrumbs}
-            onItemClick={handleBreadcrumbClick}
-            className="mb-4"
-          />
+       <div className="pb-4">
+                  <h2 className="text-xl font-bold">My Messages</h2>
+                </div>
 
           <div className="bg-white rounded-lg border overflow-hidden h-[calc(100vh-200px)]">
             <div className="flex h-full">
               {/* Contacts List */}
               <div className="w-1/3 border-r">
-                <div className="p-4 border-b">
-                  <h2 className="text-xl font-bold">My Messages</h2>
-                </div>
+               
                 <div className="overflow-y-auto h-full">
                   {contacts.map((contact) => (
                     <div
                       key={contact.id}
-                      className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
+                      className={`p-4 border-b cursor-pointer rounded-md hover:bg-gray-50 ${
                         selectedContact.id === contact.id ? "bg-blue-50 border-r-2 border-r-blue-600" : ""
                       }`}
                       onClick={() => setSelectedContact(contact)}

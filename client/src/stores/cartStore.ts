@@ -44,7 +44,7 @@ const calculateCartSummary = (items: CartItem[]): CartSummary => {
 
   return {
     subtotal,
-    total: subtotal, // You can add taxes, shipping, discounts here
+    total: subtotal, // yoo we will add taxes, shipping, discounts here
     totalItems: items.length,
     totalQuantity: items.reduce((total, item) => total + item.quantity, 0),
   };
@@ -86,7 +86,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
 
     if (existingItemIndex > -1) {
-      // Update existing item quantity
       const updatedItems = [...items];
       updatedItems[existingItemIndex].quantity += quantity;
       set({ items: updatedItems });

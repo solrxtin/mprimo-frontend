@@ -655,8 +655,6 @@ export default function CartPage() {
 
   return (
     <>
-      <Header />
-
       <div className="min-h-screen font-roboto bg-gray-50 body-padding">
         <div className=" mx-auto pt-4">
           {/* Breadcrumb */}

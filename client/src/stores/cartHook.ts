@@ -152,3 +152,6 @@ export const useCart = () => {
     getCartItem: store.getCartItem,
   };
 };
+
+
+// God make it work

@@ -12,7 +12,7 @@ const navigation = [
   { name: "Orders", href: "/orders", icon: ShoppingBag },
   { name: "Messages", href: "/messages", icon: MessageCircle },
   { name: "Wallet", href: "/wallet", icon: Wallet },
-  { name: "Wishlists", href: "/wishlists", icon: Heart },
+  { name: "Wishlists", href: "/wishlist", icon: Heart },
   { name: "Needs Reviews", href: "/reviews", icon: Star },
   { name: "Settings", href: "/settings", icon: Settings },
 ]

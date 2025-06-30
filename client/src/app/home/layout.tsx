@@ -11,7 +11,7 @@ type HomepageProps = {
 
 const Homepage = ({ children }: HomepageProps) => {
   return (
-    <div className=" font-roboto">
+    <div className="font-roboto" style={{ fontFamily: 'var(--font-roboto)' }}>
      <Header />
      {children}
      <Footer />
