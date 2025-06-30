@@ -1,7 +1,7 @@
 import { Document, Types } from "mongoose";
 
 
-export interface IUser {
+export interface User {
     _id: string;
     _doc: Document
     email: string;

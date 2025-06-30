@@ -73,12 +73,12 @@ const ProductsPage = () => {
     // Calculate total pages
     const total = Math.ceil(productList.length / itemsPerPage);
     setTotalPages(total);
-
     // Get current products
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     setDisplayedProducts(productList.slice(indexOfFirstItem, indexOfLastItem));
   }, [currentPage, productList, itemsPerPage]);
+
 
   // Handle page changes
   const goToPage = (pageNumber: number) => {
@@ -102,7 +102,6 @@ const ProductsPage = () => {
   // Generate page numbers for display
   const getPageNumbers = () => {
     const pageNumbers = [];
-
     if (totalPages <= 7) {
       // Show all pages if 7 or fewer
       for (let i = 1; i <= totalPages; i++) {
@@ -111,29 +110,23 @@ const ProductsPage = () => {
     } else {
       // Always show first page
       pageNumbers.push(1);
-
       // Show dots or pages
       if (currentPage > 3) {
         pageNumbers.push("...");
       }
-
       // Show current page and neighbors
       const startPage = Math.max(2, currentPage - 1);
       const endPage = Math.min(totalPages - 1, currentPage + 1);
-
       for (let i = startPage; i <= endPage; i++) {
         pageNumbers.push(i);
       }
-
       // Show dots or pages
       if (currentPage < totalPages - 2) {
         pageNumbers.push("...");
       }
-
       // Always show last page
       pageNumbers.push(totalPages);
     }
-
     return pageNumbers;
   };
 

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Heart, Star, ChevronRight, ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { AllProduct } from "@/utils/config";
+import { ProductType } from "@/types/product.type";
 
 interface Product {
   id: number;
@@ -73,7 +77,7 @@ const products: Product[] = [
     condition: "Brand New",
     category: "Personal",
   },
-   {
+  {
     id: 7,
     name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
     image: "/images/tv.png",
@@ -84,7 +88,7 @@ const products: Product[] = [
     condition: "Brand New",
     category: "Personal",
   },
-     {
+  {
     id: 8,
     name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
     image: "/images/tv.png",
@@ -138,7 +142,7 @@ const ProductCard = ({
   product,
   isLarge = false,
 }: {
-  product: Product;
+  product: ProductType;
   isLarge?: boolean;
 }) => {
   const [isLiked, setIsLiked] = useState(false);
@@ -154,11 +158,11 @@ const ProductCard = ({
       } border border-[#ADADAD4D] relative`}
     >
       {/* Discount Badge */}
-      {product.discount > 0 && (
+      {/* {product.discount > 0 && (
         <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-yellow-400 text-black px-2 py-1 rounded text-xs sm:text-sm font-normal z-10">
           -{product.discount}%
         </div>
-      )}
+      )} */}
 
       <div className="relative mb-3 sm:mb-4">
         <div
@@ -167,7 +171,7 @@ const ProductCard = ({
           } flex items-center justify-center overflow-hidden`}
         >
           <img
-            src={product.image}
+            src={product.images[0]}
             alt={product.name}
             className={`${
               isLarge
@@ -196,7 +200,7 @@ const ProductCard = ({
         {!isLarge && (
           <StarRating
             rating={product.rating}
-            reviewCount={product.reviewCount}
+            reviewCount={product?.reviews?.length}
           />
         )}
 
@@ -219,7 +223,7 @@ const ProductCard = ({
               {" "}
               <StarRating
                 rating={product.rating}
-                reviewCount={product.reviewCount}
+                reviewCount={product.reviews?.length}
               />{" "}
               <span
                 className={`text-xs pl-1 text-gray-400 font-normal hidden lg:block  `}
@@ -244,11 +248,15 @@ const ProductCard = ({
                 isLarge ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
               }`}
             >
-              {formatPrice(product.price)}
+              {product.inventory?.listing?.type === "instant"
+                ? formatPrice(product.inventory?.listing?.instant?.salePrice ?? 0)
+                : ""}
             </span>
-            {product.originalPrice && (
+            {product.inventory?.listing?.type === "instant" && (
               <span className="text-xs sm:text-sm text-gray-500 line-through">
-                {formatPrice(product.originalPrice)}
+                {formatPrice(
+                  product.inventory?.listing?.instant?.price ?? 0
+                )}
               </span>
             )}
           </div>
@@ -256,12 +264,15 @@ const ProductCard = ({
           <div className="flex items-center gap-2">
             <span
               className={`text-xs px-2 sm:px-3 py-1 rounded-full ${
-                product.category === "Wholesale"
+                product.category?.main === "Wholesale"
                   ? "bg-purple-100 text-purple-700"
                   : "bg-orange-100 text-orange-700"
               }`}
             >
-              {product.category}
+              {/* {typeof product.category.main === "string"
+                ? product.category.main
+                : product.category.main?.name} */}
+                  {product?.category?.sub && product?.category?.sub[product.category.sub?.length - 1]?.name}
             </span>
           </div>
         </div>
@@ -279,6 +290,25 @@ const ProductCard = ({
 export default function FeaturedProducts() {
   const [mainProduct] = useState(products[0]);
   const otherProducts = products.slice(1);
+
+  const fetchAllProducts = async () => {
+    const response = await fetchWithAuth(`${AllProduct}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch user subscriptions");
+    }
+    const data = await response.json();
+    return data.products;
+  };
+
+  const useAllProducts = useQuery({
+    queryKey: ["useAllProducts"],
+    queryFn: fetchAllProducts,
+    // enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+  const allProductData = useAllProducts?.data || [];
 
   return (
     <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18 ">
@@ -316,9 +346,9 @@ export default function FeaturedProducts() {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {otherProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+        {allProductData.map((product: ProductType) => (
+          <ProductCard key={product._id} product={product} />
+        ))}
       </div>
     </div>
   );

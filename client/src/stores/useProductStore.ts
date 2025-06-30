@@ -9,8 +9,8 @@ import {
 } from "zustand/middleware";
 
 interface ProductState {
-    vendor: Vendor | null;
-    setVendor: (vendor: Vendor | null) => void;
+  vendor: Vendor | null;
+  setVendor: (vendor: Vendor | null) => void;
   listedProducts: ProductType[] | [];
   setListedProducts: (listedProducts: ProductType[] | []) => void;
   clearProductStore: () => void;
@@ -45,3 +45,6 @@ export const useProductStore = create<ProductState>()(
     persistConfig
   )
 );
+
+
+

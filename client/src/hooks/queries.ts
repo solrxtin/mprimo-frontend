@@ -1,6 +1,7 @@
 
 // Example query using TanStack Query (React Query)
 import { toastConfigError } from '@/app/config/toast.config';
+import { AllProduct } from '@/utils/config';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
@@ -198,3 +199,6 @@ export const useVendorOrders = (vendorId: string) => {
     retry: 1,
   });
 };
+
+
+

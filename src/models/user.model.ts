@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema<IUser>(
         //   message:
         //     "Invalid phone number format. Please use international format (+1234567890)",
         // },
-        required: [true, "Phone number is required"],
+        required: [false, "Phone number is required"],
       },
       avatar: {
         type: String,

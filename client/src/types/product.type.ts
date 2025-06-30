@@ -4,11 +4,11 @@ type PopulatedCategory = {
   _id: string;
   name: string;
   slug: string;
-}
+};
 
 type CategoryType = {
   main: string | PopulatedCategory;
-  sub?: string[] | PopulatedCategory[];
+  sub?: string[] | any;
   path?: string[];
 };
 
@@ -39,7 +39,7 @@ type CountryType = {
   _id: string;
   name: string;
   currency: string;
-}
+};
 
 type VariantOptionType = {
   value: string;
@@ -91,7 +91,13 @@ type ShippingType = {
     width: number;
     height: number;
   };
-  restrictions?: ("hazardous" | "fragile" | "perishable" | "oversized" | "none")[];
+  restrictions?: (
+    | "hazardous"
+    | "fragile"
+    | "perishable"
+    | "oversized"
+    | "none"
+  )[];
 };
 
 export type ProductType = {
@@ -119,3 +125,222 @@ export type ProductType = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+export type ProductProps = {
+  _id: string;
+  vendorId: {
+    _id: string;
+  };
+  name: string;
+  brand: string;
+  description: string;
+  condition: "new" | "used";
+  conditionDescription: string;
+  category: {
+    _id: string;
+    path: string[];
+    main: Category;
+    sub: Category[];
+  };
+  country: string;
+  inventory: {
+    lowStockAlert: number;
+    sku: string;
+    listing: {
+      type: "instant" | "auction";
+      instant: {
+        acceptOffer: boolean;
+        price: number;
+        salePrice: number;
+        quantity: number;
+      };
+      auction: {
+        quantity: number;
+        bidIncrement: number;
+      };
+    };
+  };
+  images: string[];
+  specifications: {
+    key: string;
+    value: string;
+    _id: string;
+  }[];
+  shipping: {
+    weight: number;
+    unit: string;
+    dimensions: {
+      length: number;
+      width: number;
+      height: number;
+    };
+    restrictions: string[];
+  };
+  status: "active" | "inactive";
+  rating: number;
+  variants: {
+    name: string;
+    options: {
+      value: string;
+      price: number;
+      inventory: number;
+      _id: string;
+    }[];
+    _id: string;
+  }[];
+  analytics: {
+    views: number;
+    purchases: number;
+    conversionRate: number;
+    addToCart: number;
+    wishlist: number;
+  };
+  reviews: any[];
+  offers: any[];
+  bids: any[];
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+  slug: string;
+};
+
+export interface Category {
+  _id: string;
+  name: string;
+  description: string;
+  parent: string | null;
+  level: number;
+  path: string[];
+  attributes: ProductAttribute[];
+  isActive: boolean;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  slug: string;
+  __v: number;
+  image?: string;
+  productDimensionsRequired: boolean;
+}
+
+// Product Types based on your sample data
+export interface ProductAttribute {
+  _id: string;
+  name: string;
+  type: "text" | "number" | "select";
+  required: boolean;
+  options: string[];
+}
+
+export interface ProductCategory {
+  main: Category;
+  sub: Category[];
+  path: string[];
+  _id: string;
+}
+
+export interface ProductInventory {
+  lowStockAlert: number;
+  listing: {
+    type: "instant" | "auction";
+    instant: {
+      acceptOffer: boolean;
+      price: number;
+      salePrice: number;
+      quantity: number;
+    };
+    auction: {
+      quantity: number;
+      bidIncrement: number;
+    };
+  };
+  sku: string;
+}
+
+export interface ProductSpecification {
+  key: string;
+  value: string;
+  _id: string;
+}
+
+export interface ProductShipping {
+  weight: number;
+  unit: string;
+  dimensions: {
+    length: number;
+    width: number;
+    height: number;
+  };
+  restrictions: string[];
+}
+
+export interface ProductVariantOption {
+  value: string;
+  price: number;
+  inventory: number;
+  _id: string;
+}
+
+export interface ProductVariant {
+  name: string;
+  options: ProductVariantOption[];
+  _id: string;
+}
+
+export interface ProductAnalytics {
+  views: number;
+  purchases: number;
+  conversionRate: number;
+  addToCart: number;
+  wishlist: number;
+}
+
+// export interface ProductType {
+//   _id: string;
+//   vendorId: {
+//     _id: string;
+//   };
+//   name: string;
+//   brand: string;
+//   description: string;
+//   condition: 'new' | 'used' | 'refurbished';
+//   conditionDescription: string;
+//   category: ProductCategory;
+//   country: string;
+//   inventory: ProductInventory;
+//   images: string[];
+//   specifications: ProductSpecification[];
+//   shipping: ProductShipping;
+//   status: 'active' | 'inactive' | 'draft';
+//   rating: number;
+//   variants: ProductVariant[];
+//   analytics: ProductAnalytics;
+//   reviews: any[];
+//   offers: any[];
+//   bids: any[];
+//   createdAt: string;
+//   updatedAt: string;
+//   __v: number;
+//   slug: string;
+// }
+
+// Cart specific types
+export interface CartItem {
+  product: ProductType;
+  quantity: number;
+  selectedVariant?: {
+    variantId: string;
+    optionId: string;
+    variantName: string;
+    optionValue: string;
+    price: number;
+  };
+  addedAt: string;
+}
+
+export interface CartSummary {
+  subtotal: number;
+  total: number;
+  totalItems: number;
+  totalQuantity: number;
+}

@@ -25,9 +25,11 @@ import { useState } from "react";
 import FullButton from "../FullButton";
 import Link from "next/link";
 import Modal2 from "../Modal2";
+import { useCartLength } from "@/stores/cartHook";
 
 const Header = () => {
   const [isSell, setIsSell] = useState(false);
+  const cartLength = useCartLength()
 
   const handleSellClick = () => {
     setIsSell(!isSell);
@@ -109,7 +111,7 @@ const Header = () => {
                 <ShoppingCart className="w-5 h-5 mr-2" />
 
                 <span className="absolute -top-2 right-0 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  2
+                  {cartLength}
                 </span>
               </button>
             </Link>

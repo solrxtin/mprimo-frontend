@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Package, Shield, ShoppingCart, MapPin, Users } from 'lucide-react';
 import Link from 'next/link';
+import {ProductProps} from "../../types/product.type"
 
-const MarketplaceSection = () => {
+interface MarketplaceSectionProps {
+  product: ProductProps;
+}
+
+const MarketplaceSection = ({ product }: MarketplaceSectionProps) => {
   const [currentSlide, setCurrentSlide] = useState<number>(0);
     const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
