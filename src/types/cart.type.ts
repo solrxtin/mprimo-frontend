@@ -8,7 +8,7 @@ export interface WishlistItem {
     currency: string;
 }
 
-export interface Wishlist {
+export interface IWishlist {
     userId: Types.ObjectId;
     items: WishlistItem[];
     createdAt?: Date;
@@ -23,7 +23,7 @@ export interface CartItem {
     addedAt: Date;
 }
 
-export interface Cart {
+export interface ICart {
     userId: Types.ObjectId;
     items: CartItem[];
     lastUpdated: Date;

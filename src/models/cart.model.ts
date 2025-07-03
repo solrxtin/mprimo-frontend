@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
-import { Cart, Wishlist } from "../types/cart.type";
+import {IWishlist, ICart} from "../types/cart.type";
 
-
-// Wishlist Schema with embedded validators
-const wishlistSchema = new mongoose.Schema<Wishlist>(
+// Wishlist Schema
+const wishlistSchema = new mongoose.Schema<IWishlist>(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
     items: [
@@ -18,10 +17,10 @@ const wishlistSchema = new mongoose.Schema<Wishlist>(
   { timestamps: true }
 );
 
-export const WishList = mongoose.model<Wishlist>("Wishlist", wishlistSchema);
+export const WishList = mongoose.model<IWishlist>("Wishlist", wishlistSchema);
 
-// Cart Schema with embedded validators
-const cartSchema = new mongoose.Schema<Cart>({
+// Cart Schema
+const cartSchema = new mongoose.Schema<ICart>({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
   items: [
     {
@@ -35,6 +34,6 @@ const cartSchema = new mongoose.Schema<Cart>({
   lastUpdated: { type: Date, default: Date.now },
 }, {timestamps: true});
 
-const Cart = mongoose.model<Cart>("Cart", cartSchema);
+const Cart = mongoose.model<ICart>("Cart", cartSchema);
 
 export { WishList, Cart };
