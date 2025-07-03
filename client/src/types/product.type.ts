@@ -20,7 +20,7 @@ type InventoryType = {
     instant?: {
       acceptOffer?: boolean;
       price?: number;
-      salePrice?: number;
+      // salePrice?: number;
       quantity?: number;
     };
     auction?: {

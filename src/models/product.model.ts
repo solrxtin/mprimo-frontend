@@ -119,23 +119,7 @@ const productSchema = new mongoose.Schema<ProductType>(
         },
         instant: {
           acceptOffer: { type: Boolean, default: false },
-          price: {
-            type: Number,
-          },
-          salePrice: {
-            type: Number,
-            required: function (this: any) {
-              return this.listing?.type === "instant";
-            },
-          },
-          quantity: {
-            type: Number,
-            required: function (this: any) {
-              return this.listing?.type === "instant";
-            },
-            min: [0, "Instant sale quantity cannot be negative"],
-            default: 0,
-          },
+          // Removed price, salePrice, quantity - handled by variants
         },
         auction: {
           startBidPrice: {
@@ -323,6 +307,10 @@ const productSchema = new mongoose.Schema<ProductType>(
           trim: true,
           maxlength: [50, "Variant name cannot exceed 50 characters"],
         },
+        isDefault: {
+          type: Boolean,
+          default: false,
+        },
         options: [
           {
             value: {
@@ -331,15 +319,28 @@ const productSchema = new mongoose.Schema<ProductType>(
               trim: true,
               maxlength: [50, "Option value cannot exceed 50 characters"],
             },
+            sku: {
+              type: String,
+              required: [true, "Option SKU is required"],
+              unique: true,
+            },
             price: {
               type: Number,
               required: [true, "Option price is required"],
               min: [0.01, "Price must be at least 0.01"],
             },
-            inventory: {
+            salePrice: {
               type: Number,
-              required: [true, "Option inventory is required"],
-              min: [0, "Inventory cannot be negative"],
+              min: [0.01, "Sale price must be at least 0.01"],
+            },
+            quantity: {
+              type: Number,
+              required: [true, "Option quantity is required"],
+              min: [0, "Quantity cannot be negative"],
+            },
+            isDefault: {
+              type: Boolean,
+              default: false,
             },
           },
         ],
@@ -604,11 +605,22 @@ productSchema.pre("save", async function (next) {
   }
 
   if (listing.type === "instant") {
-    if (listing.instant?.quantity == null) {
-      throw new Error("Instant listing must include quantity");
+    // Validate that variants exist and have required data
+    if (!this.variants || this.variants.length === 0) {
+      throw new Error("Instant listing must have at least one variant");
     }
-    if (listing.instant?.salePrice == null) {
-      throw new Error("Instant listing must include sale price");
+    
+    // Validate each variant has at least one option with price and quantity
+    for (const variant of this.variants) {
+      if (!variant.options || variant.options.length === 0) {
+        throw new Error(`Variant ${variant.name} must have at least one option`);
+      }
+      
+      for (const option of variant.options) {
+        if (option.price == null || option.quantity == null) {
+          throw new Error(`Variant option ${option.value} must have price and quantity`);
+        }
+      }
     }
 
     if (this.inventory && !this.inventory.sku) {

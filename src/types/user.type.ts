@@ -1,11 +1,17 @@
 import { Types, Document } from "mongoose";
 
-export interface ICart {
+export interface ICartItem {
   productId: Types.ObjectId;
+  variantId: string; // SKU of selected variant
   quantity: number;
-  selectedVariant?: string;
   price: number;
   addedAt?: Date;
+}
+
+export interface ICart {
+  userId: Types.ObjectId;
+  items: ICartItem[];
+  lastUpdated: Date;
 }
 
 
@@ -57,8 +63,7 @@ export interface IUser extends Document {
     totalOrders?: number;
     totalSpent?: number;
   };
-  cart?: ICart[];
-  wishlist?: Types.ObjectId[];
+  // Removed cart and wishlist - using separate models
   createdAt?: Date;
   updatedAt?: Date;
   resetPasswordToken?: string;

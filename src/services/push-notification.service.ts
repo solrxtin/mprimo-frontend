@@ -235,3 +235,6 @@ export class PushNotificationService {
   //   );
   // }
 }
+
+// Export singleton instance
+export default new PushNotificationService();

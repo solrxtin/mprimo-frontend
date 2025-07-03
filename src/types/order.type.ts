@@ -29,7 +29,28 @@ export interface IOrder extends Document {
         status: 'processing' | 'shipped' | 'delivered' | 'returned';
         estimatedDelivery: Date;
     };
-    status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+    status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+    cancellationReason?: string;
+    cancelledAt?: Date;
+    refund: {
+        amount: number;
+        reason: string;
+        method: 'original' | 'store_credit' | 'manual';
+        status: 'pending' | 'completed' | 'failed';
+        transactionId: string;
+        processedAt?: Date;
+    }
     createdAt? : Date;
     updatedAt? : Date;
+}
+
+
+export interface IRefund {
+  _id?: Types.ObjectId;
+  orderId: Types.ObjectId;
+  amount: number;
+  reason?: string;
+  processedBy: Types.ObjectId;
+  processedAt: Date;
+  status: "pending" | "processed" | "failed";
 }

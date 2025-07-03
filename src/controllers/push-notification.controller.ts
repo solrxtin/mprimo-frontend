@@ -1,13 +1,8 @@
 import { Request, Response, RequestHandler, NextFunction } from 'express';
-import { PushNotificationService } from '../services/push-notification.service';
+import pushNotificationService from '../services/push-notification.service';
 import { PushSubscription } from '../models/push-subscription.model';
 
 export class PushNotificationController {
-  private pushService: PushNotificationService;
-
-  constructor() {
-    this.pushService = new PushNotificationService();
-  }
 
   subscribe: RequestHandler = async (req: Request, res: Response) => {
     try {
@@ -115,7 +110,7 @@ export class PushNotificationController {
       
       const subscriptions = await PushSubscription.find();
       const notifications = subscriptions.map(sub => 
-        this.pushService.sendNotification(sub, {
+        pushNotificationService.sendNotification(sub, {
           title,
           body,
           icon: '/icon.png',

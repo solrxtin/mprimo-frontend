@@ -23,9 +23,9 @@ interface ProductData {
       type: "instant" | "auction";
       instant?: {
         acceptOffer: boolean;
-        price: number;
-        salePrice: number;
-        quantity: number;
+        // price: number;
+        // salePrice: number;
+        // quantity: number;
       };
       auction?: {
         startBidPrice: number;
@@ -55,10 +55,13 @@ interface ProductData {
   };
   variants?: Array<{
     name: string;
+    isDefault?: boolean;
     options: Array<{
       value: string;
       price: number;
-      inventory: number;
+      quantity: number;
+      sku: string;
+      isDefault?: boolean;
     }>;
   }>;
 }
@@ -66,6 +69,8 @@ interface ProductData {
 export const useCreateProduct = () => {
   return useMutation({
     mutationFn: async (productData: ProductData) => {
+      console.log('Sending product data:', productData);
+      
       const response = await fetchWithAuth(
         "http://localhost:5800/api/v1/products",
         {
@@ -73,13 +78,59 @@ export const useCreateProduct = () => {
           body: JSON.stringify(productData),
         }
       );
+      
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.message, toastConfigError);
-        throw new Error(errorData.message);
+        console.error('Product creation failed:', responseData);
+        toast.error(responseData.message || 'Failed to create product', toastConfigError);
+        throw new Error(responseData.message || 'Failed to create product');
       }
 
-      return response.json();
+      toast.success('Product created successfully!');
+      return responseData;
+    },
+  });
+};
+
+// Hook for creating multiple products
+export const useCreateMultipleProducts = () => {
+  return useMutation({
+    mutationFn: async (productsData: ProductData[]) => {
+      const results = [];
+      const errors = [];
+      
+      for (let i = 0; i < productsData.length; i++) {
+        try {
+          const response = await fetchWithAuth(
+            "http://localhost:5800/api/v1/products",
+            {
+              method: "POST",
+              body: JSON.stringify(productsData[i]),
+            }
+          );
+          
+          const responseData = await response.json();
+          
+          if (!response.ok) {
+            errors.push({ index: i, error: responseData.message });
+          } else {
+            results.push(responseData);
+          }
+        } catch (error) {
+          errors.push({ index: i, error: 'Network error' });
+        }
+      }
+      
+      if (errors.length > 0) {
+        toast.error(`${errors.length} products failed to create`, toastConfigError);
+      }
+      
+      if (results.length > 0) {
+        toast.success(`${results.length} products created successfully!`);
+      }
+      
+      return { results, errors };
     },
   });
 };

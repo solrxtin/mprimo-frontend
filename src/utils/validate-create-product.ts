@@ -36,27 +36,9 @@ export const validateProductData = async (productData: any) => {
     // Validate listing type and required fields
     const listingType = inventory.listing.type;
     if (listingType === "instant") {
-      const hasVariants = Array.isArray(variants) && variants.length > 0;
-      if (!hasVariants) {
-        if (
-          inventory.listing.instant?.salePrice == null ||
-          inventory.listing.instant?.quantity == null
-        ) {
-          throw new Error(
-            "Instant listing requires salePrice and quantity when no variants are provided"
-          );
-        }
-      } else {
-        // When variants exist, we don't require `quantity`, but we should validate `salePrice`
-        if (inventory.listing.instant?.salePrice == null) {
-          throw new Error("Sale price is required even when using variants");
-        }
-
-        if (inventory.listing.instant?.quantity != null) {
-          console.warn(
-            "Note: Quantity will be ignored because variants are provided."
-          );
-        }
+      // Instant listings must have variants with pricing
+      if (!Array.isArray(variants) || variants.length === 0) {
+        throw new Error("Instant listing requires at least one variant");
       }
     } else if (listingType === "auction") {
       const { startBidPrice, reservePrice, startTime, endTime, bidIncrement } =
@@ -212,16 +194,23 @@ export const validateProductData = async (productData: any) => {
           }
           optionValues.add(option.value);
 
-          // Validate option price and inventory
+          // Validate option price and quantity
           if (!option.price || option.price < 0.01) {
             throw new Error(
               `Option price must be at least 0.01 for ${option.value}`
             );
           }
 
-          if (option.inventory === undefined || option.inventory < 0) {
+          if (option.quantity === undefined || option.quantity < 0) {
             throw new Error(
-              `Option inventory cannot be negative for ${option.value}`
+              `Option quantity cannot be negative for ${option.value}`
+            );
+          }
+
+          // Validate required SKU
+          if (!option.sku || option.sku.trim() === "") {
+            throw new Error(
+              `Option SKU is required for ${option.value}`
             );
           }
         }

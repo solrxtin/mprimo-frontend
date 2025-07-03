@@ -35,25 +35,23 @@ const AnalyticsCard = (props: Props) => {
       </div>
       {props.title === "Sales Total" ? (
         <div className="flex flex-col gap-y-2">
-          <p className="font-[family-name:var(--font-alexandria)] text-[#211f1f] text-xl md:text-2xl lg:text-3xl truncate">
-            {props.amount! > 1000000
-              ? `£${(props.amount! / 1000000).toFixed(1)}M`
-              : props.amount!.toLocaleString("en-US", {
-                  style: "currency",
-                  currency: "GBP",
-                })}
-          </p>
+          {props?.amount && (
+            <p className="font-[family-name:var(--font-alexandria)] text-[#211f1f] text-xl md:text-2xl lg:text-3xl truncate">
+              {props?.amount > 1000000
+                ? `£${(props?.amount / 1000000).toFixed(1)}M`
+                : props?.amount!.toLocaleString("en-US", {
+                    style: "currency",
+                    currency: "GBP",
+                  })}
+            </p>
+          )}
           <div className="flex gap-x-2 items-center">
             <div
               className={`font-[family-name:var(--font-poppins)] text-[#211f1f] px-2 py-1 rounded-full flex items-center ${
                 isIncrease ? "bg-[#a8ffdc]" : "bg-red-100"
               }`}
             >
-              {isIncrease ? (
-                <ArrowUp size={12} />
-              ) : (
-                <ArrowDown size={12} />
-              )}
+              {isIncrease ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
               <div className="text-xs ml-1">{props.percentageIncrease}%</div>
             </div>
             <p className="text-black text-xs font-[family-name:var(--font-poppins)]">
@@ -63,20 +61,18 @@ const AnalyticsCard = (props: Props) => {
         </div>
       ) : (
         <div className="flex flex-col gap-y-2">
-          <p className="font-[family-name:var(--font-alexandria)] text-[#211f1f] text-3xl">
-            {props.value}
-          </p>
+          {props.value && (
+            <p className="font-[family-name:var(--font-alexandria)] text-[#211f1f] text-3xl">
+              {props?.value}
+            </p>
+          )}
           <div className="flex gap-x-2 items-center">
             <div
               className={`font-[family-name:var(--font-poppins)] text-[#211f1f] px-2 py-1 rounded-full flex items-center ${
                 isIncrease ? "bg-[#a8ffdc]" : "bg-red-100"
               }`}
             >
-              {isIncrease ? (
-                <ArrowUp size={12} />
-              ) : (
-                <ArrowDown size={12}/>
-              )}
+              {isIncrease ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
               <div className="text-xs ml-1">{props.percentageIncrease}%</div>
             </div>
             <p className="text-black text-xs font-[family-name:var(--font-poppins)]">

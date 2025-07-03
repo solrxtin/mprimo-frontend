@@ -40,7 +40,7 @@ const RecentOrders = () => {
     <div className="bg-white px-6 py-4 rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-6">
         <h1 className="font-bold text-2xl text-gray-600">Recent Orders</h1>
-        {recentOrders.length > 0 && (
+        {recentOrders && recentOrders?.length > 0 && (
           <button className="flex cursor-pointer text-blue-600 text-sm items-center ">
             <div>View All</div>
             <ArrowRight size={16} className="ml-1" />
@@ -49,7 +49,7 @@ const RecentOrders = () => {
       </div>
 
       {/* Desktop Table */}
-      {recentOrders && recentOrders.length > 0 && (
+      {recentOrders && recentOrders?.length > 0 && (
         <>
           <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full">
@@ -84,7 +84,7 @@ const RecentOrders = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {recentOrders &&
                   recentOrders?.map((order: any) => (
-                    <tr key={order?.id}>
+                    <tr key={order?._id}>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {order?.id}
                       </td>
@@ -132,7 +132,7 @@ const RecentOrders = () => {
             {recentOrders &&
               recentOrders?.map((order: any) => (
                 <div
-                  key={order.id}
+                  key={order._id}
                   className="bg-white border rounded-lg p-4 shadow-sm"
                 >
                   <div className="flex justify-between items-center mb-2">
@@ -156,10 +156,12 @@ const RecentOrders = () => {
                     <span className="font-medium">Customer:</span>{" "}
                     {order.customer}
                   </div>
-                  <div className="text-sm text-gray-500 mb-1">
-                    <span className="font-medium">Amount:</span> $
-                    {order.amount.toFixed(2)}
-                  </div>
+                  {order?.amount && (
+                    <div className="text-sm text-gray-500 mb-1">
+                      <span className="font-medium">Amount:</span> $
+                      {order.amount.toFixed(2)}
+                    </div>
+                  )}
                   <div className="text-sm text-gray-500 mb-1">
                     <span className="font-medium">Address:</span>{" "}
                     {order.address}

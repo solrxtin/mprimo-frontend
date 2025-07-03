@@ -16,7 +16,7 @@ import {
 } from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/verify-token.middleware";
 import { generateTokensAndSetCookie } from "../utils/generate-token.util";
-import { rateLimitMiddleware } from "../middlewares/rate-limit.middleware";
+import { strictRateLimit, moderateRateLimit } from "../middlewares/rate-limit.middleware";
 import User from "../models/user.model";
 import { IUser } from "../types/user.type";
 
@@ -173,7 +173,7 @@ router.post(
 // Password reset request - limited to 3 attempts per hour
 router.post(
   "/forgot-password",
-  rateLimitMiddleware.passwordReset,
+  strictRateLimit,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await requestPasswordChange(req, res);
@@ -196,7 +196,7 @@ router.post(
 // Can't make more than 3 requests per hour
 router.post(
   "/resend-password-reset-token",
-  rateLimitMiddleware.passwordReset,
+  strictRateLimit,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await resendPasswordChangeEmail(req, res);
@@ -209,7 +209,7 @@ router.post(
 // Password reset confirmation - limited to 3 attempts per hour
 router.post(
   "/reset-password",
-  rateLimitMiddleware.passwordReset,
+  strictRateLimit,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await changePassword(req, res);

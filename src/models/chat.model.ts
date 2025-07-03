@@ -20,10 +20,13 @@ const chatSchema = new mongoose.Schema<IChat>({
     of: Boolean,
     default: {}
   },
+  lastMessageTime: {
+    type: Date,
+    default: Date.now
+  }
 }, {
   timestamps: true
 });
-
 
 
 const messageSchema = new mongoose.Schema<IMessage>({
@@ -54,8 +57,10 @@ const messageSchema = new mongoose.Schema<IMessage>({
   read: {
     type: Boolean,
     default: false
-  }
-}, {timestamps: true});
+  },
+}, {
+  timestamps: true
+});
 
 export const Chat = mongoose.model<IChat>("Chat", chatSchema);
 export const Message = mongoose.model<IMessage>("Message", messageSchema);

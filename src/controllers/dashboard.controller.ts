@@ -45,34 +45,88 @@ export const getVendorAnalytics = async (
     const range = (req.query.range as string) || "7days";
     const currentStart = getDateFromRange(range);
     const previousStart = getPreviousStartDate(range);
-    const now = new Date(); // current end
+    const now = new Date();
 
-    // Current period analytics
-    const currentMetrics = await Vendor.find({
-      _id: new Types.ObjectId(vendorId),
-      createdAt: { $gte: currentStart, $lt: now },
-    }).select("analytics -_id");
+    // Get vendor data
+    const vendor = await Vendor.findById(vendorId).select("analytics");
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: "Vendor not found" });
+    }
 
-    // Previous period analytics
-    const previousMetrics = await Vendor.find({
-      _id: new Types.ObjectId(vendorId),
-      createdAt: { $gte: previousStart, $lt: currentStart },
-    }).select("analytics -_id");
-    console.log(currentMetrics);
-    console.log(previousMetrics);
+    // Get current period analytics from products
+    const currentMetrics = await AnalyticsModel.aggregate([
+      {
+        $match: {
+          entityType: "product",
+          date: { $gte: currentStart, $lt: now }
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "entityId",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      {
+        $match: {
+          "product.vendorId": new Types.ObjectId(vendorId)
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$metrics.revenue" },
+          totalSales: { $sum: "$metrics.purchases" }
+        }
+      }
+    ]);
+
+    // Get previous period analytics
+    const previousMetrics = await AnalyticsModel.aggregate([
+      {
+        $match: {
+          entityType: "product",
+          date: { $gte: previousStart, $lt: currentStart }
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "entityId",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      {
+        $match: {
+          "product.vendorId": new Types.ObjectId(vendorId)
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$metrics.revenue" },
+          totalSales: { $sum: "$metrics.purchases" }
+        }
+      }
+    ]);
+
+    const productCount = await Product.countDocuments({ vendorId });
 
     // Extract current + previous values
-    const curr = currentMetrics[0]?.analytics || {
-      totalRevenue: 0,
-      totalSales: 0,
-      averageRating: 0,
-      productCount: 0,
+    const curr = {
+      totalRevenue: currentMetrics[0]?.totalRevenue || 0,
+      totalSales: currentMetrics[0]?.totalSales || 0,
+      averageRating: vendor.analytics?.averageRating || 0,
+      productCount: productCount,
     };
-    const prev = previousMetrics[0]?.analytics || {
-      totalRevenue: 0,
-      totalSales: 0,
-      averageRating: 0,
-      productCount: 0,
+    const prev = {
+      totalRevenue: previousMetrics[0]?.totalRevenue || 0,
+      totalSales: previousMetrics[0]?.totalSales || 0,
+      averageRating: vendor.analytics?.averageRating || 0,
+      productCount: productCount,
     };
 
     // Utility to calculate %
@@ -88,31 +142,45 @@ export const getVendorAnalytics = async (
       productCount: calcChange(curr.productCount, prev.productCount),
     };
 
-    const startDate = getDateFromRange(range || "7days");
-    const product = await Product.findOne({ vendorId });
-    let dailySales = [];
-
-    if (product) {
-      dailySales = await AnalyticsModel.aggregate([
-        {
-          $match: {
-            entityId: product._id,
-            entityType: "product",
-            timeframe: "daily",
-            date: { $gte: startDate },
-          },
+    // Get daily sales for all vendor products
+    const dailySales = await AnalyticsModel.aggregate([
+      {
+        $match: {
+          entityType: "product",
+          timeframe: "daily",
+          date: { $gte: currentStart },
         },
-        {
-          $project: {
-            _id: 0,
-            date: 1,
-            sales: "$metrics.purchases",
-            revenue: "$metrics.revenue",
-          },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "entityId",
+          foreignField: "_id",
+          as: "product"
+        }
+      },
+      {
+        $match: {
+          "product.vendorId": new Types.ObjectId(vendorId)
+        }
+      },
+      {
+        $group: {
+          _id: "$date",
+          sales: { $sum: "$metrics.purchases" },
+          revenue: { $sum: "$metrics.revenue" },
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          sales: 1,
+          revenue: 1,
         },
-        { $sort: { date: 1 } },
-      ]);
-    }
+      },
+      { $sort: { date: 1 } },
+    ]);
 
     res.status(200).json({
       success: true,
