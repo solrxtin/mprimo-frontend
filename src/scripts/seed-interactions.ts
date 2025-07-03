@@ -10,6 +10,7 @@ import { LoggerService } from "../services/logger.service";
 import redisService from "../services/redis.service";
 import { generateTrackingNumber } from "../utils/generateTrackingNumber";
 import Vendor from "../models/vendor.model";
+import AnalyticsModel from "../models/analytics.model";
 
 dotenv.config();
 
@@ -45,7 +46,6 @@ async function seedInteractions() {
     await Message.deleteMany({});
     
     // Clear analytics to prevent duplicate key errors
-    const AnalyticsModel = mongoose.model('Analytics');
     await AnalyticsModel.deleteMany({});
     console.log("Cleared existing interactions, orders, payments, messages, and analytics");
 

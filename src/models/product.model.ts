@@ -125,13 +125,13 @@ const productSchema = new mongoose.Schema<ProductType>(
           startBidPrice: {
             type: Number,
             required: function (this: any) {
-              return this.listing?.type === "auction";
+              return this.inventory?.listing?.type === "auction";
             },
           },
           reservePrice: {
             type: Number,
             required: function (this: any) {
-              return this.listing?.type === "auction";
+              return this.inventory?.listing?.type === "auction";
             },
           },
           buyNowPrice: {
@@ -140,13 +140,13 @@ const productSchema = new mongoose.Schema<ProductType>(
           startTime: {
             type: Date,
             required: function (this: any) {
-              return this.listing?.type === "auction";
+              return this.inventory?.listing?.type === "auction";
             },
           },
           endTime: {
             type: Date,
             required: function (this: any) {
-              return this.listing?.type === "auction";
+              return this.inventory?.listing?.type === "auction";
             },
           },
           quantity: {
@@ -158,7 +158,7 @@ const productSchema = new mongoose.Schema<ProductType>(
           bidIncrement: {
             type: Number,
             required: function (this: any) {
-              return this.listing?.type === "auction";
+              return this.inventory?.listing?.type === "auction";
             },
             default: 1.0,
             min: [0.01, "Bid increment must be at least 0.01"],
@@ -425,15 +425,8 @@ const productSchema = new mongoose.Schema<ProductType>(
         },
         maxAmount: {
           type: Number,
-          validate: {
-            validator: function (value: number) {
-              if (this.inventory?.listing?.type !== "auction") return true;
-              const startBid = this.inventory.listing.auction?.startBidPrice;
-              return typeof value === "number" && startBid &&  value >= startBid;
-            },
-            message: "Bid amount must meet auction requirements"
-,
-          },
+          required: true,
+          min: [0.01, "Bid amount must be at least 0.01"],
         },
         currentAmount: {
           type: Number,

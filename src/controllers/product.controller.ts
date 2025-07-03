@@ -606,14 +606,12 @@ export class ProductController {
       } catch (error) {
         console.error("Error getting top products from Redis:", error);
       }
-      console.log(topProducts);
 
       let productIds: any;
       // If Redis has data, return it
       if (topProducts && topProducts.length > 0) {
         // Extract product IDs
         productIds = topProducts.filter((_, index) => index % 2 === 0);
-        console.log(productIds);
         // Fetch full product details
         const products = await ProductService.getProductsByIds(productIds);
 
@@ -1555,6 +1553,7 @@ export const rejectCounterOffer = async (
 };
 
 // ======================= Bidding Section ========================
+// Add the maxAmount check and make sure it is greater than 0.01
 export const placeProxyBid = async (
   req: Request,
   res: Response,

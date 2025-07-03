@@ -724,6 +724,11 @@ class RedisService {
 
   private async startAuction() {
     try {
+      // Check if MongoDB is connected
+      if (mongoose.connection.readyState !== 1) {
+        return;
+      }
+
       const now = new Date();
 
       const productsToStart = await ProductModel.find({
@@ -757,6 +762,11 @@ class RedisService {
   }
   private async endAuction() {
     try {
+      // Check if MongoDB is connected
+      if (mongoose.connection.readyState !== 1) {
+        return;
+      }
+
       const now = new Date();
 
       const productsToExpire = await ProductModel.find({

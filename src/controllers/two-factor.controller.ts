@@ -4,7 +4,7 @@ import { TwoFactorService } from "../services/two-factor.service";
 import User from "../models/user.model";
 import { LoggerService } from "../services/logger.service";
 import { generateTokensAndSetCookie } from "../utils/generate-token.util";
-import { C } from "@upstash/redis/zmscore-CjoCv9kz";
+
 
 const logger = LoggerService.getInstance();
 

@@ -10,8 +10,7 @@ import redisService from "./redis.service";
 import { IVendor } from "../types/vendor.type";
 import Notification from "../models/notification.model";
 import { socketService } from "..";
-import Vendor from "../models/vendor.model";
-import User from "../models/user.model";
+
 
 function isMongoError(error: any): error is MongoError {
   return error.code !== undefined && typeof error.code === "number";
@@ -62,7 +61,9 @@ export class ProductService {
   }
 
   static async getProductsByIds(ids: string[]): Promise<ProductType[]> {
-    return ProductModel.find({ _id: { $in: ids } })
+    const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+
+    return ProductModel.find({ _id: { $in: objectIds } })
       .populate("vendorId", "name email")
       .populate("category.main")
       .populate("category.sub");
@@ -114,15 +115,15 @@ export class ProductService {
   }
 
   static async getProductBySlug(slug: string): Promise<ProductType> {
-    const product = await ProductModel.findOne({slug})
-    .populate("vendorId", "name email")
-    .populate("category.main")
-    .populate("category.sub");
+    const product = await ProductModel.findOne({ slug })
+      .populate("vendorId", "name email")
+      .populate("category.main")
+      .populate("category.sub");
 
-  if (!product) {
-    throw createError(404, "Product not found");
-  }
-  return product;
+    if (!product) {
+      throw createError(404, "Product not found");
+    }
+    return product;
   }
 
   static async getProductsByCategory(categoryId: string, page = 1, limit = 10) {
@@ -193,7 +194,7 @@ export class ProductService {
     id: string,
     vendorId: Types.ObjectId
   ): Promise<ProductType> {
-    const result = await ProductModel.findOneAndDelete({ _id: id, vendorId });
+    const result = await ProductModel.findOneAndDelete({ _id: id, vendorId }).lean();
     if (!result) {
       throw createError(404, "Product not found");
     }
@@ -207,16 +208,23 @@ export class ProductService {
     quantity: number,
     operation: "add" | "subtract"
   ): Promise<ProductType> {
-    const lock = await redisService.acquireLock(id, vendor?._id!.toString(), 10000);
-  
+    const lock = await redisService.acquireLock(
+      id,
+      vendor?._id!.toString(),
+      10000
+    );
+
     if (!lock) {
       throw createError(
         429,
         "Too many concurrent inventory updates. Please retry."
       );
     }
-  
-    const product = await ProductModel.findOne({ _id: id, vendorId: vendor?._id! });
+
+    const product = await ProductModel.findOne({
+      _id: id,
+      vendorId: vendor?._id!,
+    });
     if (!product) {
       throw createError(404, "Product not found");
     }
@@ -224,7 +232,7 @@ export class ProductService {
     if (!product.variants || product.variants.length === 0) {
       throw createError(400, "Product has no variants to update");
     }
-  
+
     // Find and update the specific variant option
     let updated = false;
     for (const variant of product.variants) {
@@ -238,20 +246,23 @@ export class ProductService {
       }
       if (updated) break;
     }
-  
+
     if (!updated) {
       throw createError(404, "Variant option not found");
     }
-  
+
     await product.save();
-  
+
     // Check for low stock alerts
     const updatedOption = product.variants
-      .flatMap(v => v.options)
-      .find(o => o.sku === variantId);
-  
-    if (updatedOption && product.inventory?.lowStockAlert && 
-        updatedOption.quantity <= product.inventory.lowStockAlert) {
+      .flatMap((v) => v.options)
+      .find((o) => o.sku === variantId);
+
+    if (
+      updatedOption &&
+      product.inventory?.lowStockAlert &&
+      updatedOption.quantity <= product.inventory.lowStockAlert
+    ) {
       const notification = await Notification.create({
         userId: vendor.userId,
         message: `${product.name} (${updatedOption.value}) - Only ${updatedOption.quantity} left`,
@@ -261,18 +272,18 @@ export class ProductService {
         data: {},
         isRead: false,
       });
-  
+
       socketService.notifyVendor(vendor?._id!, {
         event: "lowStock",
-        notification
+        notification,
       });
     }
-  
+
     // Update product status based on total inventory
     const totalQuantity = product.variants
-      .flatMap(v => v.options)
+      .flatMap((v) => v.options)
       .reduce((sum, o) => sum + o.quantity, 0);
-  
+
     if (totalQuantity === 0) {
       product.status = "outOfStock";
       await product.save();
@@ -280,7 +291,7 @@ export class ProductService {
       product.status = "active";
       await product.save();
     }
-  
+
     return product;
   }
 
@@ -307,7 +318,7 @@ export class ProductService {
     type: "view" | "purchase" | "addToCart" | "wishlist"
   ): Promise<void> {
     const updateFields: Record<string, number> = {};
-  
+
     switch (type) {
       case "view":
         updateFields["analytics.views"] = 1;
@@ -324,34 +335,33 @@ export class ProductService {
       default:
         throw new Error("Invalid analytics event type");
     }
-  
+
     const product = await ProductModel.findByIdAndUpdate(
       id,
       { $inc: updateFields },
       { new: true }
     );
-  
+
     if (!product) return;
-  
+
     let shouldSave = false;
-  
+
     if (["view", "purchase"].includes(type)) {
       const { views, purchases } = product.analytics;
       const newRate =
         views > 0 ? parseFloat(((purchases / views) * 100).toFixed(2)) : 0;
-  
+
       if (product.analytics.conversionRate !== newRate) {
         product.analytics.conversionRate = newRate;
         shouldSave = true;
       }
     }
-  
+
     // Save if conversion rate changed or if the event is not view/purchase
     if (shouldSave || ["addToCart", "wishlist"].includes(type)) {
       await product.save();
     }
   }
-  
 
   static async searchProducts(
     query: string,
