@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { AllProduct } from "@/utils/config";
 import { ProductType } from "@/types/product.type";
+import Link from "next/link";
 
 interface Product {
   id: number;
@@ -196,7 +197,18 @@ const ProductCard = ({
       </div>
 
       {/* Product Info */}
-      <div className="space-y-2">
+
+      <Link
+        href={{
+          pathname: "/home/product-details/[slug]",
+          query: {
+            slug: product.slug,
+            productData: JSON.stringify(product), // Pass full product data
+          },
+        }}
+        as={`/home/product-details/${product.slug}`} // Clean URL in browser
+        className="block hover:shadow-lg transition-shadow"
+      >
         {!isLarge && (
           <StarRating
             rating={product.rating}
@@ -249,14 +261,14 @@ const ProductCard = ({
               }`}
             >
               {product.inventory?.listing?.type === "instant"
-                ? formatPrice(product.inventory?.listing?.instant?.salePrice ?? 0)
+                ? formatPrice(
+                    product.inventory?.listing?.instant?.salePrice ?? 0
+                  )
                 : ""}
             </span>
             {product.inventory?.listing?.type === "instant" && (
               <span className="text-xs sm:text-sm text-gray-500 line-through">
-                {formatPrice(
-                  product.inventory?.listing?.instant?.price ?? 0
-                )}
+                {formatPrice(product.inventory?.listing?.instant?.price ?? 0)}
               </span>
             )}
           </div>
@@ -272,7 +284,8 @@ const ProductCard = ({
               {/* {typeof product.category.main === "string"
                 ? product.category.main
                 : product.category.main?.name} */}
-                  {product?.category?.sub && product?.category?.sub[product.category.sub?.length - 1]?.name}
+              {product?.category?.sub &&
+                product?.category?.sub[product.category.sub?.length - 1]?.name}
             </span>
           </div>
         </div>
@@ -282,7 +295,7 @@ const ProductCard = ({
             View Details
           </button>
         )}
-      </div>
+      </Link>
     </div>
   );
 };

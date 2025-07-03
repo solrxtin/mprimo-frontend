@@ -1,7 +1,7 @@
 
 // Example query using TanStack Query (React Query)
 import { toastConfigError } from '@/app/config/toast.config';
-import { AllProduct } from '@/utils/config';
+import { AllProduct, AProduct, AProductBySlug } from '@/utils/config';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
@@ -200,5 +200,11 @@ export const useVendorOrders = (vendorId: string) => {
   });
 };
 
-
-
+export const fetchAProducts = async (slug:string) => {
+  const response = await fetchWithAuth(`${AProductBySlug}${slug}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch products');
+  }
+  const data = await response.json();
+  return data;
+};

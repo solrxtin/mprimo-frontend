@@ -13,11 +13,12 @@ const wishlistSchema = new mongoose.Schema<IWishlist>(
         currency: { type: String, required: true },
       },
     ],
+    
   },
   { timestamps: true }
 );
 
-export const WishList = mongoose.model<IWishlist>("Wishlist", wishlistSchema);
+const WishList = mongoose.model<IWishlist>("Wishlist", wishlistSchema);
 
 // Cart Schema
 const cartSchema = new mongoose.Schema<ICart>({

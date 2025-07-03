@@ -1,5 +1,4 @@
-import Cart from '../models/cart.model';
-import { WishList } from '../models/cart.model';
+import { Cart, WishList } from '../models/cart.model';
 import redisService from './redis.service';
 import { LoggerService } from './logger.service';
 

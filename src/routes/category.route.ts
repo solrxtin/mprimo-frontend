@@ -4,8 +4,6 @@ import { verifyToken } from "../middlewares/verify-token.middleware";
 
 import { CategoryController } from "../controllers/category.controller";
 const categoryrouter = express.Router();
-
-
 categoryrouter.get(
   "/get-categories",
   (req: Request, res: Response, next: NextFunction) => {
