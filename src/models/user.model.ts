@@ -184,38 +184,7 @@ const userSchema = new mongoose.Schema<IUser>(
       totalOrders: { type: Number, default: 0, min: 0 },
       totalSpent: { type: Number, default: 0, min: 0 },
     },
-    cart: [
-      {
-        productId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          default: 1,
-          min: 1,
-        },
-        selectedVariant: {
-          type: String,
-        },
-        price: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
-      }
-    ],
-    wishlist: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-      }
-    ],
+    // Removed cart and wishlist - using separate models + Redis
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
     verificationToken: String,

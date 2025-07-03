@@ -1,4 +1,8 @@
 "use client";
+import { toastConfigError } from "@/app/config/toast.config";
+import { useLogoutUser } from "@/hooks/mutations";
+import { useProductStore } from "@/stores/useProductStore";
+import { useUserStore } from "@/stores/useUserStore";
 import {
   Box,
   CreditCard,
@@ -13,6 +17,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { FaTimes } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 const navItems = [
   { name: "Dashboard", href: "/vendor/dashboard", icon: <HomeIcon /> },
@@ -48,6 +53,8 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
 
   const pathname = usePathname();
   const router = useRouter();
+  const { user, logout } = useUserStore();
+  const { mutate: logoutUser, isPending } = useLogoutUser();
 
   const handleClick = (link: string) => {
     // Set loading state
@@ -78,9 +85,9 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
   };
 
   const handleCancleClicked = () => {
-    setLastTapped(null)
-    setActiveTooltip(null)
-  }
+    setLastTapped(null);
+    setActiveTooltip(null);
+  };
   // Reset loading when pathname changes (navigation completes)
   useEffect(() => {
     setIsLoading(false);
@@ -88,6 +95,20 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
     setActiveTooltip(null);
     setLastTapped(null);
   }, [pathname]);
+
+  const handleLogoutClicked = () => {
+    const { mutate: logoutUser, isPending } = useLogoutUser();
+    logoutUser(undefined, {
+      onSuccess: (data) => {
+        logout();
+        useProductStore.getState().clearProductStore();
+      },
+      onError: (error) => {
+        console.error("Logout failed:", error);
+        toast.error(error.message, toastConfigError);
+      },
+    });
+  };
 
   return (
     <div
@@ -153,9 +174,15 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
                         </span>
                       </div>
                       <div className="absolute top-[-6] left-[96%]">
-                      <button className="bg-red-200 rounded" onClick={handleCancleClicked}>
-                        <X className="size-4 text-red-800 font-bold" strokeWidth={4} />
-                      </button>
+                        <button
+                          className="bg-red-200 rounded"
+                          onClick={handleCancleClicked}
+                        >
+                          <X
+                            className="size-4 text-red-800 font-bold"
+                            strokeWidth={4}
+                          />
+                        </button>
                       </div>
                     </div>
                   )}
@@ -166,8 +193,15 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
         </nav>
       </div>
       <div className="absolute bottom-20 left-5">
-        <button className="flex gap-x-2 items-center cursor-pointer active:bg-gray-200 p-2 rounded transition-colors duration-150">
-          <LogOut />
+        <button
+          className="flex gap-x-2 items-center cursor-pointer active:bg-gray-200 p-2 rounded transition-colors duration-150"
+          onClick={handleLogoutClicked}
+        >
+          {!isPending ? (
+            <LogOut />
+          ) : (
+            <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-blue-500 rounded-full" />
+          )}
           <p className="md:hidden lg:inline">Log Out</p>
         </button>
       </div>

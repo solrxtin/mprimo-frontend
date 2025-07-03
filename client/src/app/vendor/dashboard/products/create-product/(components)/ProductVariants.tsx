@@ -8,11 +8,14 @@ import Input from "@/components/Input";
 type VariantOption = {
   value: string;
   price: number;
-  inventory: number;
+  quantity: number;
+  sku: string;
+  isDefault?: boolean;
 };
 
 type Variant = {
   name: string;
+  isDefault?: boolean;
   options: VariantOption[];
 };
 
@@ -54,15 +57,28 @@ export default function ProductVariants({ onSaveDraft }: Props) {
     }
   }, [variants, updateProductDetails]);
 
+  // Generate SKU for option
+  const generateSKU = (variantName: string, optionValue: string) => {
+    const timestamp = Date.now().toString().slice(-6);
+    const variantCode = variantName.substring(0, 3).toUpperCase();
+    const optionCode = optionValue.substring(0, 3).toUpperCase();
+    return `${variantCode}-${optionCode}-${timestamp}`;
+  };
+
   // Add a new variant
   const addVariant = () => {
-    setVariants([
-      ...variants,
-      {
-        name: "",
-        options: [{ value: "", price: 0, inventory: 0 }],
-      },
-    ]);
+    const newVariant = {
+      name: "",
+      isDefault: variants.length === 0, // First variant is default
+      options: [{ 
+        value: "", 
+        price: 0, 
+        quantity: 0, 
+        sku: `VAR-OPT-${Date.now()}`,
+        isDefault: true // First option is default
+      }],
+    };
+    setVariants([...variants, newVariant]);
   };
 
   // Remove a variant
@@ -76,6 +92,14 @@ export default function ProductVariants({ onSaveDraft }: Props) {
   const updateVariantName = (index: number, name: string) => {
     const updatedVariants = [...variants];
     updatedVariants[index].name = name;
+    
+    // Update SKUs for all options in this variant
+    updatedVariants[index].options.forEach((option, optionIndex) => {
+      if (option.value && name) {
+        option.sku = generateSKU(name, option.value);
+      }
+    });
+    
     setVariants(updatedVariants);
 
     // Clear error if exists
@@ -87,11 +111,15 @@ export default function ProductVariants({ onSaveDraft }: Props) {
   // Add option to variant
   const addOption = (variantIndex: number) => {
     const updatedVariants = [...variants];
-    updatedVariants[variantIndex].options.push({
+    const variant = updatedVariants[variantIndex];
+    const newOption = {
       value: "",
       price: 0,
-      inventory: 0,
-    });
+      quantity: 0,
+      sku: `${variant.name ? variant.name.substring(0, 3).toUpperCase() : 'VAR'}-OPT-${Date.now()}`,
+      isDefault: variant.options.length === 0 // First option is default
+    };
+    updatedVariants[variantIndex].options.push(newOption);
     setVariants(updatedVariants);
   };
 
@@ -107,15 +135,22 @@ export default function ProductVariants({ onSaveDraft }: Props) {
     variantIndex: number,
     optionIndex: number,
     field: keyof VariantOption,
-    value: string | number
+    value: string | number | boolean
   ) => {
     const updatedVariants = [...variants];
+    const variant = updatedVariants[variantIndex];
+    const option = variant.options[optionIndex];
 
-    if (field === "price" || field === "inventory") {
-      updatedVariants[variantIndex].options[optionIndex][field] = Number(value);
-    } else {
-      updatedVariants[variantIndex].options[optionIndex][field] =
-        value as string;
+    if (field === "price" || field === "quantity") {
+      (option as any)[field] = Number(value);
+    } else if (field === "value" || field === "sku") {
+      (option as any)[field] = value as string;
+      // Update SKU when option value changes
+      if (field === "value" && variant.name && value) {
+        option.sku = generateSKU(variant.name, value as string);
+      }
+    } else if (field === "isDefault") {
+      (option as any)[field] = value as boolean;
     }
 
     setVariants(updatedVariants);
@@ -157,9 +192,14 @@ export default function ProductVariants({ onSaveDraft }: Props) {
             "Price must be at least 0.01";
         }
 
-        if (option.inventory < 0) {
-          newErrors[`variant-${variantIndex}-option-${optionIndex}-inventory`] =
-            "Inventory cannot be negative";
+        if (option.quantity < 0) {
+          newErrors[`variant-${variantIndex}-option-${optionIndex}-quantity`] =
+            "Quantity cannot be negative";
+        }
+        
+        if (!option.sku || option.sku.trim() === "") {
+          newErrors[`variant-${variantIndex}-option-${optionIndex}-sku`] =
+            "SKU is required";
         }
       });
     });
@@ -299,22 +339,44 @@ export default function ProductVariants({ onSaveDraft }: Props) {
                       </div>
                       <div className="w-[120px]">
                         <Input
-                          id={`variant-${variantIndex}-option-${optionIndex}-inventory`}
-                          label="Inventory"
+                          id={`variant-${variantIndex}-option-${optionIndex}-quantity`}
+                          label="Quantity"
                           type="number"
-                          value={option.inventory.toString()}
+                          value={option.quantity.toString()}
                           onChange={(e) =>
                             updateOptionValue(
                               variantIndex,
                               optionIndex,
-                              "inventory",
+                              "quantity",
                               e.target.value
                             )
                           }
-                          placeholder="Inventory"
+                          placeholder="Quantity"
                           error={
                             errors[
-                              `variant-${variantIndex}-option-${optionIndex}-inventory`
+                              `variant-${variantIndex}-option-${optionIndex}-quantity`
+                            ]
+                          }
+                        />
+                      </div>
+                      <div className="w-[150px]">
+                        <Input
+                          id={`variant-${variantIndex}-option-${optionIndex}-sku`}
+                          label="SKU"
+                          type="text"
+                          value={option.sku}
+                          onChange={(e) =>
+                            updateOptionValue(
+                              variantIndex,
+                              optionIndex,
+                              "sku",
+                              e.target.value
+                            )
+                          }
+                          placeholder="SKU"
+                          error={
+                            errors[
+                              `variant-${variantIndex}-option-${optionIndex}-sku`
                             ]
                           }
                         />

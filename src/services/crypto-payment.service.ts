@@ -26,6 +26,13 @@ export class CryptoPaymentService {
   
   startWatchingTokenTransfers(io: any) {
     const watchedAddresses = new Set<string>();
+    
+    // Add error handling for provider
+    this.provider.on('error', (error) => {
+      if (error.code === 'UNKNOWN_ERROR' && error.error?.message === 'filter not found') {
+        console.log('Filter expired, ignoring...');
+      }
+    });
   
     const usdcContract = new ethers.Contract(
       this.usdcAddress,
@@ -53,61 +60,65 @@ export class CryptoPaymentService {
       value: bigint,
       event: any
     ) => {
-      const lowerFrom = from.toLowerCase();
-      const lowerTo = to.toLowerCase();
-  
-      const amount = ethers.formatUnits(value, 6); // assumes 6 decimals
-  
-      // If FROM address is being watched → outgoing
-      if (watchedAddresses.has(lowerFrom)) {
-        const fromBalance = await contract.balanceOf(from);
-        await this.updateWalletBalanceInDB(
-          from,
-          token,
-          ethers.formatUnits(fromBalance, 6),
-          "outgoing",
-          amount
-        );
-        io.emit("balance-changed", {
-          address: from,
-          token,
-          balance: ethers.formatUnits(fromBalance, 6),
-          txHash: event.log.transactionHash,
-          type: "outgoing",
-          amount
-        });
-      }
-  
-      // If TO address is being watched → incoming
-      if (watchedAddresses.has(lowerTo)) {
-        const toBalance = await contract.balanceOf(to);
-        await this.updateWalletBalanceInDB(
-          to,
-          token,
-          ethers.formatUnits(toBalance, 6),
-          "incoming",
-          amount
-        );
-        io.emit("balance-changed", {
-          address: to,
-          token,
-          balance: ethers.formatUnits(toBalance, 6),
-          txHash: event.log.transactionHash,
-          type: "incoming",
-          amount
-        });
+      try {
+        const lowerFrom = from.toLowerCase();
+        const lowerTo = to.toLowerCase();
+    
+        const amount = ethers.formatUnits(value, 6);
+    
+        // If FROM address is being watched → outgoing
+        if (watchedAddresses.has(lowerFrom)) {
+          const fromBalance = await contract.balanceOf(from);
+          await this.updateWalletBalanceInDB(
+            from,
+            token,
+            ethers.formatUnits(fromBalance, 6),
+            "outgoing",
+            amount
+          );
+          io.emit("balance-changed", {
+            address: from,
+            token,
+            balance: ethers.formatUnits(fromBalance, 6),
+            txHash: event.log?.transactionHash,
+            type: "outgoing",
+            amount
+          });
+        }
+    
+        // If TO address is being watched → incoming
+        if (watchedAddresses.has(lowerTo)) {
+          const toBalance = await contract.balanceOf(to);
+          await this.updateWalletBalanceInDB(
+            to,
+            token,
+            ethers.formatUnits(toBalance, 6),
+            "incoming",
+            amount
+          );
+          io.emit("balance-changed", {
+            address: to,
+            token,
+            balance: ethers.formatUnits(toBalance, 6),
+            txHash: event.log?.transactionHash,
+            type: "incoming",
+            amount
+          });
+        }
+      } catch (error) {
+        console.error('Error handling transfer:', error);
       }
     };
   
-    // USDC
-    usdcContract.on("Transfer", (from, to, value, event) =>
-      handleTransfer("USDC", usdcContract, from, to, value, event)
-    );
+    // USDC with error handling
+    usdcContract.on("Transfer", (from, to, value, event) => {
+      handleTransfer("USDC", usdcContract, from, to, value, event).catch(console.error);
+    });
   
-    // USDT
-    usdtContract.on("Transfer", (from, to, value, event) =>
-      handleTransfer("USDT", usdtContract, from, to, value, event)
-    );
+    // USDT with error handling
+    usdtContract.on("Transfer", (from, to, value, event) => {
+      handleTransfer("USDT", usdtContract, from, to, value, event).catch(console.error);
+    });
   
     return {
       addAddressToWatch: (address: string) => {

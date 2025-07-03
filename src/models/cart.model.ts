@@ -4,12 +4,13 @@ import {Wishlist, Cart} from "../types/cart.type";
 // Wishlist Schema
 const wishlistSchema = new mongoose.Schema<Wishlist>(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
     items: [
       {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-        addedAt: Date,
-        priceWhenAdded: Number,
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+        addedAt: { type: Date, default: Date.now },
+        priceWhenAdded: { type: Number, required: true },
+        currency: { type: String, required: true },
       },
     ],
   },
@@ -20,14 +21,17 @@ export const WishList = mongoose.model<Wishlist>("Wishlist", wishlistSchema);
 
 // Cart Schema
 const cartSchema = new mongoose.Schema<Cart>({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
   items: [
     {
-      productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-      quantity: Number
+      productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+      variantId: { type: String, required: true }, // SKU of selected variant
+      quantity: { type: Number, required: true, min: 1 },
+      price: { type: Number, required: true, min: 0 },
+      addedAt: { type: Date, default: Date.now }
     },
   ],
-  lastUpdated: Date,
+  lastUpdated: { type: Date, default: Date.now },
 }, {timestamps: true});
 
 const Cart = mongoose.model<Cart>("Cart", cartSchema);

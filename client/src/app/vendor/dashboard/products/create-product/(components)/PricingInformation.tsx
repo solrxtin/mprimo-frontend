@@ -52,6 +52,7 @@ const PricingInformation = (props: Props) => {
 
   const validatePricingInformation = () => {
     const newErrors: { [key: string]: string } = {};
+    const hasVariants = productDetails.variants && productDetails.variants.length > 0;
 
     if (pricingInformation.listingType === null) {
       newErrors.listingType = "Listing type is required";
@@ -67,26 +68,35 @@ const PricingInformation = (props: Props) => {
       if (pricingInformation.auction.endTime === "") {
         newErrors.endTime = "End time is required";
       }
-      if (pricingInformation.storeQuantity === "") {
+      if (!hasVariants && pricingInformation.storeQuantity === "") {
         newErrors.storeQuantity = "Store quantity is required";
       }
     } else if (pricingInformation.listingType === "instantSale") {
-      if (pricingInformation.instantSale.price === "") {
-        newErrors.price = "Product price is required";
-      }
-      if (pricingInformation.instantSale.salePrice === "") {
-        newErrors.salePrice = "Sale price is required";
-      }
-      if (pricingInformation.storeQuantity === "") {
-        newErrors.storeQuantity = "Store quantity is required";
-      }
-
-      if (
-        pricingInformation.instantSale.salePrice >
-        pricingInformation.instantSale.price
-      ) {
-        newErrors.salePrice =
-          "Sale price must be less than or equal to product price";
+      if (!hasVariants) {
+        // Only validate base pricing if no variants exist
+        if (pricingInformation.instantSale.price === "") {
+          newErrors.price = "Product price is required";
+        }
+        if (pricingInformation.instantSale.salePrice === "") {
+          newErrors.salePrice = "Sale price is required";
+        }
+        if (pricingInformation.storeQuantity === "") {
+          newErrors.storeQuantity = "Store quantity is required";
+        }
+        if (
+          pricingInformation.instantSale.salePrice >
+          pricingInformation.instantSale.price
+        ) {
+          newErrors.salePrice =
+            "Sale price must be less than or equal to product price";
+        }
+      } else {
+        // Validate that variants have pricing
+        const allOptions = productDetails.variants.flatMap((v: any) => v.options);
+        const hasValidPricing = allOptions.some((o: any) => o.price > 0);
+        if (!hasValidPricing) {
+          newErrors.variants = "Please add pricing to your product variants";
+        }
       }
     }
 
@@ -309,6 +319,67 @@ const PricingInformation = (props: Props) => {
     );
   };
   const renderInstantSaleFields = () => {
+    const hasVariants = productDetails.variants && productDetails.variants.length > 0;
+    
+    if (hasVariants) {
+      // Calculate price range and total quantity from variants
+      const allOptions = productDetails.variants.flatMap((v: any) => v.options);
+      const prices = allOptions.map((o: any) => o.price).filter(p => p > 0);
+      const quantities = allOptions.map((o: any) => o.quantity);
+      
+      const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+      const totalQuantity = quantities.reduce((sum: number, qty: number) => sum + qty, 0);
+      
+      return (
+        <div className="flex flex-col gap-y-4">
+          <div className="flex items-center gap-x-2">
+            <span className="text-xs">Accept offer</span>
+            <div
+              className={`w-8 h-4 rounded-full flex items-center cursor-pointer transition-colors duration-200 ${
+                pricingInformation.instantSale.acceptOffer
+                  ? "bg-blue-600 justify-end"
+                  : "bg-gray-300 justify-start"
+              }`}
+              onClick={() =>
+                handleAcceptOfferChange(
+                  !pricingInformation.instantSale.acceptOffer
+                )
+              }
+            >
+              <div className="w-3 h-3 bg-white rounded-full mx-0.5 transition-transform duration-200"></div>
+            </div>
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-md">
+            <h4 className="text-sm font-medium mb-2">Pricing Summary from Variants</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Price Range:</span>
+                <span className="font-medium">
+                  {minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Total Quantity:</span>
+                <span className="font-medium">{totalQuantity}</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              Pricing and inventory are managed through product variants. 
+              {prices.length === 0 && "Please add variant options with prices."}
+            </p>
+          </div>
+          {isMobileOrTablet && (
+            <div className="mt-4">
+              <NavigationButtons onNext={validatePricingInformation} onSaveDraft={props.onSaveDraft}/>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    // Fallback for products without variants (legacy support)
     return (
       <div className="flex flex-col gap-y-4">
         <div className="flex items-center gap-x-2">
@@ -336,10 +407,6 @@ const PricingInformation = (props: Props) => {
           value={pricingInformation.instantSale.price}
           onChange={(e) => {
             const newPrice = parseFloat(e.target.value) || 0;
-            const salePrice =
-              parseFloat(pricingInformation.instantSale.salePrice.toString()) || 0;
-
-            // Update price
             setPricingInformation({
               ...pricingInformation,
               instantSale: {
@@ -347,7 +414,6 @@ const PricingInformation = (props: Props) => {
                 price: newPrice,
               },
             });
-
             updateProductDetails("pricingInformation", {
               ...pricingInformation,
               instantSale: {
@@ -355,17 +421,6 @@ const PricingInformation = (props: Props) => {
                 price: newPrice,
               },
             });
-
-            // Check if sale price is now higher than product price
-            if (salePrice > newPrice && salePrice > 0) {
-              setErrors((prev) => ({
-                ...prev,
-                salePrice:
-                  "Sale price must be less than or equal to product price",
-              }));
-            } else if (errors.salePrice) {
-              setErrors((prev) => ({ ...prev, salePrice: "" }));
-            }
           }}
           helperText="The market price of the product."
         />
@@ -376,22 +431,6 @@ const PricingInformation = (props: Props) => {
           placeholder="Enter sale price"
           value={pricingInformation.instantSale.salePrice}
           onChange={(e) => {
-            const productPrice = parseFloat(
-              pricingInformation?.instantSale?.price.toString() || "0"
-            );
-            const salePrice = parseFloat(e.target.value);
-
-            if (productPrice > 0) {
-              if (salePrice > productPrice) {
-                setErrors((prev) => ({
-                  ...prev,
-                  salePrice:
-                    "Sale price must be less than or equal to product price",
-                }));
-                return;
-              }
-            }
-
             setPricingInformation({
               ...pricingInformation,
               instantSale: {
@@ -399,7 +438,6 @@ const PricingInformation = (props: Props) => {
                 salePrice: parseFloat(e.target.value),
               },
             });
-
             updateProductDetails("pricingInformation", {
               ...pricingInformation,
               instantSale: {
@@ -407,15 +445,10 @@ const PricingInformation = (props: Props) => {
                 salePrice: parseFloat(e.target.value),
               },
             });
-
-            setErrors((prev) => ({
-              ...prev,
-              salePrice: "",
-            }));
           }}
           error={errors.salePrice}
           required={true}
-          helperText="The price at which you are wlling to sell. Must be less than or equal to the product price."
+          helperText="The price at which you are willing to sell."
         />
         <Input
           label="Store quantity"
@@ -428,7 +461,6 @@ const PricingInformation = (props: Props) => {
               ...pricingInformation,
               storeQuantity: e.target.value,
             });
-            setErrors((prev) => ({ ...prev, storeQuantity: "" }));
             updateProductDetails("pricingInformation", {
               ...pricingInformation,
               storeQuantity: e.target.value,

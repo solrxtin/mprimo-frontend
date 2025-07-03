@@ -206,7 +206,6 @@ const userChatsWithLatestTimestamp = userMessages.map((user) => {
 const latestUserMessages = userChatsWithLatestTimestamp.sort(
   (a, b) => b.latestTimestamp - a.latestTimestamp
 );
-console.log(latestUserMessages);
 
 const Page = () => {
   const [chatMessages, setChatMessages] =

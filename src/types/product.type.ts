@@ -15,9 +15,7 @@ type InventoryType = {
     type: ListingType;
     instant?: {
       acceptOffer?: boolean;
-      price?: number;
-      salePrice: number;
-      quantity: number;
+      // Removed price, salePrice, quantity - handled by variants
     };
     auction?: {
       startBidPrice?: number;
@@ -35,12 +33,16 @@ type InventoryType = {
 
 type VariantOptionType = {
   value: string;
+  sku: string;
   price: number;
-  inventory: number;
+  salePrice?: number;
+  quantity: number;
+  isDefault?: boolean;
 };
 
 type VariantType = {
   name: string;
+  isDefault?: boolean;
   options: VariantOptionType[];
 };
 
@@ -68,6 +70,8 @@ type OfferType = {
 type AnalyticsType = {
   views: number;
   purchases: number;
+  wishlist: number;
+  addToCart: number;
   conversionRate: number;
 };
 

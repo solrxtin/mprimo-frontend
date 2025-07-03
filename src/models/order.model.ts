@@ -1,5 +1,5 @@
 import mongoose, { CallbackError } from "mongoose";
-import { IOrder } from "../types/order.type";
+import { IOrder, IRefund } from "../types/order.type";
 import Product from "./product.model";
 import Vendor from "./vendor.model";
 
@@ -174,7 +174,23 @@ const orderSchema = new mongoose.Schema<IOrder>(
         message: "Invalid order status",
       },
       default: "pending",
+    },   
+    cancellationReason: {
+      type: String,
+      trim: true,
+      maxlength: [200, "Cancellation reason cannot exceed 200 characters"],
     },
+    
+    cancelledAt: {
+      type: Date,
+      validate: {
+        validator: function (this: IOrder, value: Date) {
+          return this.status === "cancelled" ? value instanceof Date : true;
+        },
+        message: "cancelledAt must be set when status is cancelled",
+      },
+    },
+    
   },
   {
     timestamps: true,
@@ -266,6 +282,47 @@ orderSchema.post("save", async function (doc, next) {
     next(error as CallbackError);
   }
 });
+
+
+const refundSchema = new mongoose.Schema<IRefund>(
+  {
+    orderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      required: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: [0.01, "Refund amount must be positive"],
+    },
+    reason: {
+      type: String,
+      trim: true,
+      maxlength: [300, "Reason can't exceed 300 characters"],
+    },
+    processedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // or "Admin" if your platform distinguishes
+      required: true,
+    },
+    processedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "processed", "failed"],
+      default: "pending",
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const Refund = mongoose.model<IRefund>("Refund", refundSchema);
+
 
 const Order = mongoose.model<IOrder>("Order", orderSchema);
 

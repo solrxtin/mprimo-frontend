@@ -27,6 +27,7 @@ import Preview from "./(components)/Preview";
 import Drafts from "./(components)/Drafts";
 import { useSaveDraft } from "@/hooks/mutations";
 import ProductVariants from "./(components)/ProductVariants";
+import FinalSubmission from "./(components)/FinalSubmission";
 
 type Props = {};
 
@@ -121,26 +122,29 @@ const Page = (props: Props) => {
 
     // Handle step conversion between mobile and desktop
     if (draft.savedOnMobile && !isMobileOrTablet) {
-      // Convert from mobile (7 steps) to desktop (3 steps)
+      // Convert from mobile (8 steps) to desktop (4 steps)
       const mobileStep = draft.step;
       let desktopStep = 1;
 
       // Mobile steps 1-2 → Desktop step 1
       // Mobile steps 3-5 → Desktop step 2
       // Mobile steps 6-7 → Desktop step 3
+      // Mobile step 8 → Desktop step 4
       if (mobileStep <= 2) desktopStep = 1;
       else if (mobileStep <= 5) desktopStep = 2;
-      else desktopStep = 3;
+      else if (mobileStep <= 7) desktopStep = 3;
+      else desktopStep = 4;
 
       setStep(desktopStep);
     } else if (!draft.savedOnMobile && isMobileOrTablet) {
-      // Convert from desktop (3 steps) to mobile (7 steps)
+      // Convert from desktop (4 steps) to mobile (8 steps)
       const desktopStep = draft.step;
       let mobileStep = 1;
 
       // Desktop step 1 → Mobile step 1
       // Desktop step 2 → Mobile step 3 (specs) or 4 (variants)
       // Desktop step 3 → Mobile step 6
+      // Desktop step 4 → Mobile step 8
       if (desktopStep === 1) mobileStep = 1;
       else if (desktopStep === 2) {
         // If variants exist in the draft, go to variants step
@@ -152,7 +156,8 @@ const Page = (props: Props) => {
         } else {
           mobileStep = 3; // Specifications step
         }
-      } else mobileStep = 6;
+      } else if (desktopStep === 3) mobileStep = 6;
+      else mobileStep = 8;
 
       setStep(mobileStep);
     } else {
@@ -407,6 +412,8 @@ const Page = (props: Props) => {
           return <ShippingDetails onSaveDraft={handleSaveDraft} />;
         case 7:
           return <SeoAndMetaSettings onSaveDraft={handleSaveDraft} />;
+        case 8:
+          return <FinalSubmission onSaveDraft={handleSaveDraft} />;
         default:
           return null;
       }
@@ -490,6 +497,8 @@ const Page = (props: Props) => {
               </div>
             </div>
           );
+        case 4:
+          return <FinalSubmission onSaveDraft={handleSaveDraft} />;
         default:
           return null;
       }

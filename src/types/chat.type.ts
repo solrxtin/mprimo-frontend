@@ -4,6 +4,7 @@ export interface IChat extends Document {
   participants: Types.ObjectId[]; // Array of user IDs
   productId: Types.ObjectId
   archivedBy: Map<string, boolean>;
+  lastMessageTime: Date;
   createdAt: Date;
   updatedAt: Date;
 }

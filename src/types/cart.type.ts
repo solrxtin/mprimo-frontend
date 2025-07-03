@@ -1,23 +1,31 @@
 import mongoose, {Types} from "mongoose";
 
 
+export interface WishlistItem {
+    productId: Types.ObjectId;
+    addedAt: Date;
+    priceWhenAdded: number;
+    currency: string;
+}
+
 export interface Wishlist {
     userId: Types.ObjectId;
-    items: {
-        productId: Types.ObjectId;
-        addedAt: Date;
-        priceWhenAdded: number;
-    }[];
+    items: WishlistItem[];
     createdAt?: Date;
     updatedAt?: Date;
 }
 
+export interface CartItem {
+    productId: Types.ObjectId;
+    variantId: string; // SKU of selected variant
+    quantity: number;
+    price: number;
+    addedAt: Date;
+}
+
 export interface Cart {
     userId: Types.ObjectId;
-    items: {
-        productId: Types.ObjectId;
-        quantity: number;
-    }[];
+    items: CartItem[];
     lastUpdated: Date;
     createdAt?: Date;
     updatedAt?: Date;

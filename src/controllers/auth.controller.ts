@@ -23,6 +23,7 @@ import getCountryPreferences from "../utils/get-country-preferences";
 import Vendor from "../models/vendor.model";
 import { tokenWatcher } from "..";
 import { IVendor } from "../types/vendor.type";
+import AuditLogService from "../services/audit-log.service";
 
 const logger = LoggerService.getInstance();
 const generateVerificationCode = () =>
@@ -45,6 +46,13 @@ export const signup = async (req: Request, res: Response) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      await AuditLogService.log(
+        'REGISTRATION_ATTEMPT_DUPLICATE_EMAIL',
+        'auth',
+        'warning',
+        { email, attemptedRole: "personal" },
+        req
+      );
       return res.status(409).json({ message: "Email already registered" });
     }
 
@@ -110,6 +118,21 @@ export const signup = async (req: Request, res: Response) => {
     logger.debug("User created successfully", {
       userId: savedUser._id,
     });
+
+    // Log successful registration
+    await AuditLogService.log(
+      'USER_REGISTERED',
+      'auth',
+      'info',
+      { 
+        userId: savedUser._id,
+        email: savedUser.email,
+        role: savedUser.role,
+        hasWallet: !!wallet
+      },
+      req,
+      savedUser._id.toString()
+    );
 
     return res.status(201).json({
       message: "User created successfully",
@@ -204,6 +227,21 @@ export const login = async (req: Request, res: Response) => {
       device: req.headers["user-agent"],
     });
 
+    // Log successful login
+    await AuditLogService.log(
+      'USER_LOGIN_SUCCESS',
+      'auth',
+      'info',
+      { 
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+        country: req.headers['cf-ipcountry'] || 'unknown'
+      },
+      req,
+      user._id.toString()
+    );
+    
     return res.status(200).json({
       message: "Logged in successfully!",
       success: true,
@@ -337,7 +375,7 @@ export const requestPasswordChange = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Email is required" });
     }
     const user = await User.findOne({ email });
-
+    
     // Don't reveal if user exists or not
     if (!user) {
       return res.status(200).json({
@@ -345,6 +383,20 @@ export const requestPasswordChange = async (req: Request, res: Response) => {
           "If a user with this email exists, a password reset link will be sent",
       });
     }
+
+    await AuditLogService.log(
+      'PASSWORD_CHANGE_REQUESTED',
+      'auth',
+      'info',
+      { 
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+        country: req.headers['cf-ipcountry'] || 'unknown'
+      },
+      req,
+      user._id.toString()
+    );
 
     // Generate reset token
     const resetToken = generateVerificationCode();
@@ -432,6 +484,20 @@ export const changePassword = async (req: Request, res: Response) => {
       ip,
       userId: user._id,
     });
+
+    await AuditLogService.log(
+      'PASSWORD_CHANGED',
+      'auth',
+      'info',
+      { 
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+        country: req.headers['cf-ipcountry'] || 'unknown'
+      },
+      req,
+      user._id.toString()
+    );
 
     return res.status(200).json({
       message: "Password reset successful",

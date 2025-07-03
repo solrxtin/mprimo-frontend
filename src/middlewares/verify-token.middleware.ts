@@ -13,19 +13,22 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
     const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
 
     if (!token) {
-      return res.status(401).json({ success: false, message: "Unauthorized - No token provided" });
+      res.status(401).json({ success: false, message: "Unauthorized - No token provided" });
+      return;
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as CustomJwtPayload;
 
     if (!decoded || !decoded.userId) {
-      return res.status(401).json({ success: false, message: "Unauthorized - Invalid token" });
+      res.status(401).json({ success: false, message: "Unauthorized - Invalid token" });
+      return;
     }
 
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
     }
 
     req.user = user;
@@ -37,9 +40,10 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
 
     // Handle token expiration separately
     if (error instanceof jwt.TokenExpiredError) {
-      return res.status(403).json({ success: false, message: "Access Token Expired" });
+      res.status(403).json({ success: false, message: "Access Token Expired" });
+      return;
     }
 
-    return res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

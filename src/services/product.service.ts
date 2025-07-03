@@ -192,86 +192,95 @@ export class ProductService {
   static async deleteProduct(
     id: string,
     vendorId: Types.ObjectId
-  ): Promise<void> {
+  ): Promise<ProductType> {
     const result = await ProductModel.findOneAndDelete({ _id: id, vendorId });
     if (!result) {
       throw createError(404, "Product not found");
     }
+    return result;
   }
 
-  static async updateInventory(
+  static async updateVariantInventory(
     id: string,
     vendor: IVendor,
+    variantId: string, // SKU
     quantity: number,
     operation: "add" | "subtract"
   ): Promise<ProductType> {
-    const lock = await redisService.acquireLock(id, vendor?._id!.toString(), 10000); // Lock for 10 seconds max
-
+    const lock = await redisService.acquireLock(id, vendor?._id!.toString(), 10000);
+  
     if (!lock) {
       throw createError(
         429,
         "Too many concurrent inventory updates. Please retry."
       );
     }
-
-    const update =
-      operation === "add"
-        ? { $inc: { "inventory.quantity": quantity } }
-        : { $inc: { "inventory.quantity": -quantity } };
-
-    const product = await ProductModel.findOneAndUpdate(
-      { _id: id, vendorId: vendor?._id! },
-      update,
-      { new: true, runValidators: true }
-    );
-
+  
+    const product = await ProductModel.findOne({ _id: id, vendorId: vendor?._id! });
     if (!product) {
       throw createError(404, "Product not found");
     }
 
-    // Check if inventory is below lowStockAlert
-    if (
-      product.inventory?.lowStockAlert !== undefined &&
-      product.inventory.listing?.type === "instant" &&
-      product.inventory.listing.instant?.quantity !== undefined &&
-      product.inventory.listing.instant.quantity <=
-        product.inventory.lowStockAlert
-    ) {
-      // Implement low stock notification logic here
-      console.log(`Low stock alert for product ${product.name}`);
-      // Create notification
+    if (!product.variants || product.variants.length === 0) {
+      throw createError(400, "Product has no variants to update");
+    }
+  
+    // Find and update the specific variant option
+    let updated = false;
+    for (const variant of product.variants) {
+      for (const option of variant.options) {
+        if (option.sku === variantId) {
+          const change = operation === "add" ? quantity : -quantity;
+          option.quantity = Math.max(0, option.quantity + change);
+          updated = true;
+          break;
+        }
+      }
+      if (updated) break;
+    }
+  
+    if (!updated) {
+      throw createError(404, "Variant option not found");
+    }
+  
+    await product.save();
+  
+    // Check for low stock alerts
+    const updatedOption = product.variants
+      .flatMap(v => v.options)
+      .find(o => o.sku === variantId);
+  
+    if (updatedOption && product.inventory?.lowStockAlert && 
+        updatedOption.quantity <= product.inventory.lowStockAlert) {
       const notification = await Notification.create({
         userId: vendor.userId,
-        message: `${product.name} (Black) - Only ${product.inventory.listing.instant.quantity} left`,
+        message: `${product.name} (${updatedOption.value}) - Only ${updatedOption.quantity} left`,
         title: "Low stock alert",
         type: "product",
         case: "low-stock",
-        data: {
-          // redirectUrl: `/vendor/orders/${order._id}`,
-          // entityId: order._id,
-          // entityType: "order",
-        },
-        read: false,
+        data: {},
+        isRead: false,
       });
   
-      // Send socket notification
       socketService.notifyVendor(vendor?._id!, {
-        event: "saleActivitiy",
+        event: "lowStock",
         notification
       });
     }
-
-    // Update status if out of stock
-    if (
-      (product.inventory.listing?.type === "auction" &&
-        product.inventory.listing.auction?.quantity === 0) ||
-      (product.inventory.listing?.type === "instant" &&
-        product.inventory.listing.instant?.quantity === 0)
-    ) {
+  
+    // Update product status based on total inventory
+    const totalQuantity = product.variants
+      .flatMap(v => v.options)
+      .reduce((sum, o) => sum + o.quantity, 0);
+  
+    if (totalQuantity === 0) {
       product.status = "outOfStock";
       await product.save();
+    } else if (product.status === "outOfStock" && totalQuantity > 0) {
+      product.status = "active";
+      await product.save();
     }
-
+  
     return product;
   }
 

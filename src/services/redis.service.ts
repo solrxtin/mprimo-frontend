@@ -6,9 +6,9 @@ import AnalyticsModel from "../models/analytics.model";
 import mongoose, { Types } from "mongoose";
 import dotenv from "dotenv";
 import { LoggerService } from "./logger.service";
-import { ICart } from "../types/user.type";
+import { CartItem } from "../types/cart.type";
 import Notification from "../models/notification.model";
-import { PushNotificationService } from "./push-notification.service";
+import pushNotificationService, { PushNotificationService } from "./push-notification.service";
 import { socketService } from "..";
 import { ProductType } from "../types/product.type";
 
@@ -16,7 +16,7 @@ dotenv.config();
 const logger = LoggerService.getInstance();
 
 class RedisService {
-  private redisClient;
+  public redisClient; // Make public for rate limiting middleware
   private readonly ANALYTICS_CHANNEL = "product_analytics";
   private readonly INVENTORY_CHANNEL = "inventory_alerts";
   private isConnected = false;
@@ -257,15 +257,15 @@ class RedisService {
       const cartKey = `cart:${userId}`;
       const cartItemRaw = await this.redisClient.hget(cartKey, productId);
 
-      let newItem: ICart;
+      let newItem: CartItem;
 
       if (cartItemRaw) {
-        const existingItem: ICart = JSON.parse(cartItemRaw);
+        const existingItem: CartItem = JSON.parse(cartItemRaw);
         newItem = {
           ...existingItem,
           quantity: existingItem.quantity + quantity,
           price, // Optionally update price in case it's changed
-          selectedVariant: selectedVariant ?? existingItem.selectedVariant,
+          variantId: selectedVariant ?? existingItem.variantId,
           addedAt: existingItem.addedAt
             ? new Date(existingItem.addedAt)
             : new Date(),
@@ -273,9 +273,9 @@ class RedisService {
       } else {
         newItem = {
           productId: new mongoose.Types.ObjectId(productId),
+          variantId: selectedVariant || '',
           quantity,
           price,
-          selectedVariant,
           addedAt: new Date(),
         };
       }

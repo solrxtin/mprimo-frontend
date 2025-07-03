@@ -53,9 +53,9 @@ const Page = (props: Props) => {
             </>
           ) : (
             <>
-              <AnalyticsCard title="Sales Total" percentageIncrease={data.change.revenue} amount={data.currentData.totalRevenue} />
-              <AnalyticsCard title="Total Orders" percentageIncrease={data.change.sales} value={data.currentData.totalSales} />
-              <AnalyticsCard title="Total Products" percentageIncrease={data.change.productCount} value={data.currentData.productCount} />
+              <AnalyticsCard title="Sales Total" percentageIncrease={data?.change?.revenue} amount={data?.currentData?.totalRevenue} />
+              <AnalyticsCard title="Total Orders" percentageIncrease={data?.change?.sales} value={data?.currentData?.totalSales} />
+              <AnalyticsCard title="Total Products" percentageIncrease={data?.change?.productCount} value={data?.currentData?.productCount} />
             </>
           )}
         </div>
@@ -63,7 +63,7 @@ const Page = (props: Props) => {
         {/* Sales Overview & Activity */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
           <div className="col-span-1 xl:col-span-8">
-            {isLoading ? <SalesOverviewSkeleton /> : <SalesOverview currentData={data.currentData} dailySales={data.dailySales} />}
+            {isLoading ? <SalesOverviewSkeleton /> : <SalesOverview currentData={data?.currentData} dailySales={data?.dailySales} />}
           </div>
           <div className="col-span-1 xl:col-span-4">
             {isLoading ? <SalesActivitySkeleton /> : <SalesActivity />}

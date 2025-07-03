@@ -3,6 +3,7 @@
 import { useCategories, useVendorProducts } from "@/hooks/queries";
 import { useProductStore } from "@/stores/useProductStore";
 import { ProductType } from "@/types/product.type";
+import VariantPriceDisplay from "@/components/VariantPriceDisplay";
 import {
   Plus,
   ChevronDown,
@@ -14,9 +15,11 @@ import {
   EyeClosed,
   Eye,
   Trash,
+  Upload,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
+import ProductImport from "./create-product/(components)/ProductImport";
 
 type Props = {};
 
@@ -58,6 +61,7 @@ const ProductsPage = () => {
     ProductType[] | []
   >([]);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [showProductImport, setShowProductImport] = useState(false);
 
   const { data: vendorProducts, isLoading } = useVendorProducts(vendor?._id!);
   const router = useRouter();
@@ -208,8 +212,8 @@ const ProductsPage = () => {
       style={{ height: "calc(100vh - 100px)" }}
     >
       <div className="p-4 md:p-4 lg:p-10 h-full">
-        <div className="flex flex-col md:flex-col-reverse xl:flex-row justify-between items-start md:items-center mb-5 gap-4">
-          <div className="w-full">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-5 gap-4 md:gap-0">
+          <div className="">
             <div className="flex overflow-x-auto scrollbar-hide gap-x-2 lg:gap-x-4 items-center text-[#b5b4b4] mb-1">
               <div
                 className={`text-xs md:text-lg whitespace-nowrap border-r pr-2 md:pr-4 cursor-pointer ${
@@ -275,15 +279,24 @@ const ProductsPage = () => {
               today.
             </p>
           </div>
-          <button
-            className="bg-[#002f7a] text-white px-4 md:px-6 py-2 md:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-[#00245a] transition-colors w-full md:w-auto justify-center md:self-end"
-            onClick={() => {
-              router.push("/vendor/dashboard/products/create-product");
-            }}
-          >
-            <p className="whitespace-nowrap cursor-pointer">Add Product</p>
-            <Plus size={18} />
-          </button>
+          <div className="flex gap-2 w-full md:w-auto">
+            <button
+              className="bg-[#002f7a] text-white px-4 lg:px-6 py-2 md:p-2 lg:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-[#00245a] transition-colors flex-1 md:flex-none justify-center"
+              onClick={() => {
+                router.push("/vendor/dashboard/products/create-product");
+              }}
+            >
+              <p className="whitespace-nowrap cursor-pointer md:hidden xl:block">Add Product</p>
+              <Plus size={18} />
+            </button>
+            <button
+              className="bg-green-600 text-white px-4 lg:px-6 py-2 md:p-2 lg:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-green-700 transition-colors flex-1 md:flex-none justify-center"
+              onClick={() => setShowProductImport(true)}
+            >
+              <p className="whitespace-nowrap cursor-pointer md:hidden xl:block">Import</p>
+              <Upload size={18} />
+            </button>
+          </div>
         </div>
 
         {productList?.length > 0 ? (
@@ -504,25 +517,24 @@ const ProductsPage = () => {
                         </td>
 
                         <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
-                          {product.inventory.listing.type === "instant" ? (
-                            <span>
-                              {typeof product.country !== "string"
-                                ? product.country.currency
-                                : ""}{" "}
-                              {product.inventory.listing.instant?.price ??
-                                "N/A"}
-                            </span>
-                          ) : (
-                            "N/A"
-                          )}
+                          <VariantPriceDisplay product={product} />
                         </td>
 
                         <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
-                          {product.inventory.listing.type === "instant"
-                            ? product.inventory.listing.instant?.quantity ??
-                              "N/A"
-                            : product.inventory.listing.auction?.quantity ??
-                              "N/A"}
+                          {(() => {
+                            const hasVariants = product.variants && product.variants.length > 0;
+                            
+                            if (hasVariants) {
+                              const allOptions = product.variants.flatMap((v: any) => v.options);
+                              const totalQuantity = allOptions.reduce((sum: number, o: any) => sum + (o.quantity || 0), 0);
+                              return totalQuantity;
+                            }
+                            
+                            // Fallback to base quantity
+                            return product.inventory.listing.type === "instant"
+                              ? product.inventory.listing.instant?.quantity ?? "N/A"
+                              : product.inventory.listing.auction?.quantity ?? "N/A";
+                          })()} 
                         </td>
 
                         <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
@@ -652,23 +664,47 @@ const ProductsPage = () => {
                         : ""}
                     </div>
                     <div className="text-xs text-gray-500 mb-1">
-                      <span className="font-medium">Price:</span>
-                      {product.inventory.listing.type === "instant" ? (
-                        <span>
-                          {typeof product.country !== "string"
-                            ? product.country.currency
-                            : ""}{" "}
-                          {product.inventory.listing.instant?.price ?? "N/A"}
-                        </span>
-                      ) : (
-                        "N/A"
-                      )}
+                      <span className="font-medium">Price:</span>{" "}
+                      {(() => {
+                        const hasVariants = product.variants && product.variants.length > 0;
+                        
+                        if (hasVariants) {
+                          const allOptions = product.variants.flatMap((v: any) => v.options);
+                          const prices = allOptions.map((o: any) => o.price).filter(p => p > 0);
+                          
+                          if (prices.length === 0) return "N/A";
+                          
+                          const minPrice = Math.min(...prices);
+                          const maxPrice = Math.max(...prices);
+                          const currency = typeof product.country !== "string" ? product.country.currency : "";
+                          
+                          return `${currency} ${minPrice === maxPrice ? minPrice : `${minPrice} - ${maxPrice}`}`;
+                        }
+                        
+                        // Fallback to base pricing
+                        if (product.inventory.listing.type === "instant") {
+                          const currency = typeof product.country !== "string" ? product.country.currency : "";
+                          return `${currency} ${product.inventory.listing.instant?.price ?? "N/A"}`;
+                        }
+                        
+                        return "N/A";
+                      })()} 
                     </div>
                     <div className="text-xs text-gray-500 mb-1">
                       <span className="font-medium">Stock:</span>{" "}
-                      {product.inventory.listing.type === "instant"
-                        ? product.inventory.listing.instant?.quantity ?? "N/A"
-                        : product.inventory.listing.auction?.quantity ?? "N/A"}
+                      {(() => {
+                        const hasVariants = product.variants && product.variants.length > 0;
+                        
+                        if (hasVariants) {
+                          const allOptions = product.variants.flatMap((v: any) => v.options);
+                          return allOptions.reduce((sum: number, o: any) => sum + (o.quantity || 0), 0);
+                        }
+                        
+                        // Fallback to base quantity
+                        return product.inventory.listing.type === "instant"
+                          ? product.inventory.listing.instant?.quantity ?? "N/A"
+                          : product.inventory.listing.auction?.quantity ?? "N/A";
+                      })()} 
                     </div>
                     <div className="flex justify-between items-center">
                       {product.inventory.listing.type === "instant" && (
@@ -839,17 +875,28 @@ const ProductsPage = () => {
                     className="text-[#002f7a] animate-bounce-slow"
                   />
                 </div>
-                <button
-                  className="bg-[#002f7a] text-white px-4 md:px-6 py-2 md:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-[#00245a] transition-all duration-300 transform hover:scale-[1.03] w-full md:w-auto justify-center"
-                  onClick={() => {
-                    router.push("/vendor/dashboard/products/create-product");
-                  }}
-                >
-                  <p className="whitespace-nowrap cursor-pointer">
-                    Add Product
-                  </p>
-                  <Plus size={18} />
-                </button>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <button
+                    className="bg-[#002f7a] text-white px-4 md:px-6 py-2 md:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-[#00245a] transition-all duration-300 transform hover:scale-[1.03] flex-1 md:flex-none justify-center"
+                    onClick={() => {
+                      router.push("/vendor/dashboard/products/create-product");
+                    }}
+                  >
+                    <p className="whitespace-nowrap cursor-pointer">
+                      Add Product
+                    </p>
+                    <Plus size={18} />
+                  </button>
+                  <button
+                    className="bg-green-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-green-700 transition-all duration-300 transform hover:scale-[1.03] flex-1 md:flex-none justify-center"
+                    onClick={() => setShowProductImport(true)}
+                  >
+                    <p className="whitespace-nowrap cursor-pointer">
+                      Import
+                    </p>
+                    <Upload size={18} />
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex justify-center mt-20">
@@ -859,6 +906,10 @@ const ProductsPage = () => {
               </div>
             )}
           </>
+        )}
+        
+        {showProductImport && (
+          <ProductImport onClose={() => setShowProductImport(false)} />
         )}
       </div>
     </div>

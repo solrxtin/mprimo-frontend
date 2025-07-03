@@ -1,12 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { generateTrackingNumber } from "../utils/generateTrackingNumber";
-import Order from "../models/order.model";
+import Order, { Refund } from "../models/order.model";
 import Notification from "../models/notification.model";
 import Product from "../models/product.model";
 import { redisService, socketService } from "..";
 import { ItemType } from "../types/order.type";
 import mongoose from "mongoose";
+import AuditLogService from "../services/audit-log.service";
+import { Types } from "mongoose";
+import { OrderService } from "../services/order.service";
+import { strictRateLimit } from "../middlewares/enhanced-rate-limit.middleware";
 
 const generateEstimatedDelivery = (daysAhead: number = 7): Date => {
   const estimatedDate = new Date();
@@ -21,7 +25,7 @@ export const makeOrder = async (
 ) => {
   const { id: productId, vendorId } = req.params;
   const { items, paymentMethod, totalAmount, address } = req.body;
-  const userId = req.userId
+  const userId = req.userId;
 
   try {
     const lockAcquired = await redisService.acquireLock(productId, vendorId);
@@ -159,8 +163,36 @@ export const makeOrder = async (
       })
     );
 
+    await AuditLogService.log(
+      "ORDER_CREATED",
+      "order",
+      "info",
+      {
+        orderId: order._id,
+        userId,
+        totalAmount: order.payment.amount,
+        itemCount: order.items.length,
+        paymentMethod: order.payment?.method,
+      },
+      req,
+      (order._id as Types.ObjectId).toString()
+    );
+
     res.status(201).json({ message: "Order created successfully", order });
   } catch (error) {
+    let errorMessage = "Unknown error";
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    await AuditLogService.log(
+      "ORDER_CREATION_ERROR",
+      "order",
+      "error",
+      { error: errorMessage, userId: req.userId },
+      req
+    );
     next(error);
   } finally {
     await redisService.releaseLock(productId, vendorId);
@@ -172,24 +204,20 @@ export const getUserOrders = async (
   res: Response,
   next: NextFunction
 ) => {
-  const userId = req.userId;
-
   try {
-    const orders = await Order.find({ userId })
-      .sort({ createdAt: -1 })
-      .populate({
-        path: "items.productId",
-        select: "name images inventory reviews ratings vendorId",
-        populate: {
-          path: "vendorId",
-          select: "businessInfo.name accountType ratings.average",
-        },
-      });
+    const userId = req.userId!.toString();
+    const { page = 1, limit = 10, status } = req.query;
 
-    res.status(200).json({
-      orders,
-      message: "User orders fetched successfully",
+    const orders = await OrderService.getOrdersByUser(
+      userId,
+      Number(page),
+      Number(limit),
+      status as string
+    );
+
+    res.json({
       success: true,
+      ...orders
     });
   } catch (error) {
     next(error);
@@ -333,34 +361,15 @@ export const getOrder = async (
   res: Response,
   next: NextFunction
 ) => {
-  const orderId = req.params.id;
-
   try {
-    const order = await Order.findById(orderId)
-      .populate({
-        path: "items.productId",
-        select: "-__v",
-        populate: {
-          path: "vendorId",
-        },
-      })
-      .populate({
-        path: "userId",
-        select: "profile email",
-      });
+    const { orderId } = req.params;
+    const userId = req.userId!.toString();
 
-    if (!order) {
-      res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-      return;
-    }
+    const order = await OrderService.getOrderById(orderId, userId);
 
-    res.status(200).json({
-      order,
-      message: "Order fetched successfully",
+    res.json({
       success: true,
+      order
     });
   } catch (error) {
     next(error);
@@ -406,3 +415,211 @@ export const changeShippingAddress = async (
     next(error);
   }
 };
+
+export const cancelOrder = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+
+    const order = await OrderService.cancelOrder(orderId, reason);
+
+    // Log order cancellation
+    await AuditLogService.log(
+      'ORDER_CANCELLED',
+      'order',
+      'warning',
+      {
+        orderId,
+        userId: req.userId,
+        reason,
+        totalAmount: order.payment.amount
+      },
+      req,
+      orderId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+      order,
+    });
+  } catch (error) {
+    let errorMessage = "Unknown error";
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    await AuditLogService.log(
+      'ORDER_CANCELLATION_ERROR',
+      'order',
+      'error',
+      { 
+        error: errorMessage, 
+        orderId: req.params.id,
+        userId: req.userId 
+      },
+      req
+    );
+    next(error);
+  }
+};
+
+export const refundOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { orderId } = req.params;
+    const { amount, reason } = req.body;
+    const userId = req.userId!.toString();
+
+    const refund = await OrderService.processRefund(orderId, amount, reason, userId);
+
+    // Log refund processing
+    await AuditLogService.log(
+      'ORDER_REFUND_PROCESSED',
+      'order',
+      'warning',
+      {
+        orderId,
+        refundAmount: amount,
+        reason,
+        processedBy: userId,
+        refundId: refund._id
+      },
+      req,
+      orderId
+    );
+
+    res.json({
+      success: true,
+      message: 'Refund processed successfully',
+      refund
+    });
+  } catch (error) {
+    let errorMessage = "Unknown error";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    await AuditLogService.log(
+      'ORDER_REFUND_ERROR',
+      'order',
+      'error',
+      { 
+        error: errorMessage, 
+        orderId: req.params.id,
+        userId: req.userId 
+      },
+      req
+    );
+    next(error);
+  }
+}
+
+export const getRefunds = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const refunds = await Refund.find({}).sort({ createdAt: -1 }).populate('orderId');
+
+    res.json({
+      success: true,
+      refunds
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const getOrderStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { page = 1, limit = 20, status, startDate, endDate } = req.query;
+    const orders = await OrderService.getAllOrders(
+      Number(page),
+      Number(limit),
+      {
+        status: status as string,
+        startDate: startDate ? new Date(startDate as string) : undefined,
+        endDate: endDate ? new Date(endDate as string) : undefined
+      }
+    );
+
+    res.json({
+      success: true,
+      ...orders
+    });
+  } catch(error) {
+    next(error)
+  }
+}
+
+const updateOrderStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { orderId } = req.params;
+    const { status, trackingNumber, carrier, shippingStatus } = req.body;
+    const userId = req.userId!.toString();
+
+    const originalOrder = await OrderService.getOrderById(orderId);
+    const updatedOrder = await OrderService.updateOrderStatus(
+      orderId,
+      status,
+      shippingStatus,
+      {trackingNumber, carrier}
+    );
+
+    await AuditLogService.log(
+      "ORDER_STATUS_UPDATED",
+      "order",
+      "info",
+      {
+        orderId,
+        previousStatus: originalOrder.status,
+        newStatus: status,
+        updatedBy: userId,
+        trackingNumber,
+        carrier,
+      },
+      req,
+      orderId
+    );
+
+    // if (originalOrder.userId) {
+    //   await pushNotificationService.notifyOrderStatusUpdate(
+    //     originalOrder.userId.toString(),
+    //     orderStatus,
+    //     status
+    //   );
+    // }
+
+    res.json({ success: true, order: updatedOrder });
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
+    await AuditLogService.log(
+      "ORDER_STATUS_UPDATE_ERROR",
+      "order",
+      "error",
+      {
+        error: errorMessage,
+        orderId: req.params.id,
+        userId: req.userId,
+      },
+      req
+    );
+    next(error);
+  }
+};
+
+export const OrderController = {
+  updateOrderStatus: [strictRateLimit, updateOrderStatus],
+};
+
+

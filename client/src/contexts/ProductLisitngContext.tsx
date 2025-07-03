@@ -38,8 +38,8 @@ export const ProductListingProvider = ({ children }: { children: ReactNode }) =>
   const [productDetails, setProductDetails] = useState<Record<string, any>>({});
 
   // Calculate total steps based on attributes
-  const totalSteps = 3;
-  const mobileTotalSteps = 7; // Updated to include variants step
+  const totalSteps = 4; // Updated to include final submission step
+  const mobileTotalSteps = 8; // Updated to include final submission step
 
   // Calculate attribute pages based on screen size and attributes
   useEffect(() => {

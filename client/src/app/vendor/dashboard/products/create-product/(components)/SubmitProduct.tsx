@@ -119,10 +119,15 @@ export const useProductMapper = () => {
       },
       images: productDetails.images || [],
       specifications: productDetails.productSpecifications 
-        ? Object.entries(productDetails.productSpecifications).map(([key, value]) => ({
-            key,
-            value: String(value), // Convert value to string to match the expected type
-          }))
+        ? Array.isArray(productDetails.productSpecifications)
+          ? productDetails.productSpecifications.map((spec: any) => ({
+              key: spec.key || spec.name,
+              value: String(spec.value),
+            }))
+          : Object.entries(productDetails.productSpecifications).map(([key, value]) => ({
+              key,
+              value: String(value),
+            }))
         : [],
       shipping: {
         weight: Number(productDetails.shippingDetails?.productWeight),
@@ -140,12 +145,15 @@ export const useProductMapper = () => {
         },
         restrictions: ["none"],
       },
-      variants: productDetails.variants?.map((variant: any) => ({
+      variants: productDetails.variants?.map((variant: any, index: number) => ({
         name: variant.name,
-        options: variant.options.map((option: any) => ({
+        isDefault: variant.isDefault || index === 0,
+        options: variant.options.map((option: any, optionIndex: number) => ({
           value: option.value,
           price: Number(option.price),
-          inventory: Number(option.inventory),
+          quantity: Number(option.quantity),
+          sku: option.sku || `${variant.name?.substring(0, 3).toUpperCase() || 'VAR'}-${option.value?.substring(0, 3).toUpperCase() || 'OPT'}-${Date.now()}`,
+          isDefault: option.isDefault || optionIndex === 0,
         })),
       })),
     };

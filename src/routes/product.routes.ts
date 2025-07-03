@@ -1,10 +1,12 @@
 // src/routes/product.route.ts
 import { Router, Request, Response, NextFunction } from "express";
 import { acceptCounterOffer, acceptOffer, makeCounterOffer, placeProxyBid, ProductController, rejectCounterOffer, rejectOffer } from "../controllers/product.controller";
+import { ProductImportController, upload as importUpload } from "../controllers/product-import.controller";
 import { verifyToken } from "../middlewares/verify-token.middleware";
 import { authorizeRole } from "../middlewares/authorize-role.middleware";
 import { ProductService } from "../services/product.service";
 import { uploadImage, uploadImageToCloudinary } from "../config/multer.config";
+import { standardRateLimit } from "../middlewares/enhanced-rate-limit.middleware";
 
 const router = Router();
 
@@ -245,6 +247,7 @@ router.delete(
 // Create product
 router.post(
   "/",
+  standardRateLimit,
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
@@ -591,6 +594,77 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await placeProxyBid(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Import routes
+router.post(
+  "/import/csv",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  (req: Request, res: Response, next: NextFunction) => {
+    authorizeRole(["business"])(req, res, next);
+  },
+  importUpload.single('file'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductImportController.importFromCSV(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/import/json",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  (req: Request, res: Response, next: NextFunction) => {
+    authorizeRole(["business"])(req, res, next);
+  },
+  importUpload.single('file'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductImportController.importFromJSON(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/import/shopify",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  (req: Request, res: Response, next: NextFunction) => {
+    authorizeRole(["business"])(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductImportController.importFromShopify(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  "/import/woocommerce",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  (req: Request, res: Response, next: NextFunction) => {
+    authorizeRole(["business"])(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductImportController.importFromWooCommerce(req, res, next);
     } catch (error) {
       next(error);
     }
