@@ -19,7 +19,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
-import Header from "@/components/Home/Header";
 
 const orderItems = [
   {
@@ -93,7 +92,6 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <Header />
 
       <div className="min-h-screen font-roboto bg-gray-50 body-padding">
         <div className=" mx-auto pt-4">

@@ -35,6 +35,7 @@
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-phone-number-input": "^3.4.12",
+            "react-number-format": "^5.1.4",
     "react-select": "^5.10.1",
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.3",

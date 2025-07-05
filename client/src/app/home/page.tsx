@@ -19,7 +19,7 @@ type HomepageProps = {
 const Page = ({ children }: HomepageProps) => {
 
 const fetchAllProducts = async () => {
-  const response = await fetchWithAuth(`${AllProduct}`);
+  const response = await fetchWithAuth(`${AllProduct}?page=2`);
   if (!response.ok) {
     throw new Error('Failed to fetch user subscriptions');
   }

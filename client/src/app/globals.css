@@ -306,7 +306,7 @@
 
 @layer components {
   .body-padding {
-    @apply md:px-[42px] lg:px-[80px] px-4 ;
+    @apply md:px-[36px] lg:px-[36px] px-4 ;
   }
   .text-dark {
     @apply   text-[#121212]

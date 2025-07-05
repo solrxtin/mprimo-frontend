@@ -7,7 +7,7 @@ type PopulatedCategory = {
 };
 
 type CategoryType = {
-  main: string | PopulatedCategory;
+  main: PopulatedCategory;
   sub?: string[] | any;
   path?: string[];
 };
@@ -45,11 +45,16 @@ type VariantOptionType = {
   value: string;
   price: number;
   inventory: number;
+  isDefault: boolean;
+  id: string,
+  _id: string
 };
 
 type VariantType = {
   name: string;
   options: VariantOptionType[];
+  id: string,
+  _id: string
 };
 
 type ReviewType = {

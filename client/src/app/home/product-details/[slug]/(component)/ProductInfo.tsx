@@ -2,19 +2,100 @@
 
 import type React from "react";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Star, Heart, MessageCircle, X } from "lucide-react";
 import { BidModal1 } from "@/components/BidModal";
 import { ProductType } from "@/types/product.type";
+import { NumericFormat } from "react-number-format";
+import { useAddToCart } from "@/stores/cartHook";
 
 type ProductInfoProps = {
   productData: ProductType;
 };
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
+  const { addToCart } = useAddToCart();
+
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
+    const [quantity, setQuantity] = useState(1);
+
+  const [selectedVariant, setSelectedVariant] = useState<
+    ProductType["variants"][0] | undefined
+  >(productData?.variants?.[0]);
+  const [selectedOptions, setSelectedOptions] = useState<{
+    [variantId: string]: string;
+  }>(() => {
+    const initial: { [variantId: string]: string } = {};
+    productData?.variants?.forEach((variant) => {
+      const defaultOption =
+        variant.options.find((opt) => opt.isDefault) || variant.options[0];
+      if (defaultOption)
+        initial[variant.id || variant._id] =
+          defaultOption.id || defaultOption._id;
+    });
+    return initial;
+  });
+
+  useEffect(() => {
+    // Reset selected options when productData changes
+    const initial: { [variantId: string]: string } = {};
+    productData?.variants?.forEach((variant) => {
+      const defaultOption =
+        variant.options.find((opt) => opt.isDefault) || variant.options[0];
+      if (defaultOption)
+        initial[variant.id || variant._id] =
+          defaultOption.id || defaultOption._id;
+    });
+    setSelectedOptions(initial);
+  }, [productData]);
+
+  useEffect(() => {
+    setSelectedVariant(productData?.variants?.[0]);
+  }, [productData]);
+
+  const getSelectedOption = (variant: any) => {
+    const optionId = selectedOptions[variant.id || variant._id];
+    return variant.options.find((opt: any) => (opt.id || opt._id) === optionId);
+  };
+
+    const handleIncrease = () => {
+    setQuantity((prev) => prev + 1);
+  };
+
+  const handleDecrease = () => {
+    setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
+  };
+
+  console.log("varaints", selectedVariant);
+
+  const saleType = productData?.inventory?.listing?.type;
+  const acceptOffer = productData?.inventory?.listing?.instant?.acceptOffer;
+ const handleAddToCart = () => {
+    if (!productData) return;
+
+    // If there are variants, build the selectedVariant object for the first variant
+    let selectedVariantObj;
+    if (productData.variants && productData.variants.length > 0) {
+      const variant = productData.variants[0];
+      const optionId = selectedOptions[variant.id || variant._id];
+      const option = variant.options.find(
+        (opt: any) => (opt.id || opt._id) === optionId
+      );
+      if (option) {
+        selectedVariantObj = {
+          variantId: variant.id || variant._id,
+          optionId: option.id || option._id,
+          variantName: variant.name,
+          optionValue: option.value,
+          price: option.price,
+        };
+      }
+    }
+
+    addToCart(productData, quantity, selectedVariantObj);
+  };
 
   const colors = [
     { name: "Black", value: "#000000" },
@@ -59,8 +140,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
               className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg  h-48 md:h-64 lg:h-96 flex items-center justify-center overflow-hidden`}
             >
               <img
-                src="https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&h=400&fit=crop"
-                alt="Samsung 98 inch TV"
+                src={productData?.images[0]}
+                alt={productData?.name}
                 className={` h-28 sm:h-36 md:h-52 lg:h-64
                 group-hover:scale-105 transition-transform duration-300`}
               />
@@ -68,47 +149,38 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
 
             {/* Thumbnail Images */}
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {Array.from({ length: 5 }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                    selectedImage === i
-                      ? "border-orange-400"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <img
-                    src={
-                      i === 0
-                        ? "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=80&h=60&fit=crop"
-                        : i === 1
-                        ? "https://images.unsplash.com/photo-1571901850049-d8536d6c4f6e?w=80&h=60&fit=crop"
-                        : i === 2
-                        ? "https://images.unsplash.com/photo-1567690187548-f07b1d7bf5a9?w=80&h=60&fit=crop"
-                        : i === 3
-                        ? "https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=80&h=60&fit=crop"
-                        : "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=80&h=60&fit=crop"
-                    }
-                    alt={`TV view ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
+              {/* {Array.from({ length: 5 }, (_, i) => ( */}
+              {productData?.images
+                .slice(1, productData?.images?.length)
+                .map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedImage(i)}
+                    className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                      selectedImage === i ? "border-primary" : "border-gray-200"
+                    }`}
+                  >
+                    <img
+                      src={item}
+                      alt={productData?.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <div className="flex">{renderStars(4.7)}</div>
+              <div className="flex">{renderStars(productData?.rating)}</div>
               <span className="text-sm font-medium text-gray-700">
-                4.7 Seller Star Rating
+                {productData?.rating} Seller Star Rating
               </span>
             </div>
 
             {/* Product Title */}
             <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900">
-            {productData?.name}
+              {productData?.name}
             </h1>
 
             {/* Description */}
@@ -127,7 +199,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                 </div>
                 <div className="flex gap-1">
                   <span className="text-gray-600">Category:</span>
-                  <span className="text-blue-600 font-medium">TV</span>
+                  <span className="text-blue-600 font-medium">
+                    {productData?.category?.sub.length > 0
+                      ? productData?.category?.sub[
+                          productData.category.sub?.length - 1
+                        ]?.name
+                      : productData?.category?.main?.name}
+                  </span>
                 </div>
                 <div className="flex gap-1">
                   <span className="text-gray-600">Quantity Left:</span>
@@ -137,10 +215,14 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                       : productData?.inventory?.listing?.auction?.quantity}{" "}
                   </span>
                 </div>
-                <div className="flex gap-1">
-                  <span className="text-gray-600">Total offers:</span>
-                  <span className="text-blue-600 font-medium">17 Offers</span>
-                </div>
+                {saleType === "instant" && acceptOffer && (
+                  <div className="flex gap-1">
+                    <span className="text-gray-600">Total offers:</span>
+                    <span className="text-blue-600 font-medium">
+                      {productData?.offers?.length}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -160,23 +242,36 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                   <span className="text-gray-600">Business Kind:</span>
                   <span className="font-medium">Wholesale</span>
                 </div>
-                <div className="flex gap-1 items-center">
-                  <span className="text-gray-600">Colour:</span>
-                  <div className="flex gap-1">
-                    {colors.map((color, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedColor(index)}
-                        className={`w-4 h-4 rounded-full border-2 ${
-                          selectedColor === index
-                            ? "border-gray-400"
-                            : "border-gray-200"
-                        }`}
-                        style={{ backgroundColor: color.value }}
-                        aria-label={color.name}
-                      />
-                    ))}
-                  </div>
+                <div className="flex gap-1">
+                  {productData?.variants?.map((variant) => (
+                    <div
+                      className="flex gap-2 items-center mb-2"
+                      key={variant.id || variant._id}
+                    >
+                      <span className="text-gray-600">{variant.name}:</span>
+                      <select
+                        className="border rounded px-2 py-1"
+                        value={selectedOptions[variant.id || variant._id] || ""}
+                        onChange={(e) => {
+                          setSelectedOptions((prev) => ({
+                            ...prev,
+                            [variant.id || variant._id]: e.target.value,
+                          }));
+                        }}
+                      >
+                        {variant.options.map((option: any) => (
+                          <option
+                            value={option.id || option._id}
+                            key={option.id || option._id}
+                          >
+                            {option.value}{" "}
+                            {option.price ? `- ₦${option.price}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {/* Optionally show price or other info */}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -185,7 +280,25 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900">
-                  ₦1,700,000
+                  {saleType === "instant" ? (
+                    <NumericFormat
+                      value={selectedVariant?.options[0]?.price}
+                      displayType={"text"}
+                      thousandSeparator={true}
+                      prefix={"₦"}
+                      decimalScale={2}
+                      fixedDecimalScale={true}
+                    />
+                  ) : (
+                    <NumericFormat
+                      value={selectedVariant?.options[0]?.price}
+                      displayType={"text"}
+                      thousandSeparator={true}
+                      prefix={"₦"}
+                      decimalScale={2}
+                      fixedDecimalScale={true}
+                    />
+                  )}
                 </div>
                 <div className="text-xs md:text-sm text-gray-500">Buy now</div>
               </div>
@@ -203,6 +316,28 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
               </button>
             </div>
 
+              {/* Quantity Selector */}
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-gray-600">Quantity:</span>
+              <button
+                className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-lg font-bold hover:bg-gray-100"
+                onClick={handleDecrease}
+                aria-label="Decrease quantity"
+                type="button"
+              >
+                -
+              </button>
+              <span className="w-8 text-center">{quantity}</span>
+              <button
+                className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-lg font-bold hover:bg-gray-100"
+                onClick={handleIncrease}
+                aria-label="Increase quantity"
+                type="button"
+              >
+                +
+              </button>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <button className="flex-1 bg-white border-2 border-orange-300 text-orange-300 px-6 py-3 rounded-lg font-medium hover:bg-orange-50 transition-colors flex items-center justify-center gap-2">
@@ -212,7 +347,10 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
               <button className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
                 Buy Now
               </button>
-              <button className="flex-1 bg-orange-400 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-500 transition-colors">
+              <button
+                onClick={handleAddToCart}
+                className="flex-1 bg-orange-400 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-500 transition-colors"
+              >
                 Add To Cart
               </button>
             </div>

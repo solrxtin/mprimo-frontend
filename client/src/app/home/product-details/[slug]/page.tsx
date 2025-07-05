@@ -33,7 +33,7 @@ const ProductPage: React.FC = () => {
   <div className=" font-roboto">
 
       <ProductInfo productData={productData?.product}/>
-      <ProductDetailsTabs/>
+      <ProductDetailsTabs productData={productData?.product}/>
       <ReviewsPage />
     </div>
   );

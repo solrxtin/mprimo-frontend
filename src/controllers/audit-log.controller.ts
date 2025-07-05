@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import AuditLogService from '../services/audit-log.service';
 
+
 export class AuditLogController {
   static async getAuditLogs(req: Request, res: Response, next: NextFunction) {
     try {

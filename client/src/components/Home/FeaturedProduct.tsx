@@ -281,9 +281,7 @@ const ProductCard = ({
                   : "bg-orange-100 text-orange-700"
               }`}
             >
-              {/* {typeof product.category.main === "string"
-                ? product.category.main
-                : product.category.main?.name} */}
+            
               {product?.category?.sub &&
                 product?.category?.sub[product.category.sub?.length - 1]?.name}
             </span>
@@ -305,7 +303,7 @@ export default function FeaturedProducts() {
   const otherProducts = products.slice(1);
 
   const fetchAllProducts = async () => {
-    const response = await fetchWithAuth(`${AllProduct}`);
+    const response = await fetchWithAuth(`${AllProduct}?page=10`);
     if (!response.ok) {
       throw new Error("Failed to fetch user subscriptions");
     }

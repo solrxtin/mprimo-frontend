@@ -12,8 +12,12 @@ import {
   Instagram,
   Mail,
 } from "lucide-react";
+import { ProductType } from "@/types/product.type";
+type ProductInfoProps = {
+  productData: ProductType;
+};
 
-const ProductDetailsTabs: React.FC = () => {
+const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
   const [activeTab, setActiveTab] = useState(0);
 
   const tabs = [
@@ -45,19 +49,9 @@ const ProductDetailsTabs: React.FC = () => {
         <h3 className="text-xl font-bold text-gray-900 mb-4">Description</h3>
         <div className="space-y-4 text-gray-600 leading-relaxed text-xs md:text-sm ">
           <p>
-            The Samsung 98 Inch Crystal UHD Smart TV is a massive display with
-            impressive features and immersive viewing experience with its
-            massive display. Crystal UHD technology, advanced features like
-            Motion Xcelerator 120Hz for smooth motion, Q-Symphony for enhanced
-            audio, and seamless smart TV capabilities through Samsung's Tizen
-            OS, providing access to a wide range of apps, games, and streaming
-            services.
+           {productData?.description}
           </p>
-          <p>
-            The Samsung 98 Inch Crystal UHD Smart TV is a massive display with
-            impressive features and immersive viewing experience with its
-            massive display.
-          </p>
+        
         </div>
       </div>
 
