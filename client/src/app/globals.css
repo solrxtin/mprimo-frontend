@@ -6,12 +6,13 @@
   --primary-color: #2563EB;
   --secondary-color: #F6B76F;
 }
+
 .font-poppins {
   font-family: var(--font-poppins);
 }
 
 .font-roboto {
-  font-family: var(--font-roboto), sans-serif;
+  font-family: var(--font-roboto);
 }
 
 .text-primary {
@@ -49,9 +50,7 @@
 .border-secondary {
   border-color: var(--secondary-color);
 }
-.font-roboto {
-  font-family: font-roboto;
-}
+
 
 @layer utilities {
   @keyframes loading-bar {

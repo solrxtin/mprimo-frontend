@@ -42,7 +42,7 @@ const useAllProducts =  useQuery({
 
 
   return (
-    <div className=" font-roboto">
+    <div className="font-roboto " >
      
       <MarketplaceSection product={useAllProducts.data} />
       <BestDeals />
