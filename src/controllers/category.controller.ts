@@ -4,7 +4,7 @@ import { CategoryService } from "../services/category.service";
  * Validates category data before creation or update
  * @param data Category data to validate
  * @param isUpdate Whether this is an update operation (some fields optional)
- * @returns Promise that resolves if validation passes, rejects with error if validation fails
+ * @returns Promise that resolves if validation ,
  */
 async function validateCategory(
   data: any,

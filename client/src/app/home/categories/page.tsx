@@ -23,22 +23,29 @@ import {
 import { categoriesConfig } from "@/lib/categories-config";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
+import { useCategories } from "@/hooks/queries";
+import { Category } from "@/types/product.type";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { useQuery } from "@tanstack/react-query";
 
 const categories = Object.values(categoriesConfig);
 
 export default function CategoriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
+  const [filter, setFilter] = useState({
+    name: "",
+    priceRange: [0, 1000],
+    rating: 0,
+    sortBy: "relevance",
+  });
 
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(categorySearch.toLowerCase())
-  );
+ 
 
   const router = useRouter();
 
   const manualBreadcrumbs: BreadcrumbItem[] = [
-    { label: "Shop by Categories", href: null},
-  
+    { label: "Shop by Categories", href: null },
   ];
   const handleBreadcrumbClick = (
     item: BreadcrumbItem,
@@ -50,6 +57,34 @@ export default function CategoriesPage() {
       router.push(item?.href);
     }
   };
+
+  // Fetch categories
+  const fetchCategories = async () => {
+    const response = await fetchWithAuth('http://localhost:5800/api/v1/categories?');
+    if (!response.ok) {
+      throw new Error('Failed to fetch categories');
+    }
+    const data = await response.json();
+    return data; // Return the entire response object
+  };
+  
+  const useCategories = useQuery({
+      queryKey: ['categories'],
+      queryFn: fetchCategories,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 24 * 60 * 60 * 1000, // 1 day
+      refetchOnWindowFocus: false,
+      retry: 1
+    });
+  
+
+  console.log(
+    "Category Data:",
+    useCategories?.data?.categories?.filter((item: any) => item.level === 1)
+  );
+  const categories =
+    useCategories?.data?.categories?.filter((item: any) => item.level === 1) ||
+    [];
 
   return (
     <div className="min-h-screen body-padding bg-gray-50">
@@ -86,7 +121,6 @@ export default function CategoriesPage() {
                 </button>
               </div>
             </div>
-          
 
             {/* Active Filters */}
             <div className="flex items-center space-x-2 text-xs">
@@ -108,16 +142,20 @@ export default function CategoriesPage() {
 
         {/* Categories Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-4 lg:gap-6 pb-12">
-          {filteredCategories.map((category) => (
-            <Link key={category.id} href={`/home/categories/${category.id}`}>
+          {categories.map((card: Category) => (
+            <Link key={card._id} href={`/home/categories/${card.slug}`}>
               <div className="bg-white rounded-lg border hover:shadow-lg transition-shadow p-4 lg:p-6 text-center group cursor-pointer">
                 <div className="mb-3 lg:mb-4">
-                  <div >
-                    <img src={typeof category.image === "string" ? category.image : category.image.src} alt={category?.name} className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mx-auto" />
+                  <div>
+                    <img
+                      src={card?.image}
+                      alt={card?.name}
+                      className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mx-auto"
+                    />
                   </div>
                 </div>
                 <h3 className="font-medium text-sm lg:text-base text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {category.name}
+                  {card.name}
                 </h3>
                 {/* <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                   {category.description}
@@ -152,8 +190,6 @@ export default function CategoriesPage() {
             Next
           </Button>
         </div>
-
-       
       </main>
     </div>
   );

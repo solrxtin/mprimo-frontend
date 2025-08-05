@@ -327,9 +327,9 @@ export default function ComputerAccessories() {
 
         <div className="lg:col-span-3 md:col-span-2 order-1 lg:max-h-[685px]">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-10 ">
-            {otherProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {/* {otherProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))} */}
           </div>
         </div>
       </div></div>

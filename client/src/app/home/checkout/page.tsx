@@ -19,23 +19,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
-
-const orderItems = [
-  {
-    id: "1",
-    name: "Men Minimalist Large Capacity Laptop Backpack",
-    quantity: 2,
-    price: 10000,
-    image: "/images/tv.png",
-  },
-  {
-    id: "2",
-    name: "iMosi QX7 Smart Watch 1.85 inch smart watch",
-    quantity: 2,
-    price: 10000,
-    image: "/images/tv.png",
-  },
-];
+import { useCartItems, useCartSummary } from "@/stores/cartHook";
 
 export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("bank-transfer");
@@ -51,11 +35,14 @@ export default function CheckoutPage() {
     homeAddress: "",
   });
 
-  const subtotal = 235000;
+  const cartItems = useCartItems();
+  const cartSummary = useCartSummary();
+  
+  const subtotal = cartSummary.subtotal;
   const shipping = 50000;
   const discount = 5000;
   const tax = 5000;
-  const total = 45000;
+  const total = subtotal + shipping - discount + tax;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -68,8 +55,8 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const manualBreadcrumbs: BreadcrumbItem[] = [
-    { label: "Cart", href: "/my-cart" },
-    { label: "Auction", href: null },
+    { label: "Cart", href: "/home/my-cart" },
+    { label: "Checkout", href: null },
   ];
   const handleBreadcrumbClick = (
     item: BreadcrumbItem,
@@ -269,7 +256,7 @@ export default function CheckoutPage() {
                     <div className="bg-gray-50 rounded-lg p-6">
                       <div className="text-center mb-4">
                         <p className="font-medium">
-                          Transfer ₦40,000 to Vendor's Checkout
+                          Transfer ₦{total.toLocaleString()} to Vendor's Checkout
                         </p>
                       </div>
                       <div className="space-y-4">
@@ -295,7 +282,7 @@ export default function CheckoutPage() {
                         <div>
                           <Label className="text-sm font-medium">Amount</Label>
                           <div className="mt-1 p-3 bg-white rounded border flex items-center justify-between">
-                            <span>₦ 45,000</span>
+                            <span>₦ {total.toLocaleString()}</span>
                             <Button variant="ghost" size="sm">
                               <Copy className="w-4 h-4" />
                             </Button>
@@ -341,24 +328,24 @@ export default function CheckoutPage() {
 
                   {/* Order Items */}
                   <div className="space-y-4 mb-6">
-                    {orderItems.map((item) => (
+                    {cartItems.map((item) => (
                       <div
-                        key={item.id}
+                        key={item.product._id + (item.selectedVariant?.optionId || "")}
                         className="flex items-center space-x-3"
                       >
                         <Image
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.name}
+                          src={item.product.images[0] || "/placeholder.svg"}
+                          alt={item.product.name}
                           width={40}
                           height={40}
                           className="rounded object-cover"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium leading-tight">
-                            {item.name}
+                            {item.product.name}
                           </p>
                           <p className="text-xs text-blue-600">
-                            {item.quantity} x N {item.price.toLocaleString()}
+                            {item.quantity} x ₦ {item.selectedVariant?.price.toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -369,19 +356,19 @@ export default function CheckoutPage() {
                   <div className="space-y-3 border-t pt-4">
                     <div className="flex justify-between">
                       <span>Sub Total:</span>
-                      <span>N {subtotal.toLocaleString()}</span>
+                      <span>₦ {subtotal.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Shipping:</span>
-                      <span>N {shipping.toLocaleString()}</span>
+                      <span>₦ {shipping.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Discount:</span>
-                      <span>N {discount.toLocaleString()}</span>
+                      <span>₦ {discount.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Tax:</span>
-                      <span>N {tax.toLocaleString()}</span>
+                      <span>₦ {tax.toLocaleString()}</span>
                     </div>
                     <hr />
                     <div className="flex justify-between font-bold text-lg">

@@ -40,7 +40,6 @@ const fetchCategories = async () => {
     throw new Error('Failed to fetch categories');
   }
   const data = await response.json();
-  console.log("Raw API response:", data);
   return data; // Return the entire response object
 };
 

@@ -1,106 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Heart, Star, ChevronRight, ArrowRight } from "lucide-react";
+import React, { useState } from "react";
+import { Heart, Star, ArrowRight, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { AllProduct } from "@/utils/config";
 import { ProductType } from "@/types/product.type";
 import Link from "next/link";
-
-interface Product {
-  id: number;
-  name: string;
-  image: string;
-  rating: number;
-  reviewCount: number;
-  price: number;
-  originalPrice?: number;
-  discount: number;
-  condition: "Brand New" | "Used" | "Refurbished";
-  category: "Wholesale" | "Personal";
-  description?: string;
-}
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Samsung Q7F QLED 4K 75 Inches Smart TV",
-    image: "/images/tv.png",
-    rating: 5.0,
-    reviewCount: 28673,
-    price: 1700000,
-    discount: 0,
-    condition: "Used",
-    category: "Personal",
-    description:
-      "Samsung Q7F QLED 4K Vision Smart TV brings next level picture and sound quality, powered by the advanced Q4 AI Processor for you to enjoy",
-  },
-  {
-    id: 2,
-    name: "JBL Boombox 3 Wi-Fi, Black; WLAN and Bluetooth Loudspeaker",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Refurbished",
-    category: "Wholesale",
-  },
-  {
-    id: 3,
-    name: "Bardefu Multi-Function Blender & Grinder Blender",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Brand New",
-    category: "Personal",
-  },
-  {
-    id: 4,
-    name: "Hisense Premium Steel Side-by-Side Refrigerator System",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Used",
-    category: "Wholesale",
-  },
-  {
-    id: 6,
-    name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 60,
-    condition: "Brand New",
-    category: "Personal",
-  },
-  {
-    id: 7,
-    name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 60,
-    condition: "Brand New",
-    category: "Personal",
-  },
-  {
-    id: 8,
-    name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 60,
-    condition: "Brand New",
-    category: "Personal",
-  },
-];
 
 const navCategories = [
   "All Products",
@@ -117,6 +21,9 @@ const StarRating = ({
   rating: number;
   reviewCount: number;
 }) => {
+  const safeRating = rating || 0;
+  const safeReviewCount = reviewCount || 0;
+
   return (
     <div className="flex items-center gap-1 mb-2">
       {Array.from({ length: 5 }).map((_, index) => (
@@ -124,16 +31,16 @@ const StarRating = ({
           key={index}
           size={14}
           className={`${
-            index < Math.floor(rating)
+            index < Math.floor(safeRating)
               ? "fill-yellow-400 text-yellow-400"
-              : index < rating
+              : index < safeRating
               ? "fill-yellow-200 text-yellow-400"
               : "text-gray-300"
           }`}
         />
       ))}
       <span className="text-sm text-gray-500 ml-1">
-        ({reviewCount.toLocaleString()})
+        ({safeReviewCount.toLocaleString()})
       </span>
     </div>
   );
@@ -171,15 +78,21 @@ const ProductCard = ({
             isLarge ? "h-48 sm:h-64" : "h-24 md:h-34"
           } flex items-center justify-center overflow-hidden`}
         >
-          <img
-            src={product.images[0]}
-            alt={product.name}
-            className={`${
-              isLarge
-                ? " h-14 sm:h-20 md:h-46 lg:h-52"
-                : " h-14 sm:h-20 md:h-36 lg:h-32"
-            }  group-hover:scale-105 transition-transform duration-300`}
-          />
+          {product.images && product.images.length > 0 ? (
+            <img
+              src={product.images[0]}
+              alt={product.name}
+              className={`${
+                isLarge
+                  ? " h-14 sm:h-20 md:h-46 lg:h-52"
+                  : " h-14 sm:h-20 md:h-36 lg:h-32"
+              }  group-hover:scale-105 transition-transform duration-300`}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full w-full bg-gray-200">
+              <span className="text-gray-400 text-sm">No Image</span>
+            </div>
+          )}
         </div>
 
         {/* Heart Icon */}
@@ -207,12 +120,12 @@ const ProductCard = ({
           },
         }}
         as={`/home/product-details/${product.slug}`} // Clean URL in browser
-        className="block hover:shadow-lg transition-shadow"
+        className=""
       >
         {!isLarge && (
           <StarRating
-            rating={product.rating}
-            reviewCount={product?.reviews?.length}
+            rating={product.rating || 0}
+            reviewCount={product?.reviews?.length || 0}
           />
         )}
 
@@ -232,11 +145,10 @@ const ProductCard = ({
         {isLarge && (
           <>
             <div className="flex items-center">
-              {" "}
               <StarRating
-                rating={product.rating}
-                reviewCount={product.reviews?.length}
-              />{" "}
+                rating={product.rating || 0}
+                reviewCount={product.reviews?.length || 0}
+              />
               <span
                 className={`text-xs pl-1 text-gray-400 font-normal hidden lg:block  `}
               >
@@ -262,28 +174,28 @@ const ProductCard = ({
             >
               {product.inventory?.listing?.type === "instant"
                 ? formatPrice(
-                    product.inventory?.listing?.instant?.salePrice ?? 0
+                    product?.variants?.find((item) => item?.name === "Default")?.options?.[0]?.price ?? 0
                   )
                 : ""}
             </span>
-            {product.inventory?.listing?.type === "instant" && (
+            {/* {product.inventory?.listing?.type === "instant" && (
               <span className="text-xs sm:text-sm text-gray-500 line-through">
                 {formatPrice(product.inventory?.listing?.instant?.price ?? 0)}
               </span>
-            )}
+            )} */}
           </div>
 
           <div className="flex items-center gap-2">
             <span
               className={`text-xs px-2 sm:px-3 py-1 rounded-full ${
-                product.category?.main === "Wholesale"
+                product.category?.main?.name === "Wholesale"
                   ? "bg-purple-100 text-purple-700"
                   : "bg-orange-100 text-orange-700"
               }`}
             >
-            
-              {product?.category?.sub &&
-                product?.category?.sub[product.category.sub?.length - 1]?.name}
+              {product?.category?.sub && product?.category?.sub.length > 0
+                ? product?.category?.sub[product.category.sub?.length - 1]?.name
+                : product?.category?.main?.name || "General"}
             </span>
           </div>
         </div>
@@ -299,27 +211,57 @@ const ProductCard = ({
 };
 
 export default function FeaturedProducts() {
-  const [mainProduct] = useState(products[0]);
-  const otherProducts = products.slice(1);
-
   const fetchAllProducts = async () => {
-    const response = await fetchWithAuth(`${AllProduct}?page=10`);
+    const response = await fetchWithAuth(`${AllProduct}?page=1&limit=12`);
     if (!response.ok) {
-      throw new Error("Failed to fetch user subscriptions");
+      throw new Error("Failed to fetch featured products");
     }
     const data = await response.json();
     return data.products;
   };
 
-  const useAllProducts = useQuery({
-    queryKey: ["useAllProducts"],
+  const {
+    data: allProductData = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["featuredProducts"],
     queryFn: fetchAllProducts,
-    // enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const allProductData = useAllProducts?.data || [];
+  if (isLoading) {
+    return (
+      <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading featured products...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">
+              Failed to load featured products
+            </p>
+            <p className="text-gray-500 text-sm">
+              {error instanceof Error ? error.message : "Something went wrong"}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18 ">
@@ -331,9 +273,9 @@ export default function FeaturedProducts() {
           </h1>
         </div>
         {/* Navigation */}
-        <div className="flex  items-center gap-2 ">
+        <div className="flex items-center gap-2">
           {/* Desktop navigation */}
-          <div className="hidden lg:flex items-center ">
+          <div className="hidden lg:flex items-center">
             {navCategories.map((category, index) => (
               <button
                 key={category}
@@ -348,19 +290,30 @@ export default function FeaturedProducts() {
             ))}
           </div>
 
-          <button className="flex text-xs md:text-sm underline items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
-            Browse All Products
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <Link href="/home/categories">
+            <button className="flex text-xs md:text-sm underline items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
+              Browse All Products
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
         </div>
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {allProductData.map((product: ProductType) => (
-          <ProductCard key={product._id} product={product} />
-        ))}
-      </div>
+      {allProductData.length === 0 ? (
+        <div className="flex items-center justify-center min-h-[300px]">
+          <div className="text-center">
+            <p className="text-gray-600 mb-2">No featured products available</p>
+            <p className="text-gray-500 text-sm">Check back later for new products</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {allProductData.map((product: ProductType) => (
+            <ProductCard key={product._id} product={product} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

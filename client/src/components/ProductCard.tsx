@@ -1,6 +1,8 @@
-import StarRating from '@/app/vendor/dashboard/products/create-product/(component)/StarRating';
-import { Heart } from 'lucide-react';
+import { ProductType } from '@/types/product.type';
+import { Heart, Star } from 'lucide-react';
+import Link from 'next/link';
 import React, { useState } from 'react'
+import { useWishlistStore } from '@/stores/useWishlistStore';
 
 
 interface Product {
@@ -16,14 +18,53 @@ interface Product {
   category: "Wholesale" | "Personal";
   description?: string;
 }
+const StarRating = ({
+  rating,
+  reviewCount,
+}: {
+  rating: number;
+  reviewCount: number;
+}) => {
+  return (
+    <div className="flex items-center gap-1 mb-2">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <Star
+          key={index}
+          size={14}
+          className={`${
+            index < Math.floor(rating)
+              ? "fill-yellow-400 text-yellow-400"
+              : index < rating
+              ? "fill-yellow-200 text-yellow-400"
+              : "text-gray-300"
+          }`}
+        />
+      ))}
+      <span className="text-sm text-gray-500 ml-1">
+        ({reviewCount.toLocaleString()})
+      </span>
+    </div>
+  );
+};
+
 const ProductCard = ({
   product,
   isLarge = false,
 }: {
-  product: Product;
+  product: ProductType;
   isLarge?: boolean;
 }) => {
   const [isLiked, setIsLiked] = useState(false);
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
+  const isWishlisted = isInWishlist(product._id!);
+
+  const handleWishlistToggle = () => {
+    if (isWishlisted) {
+      removeFromWishlist(product._id!);
+    } else {
+      addToWishlist(product);
+    }
+  };
 
   const formatPrice = (price: number) => {
     return `₦ ${price.toLocaleString()}`;
@@ -36,11 +77,11 @@ const ProductCard = ({
       } border border-[#ADADAD4D] relative`}
     >
       {/* Discount Badge */}
-      {product.discount > 0 && (
+      {/* {product.discount > 0 && (
         <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-yellow-400 text-black px-2 py-1 rounded text-xs sm:text-sm font-normal z-10">
           -{product.discount}%
         </div>
-      )}
+      )} */}
 
       <div className="relative mb-3 sm:mb-4">
         <div
@@ -49,7 +90,7 @@ const ProductCard = ({
           } flex items-center justify-center overflow-hidden`}
         >
           <img
-            src={product.image}
+            src={product.images[0]}
             alt={product.name}
             className={`${
               isLarge
@@ -61,24 +102,35 @@ const ProductCard = ({
 
         {/* Heart Icon */}
         <button
-          onClick={() => setIsLiked(!isLiked)}
+          onClick={handleWishlistToggle}
           className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200"
         >
           <Heart
             size={16}
             className={`sm:w-[18px] sm:h-[18px] ${
-              isLiked ? "fill-red-500 text-red-500" : "text-gray-400"
+              isWishlisted ? "fill-red-500 text-red-500" : "text-gray-400"
             } transition-colors duration-200`}
           />
         </button>
       </div>
 
       {/* Product Info */}
-      <div className="space-y-2">
+
+      <Link
+        href={{
+          pathname: "/home/product-details/[slug]",
+          query: {
+            slug: product.slug,
+            productData: JSON.stringify(product), // Pass full product data
+          },
+        }}
+        as={`/home/product-details/${product.slug}`} // Clean URL in browser
+        className=""
+      >
         {!isLarge && (
           <StarRating
             rating={product.rating}
-            maxRating={product.reviewCount}
+            reviewCount={product?.reviews?.length}
           />
         )}
 
@@ -101,7 +153,7 @@ const ProductCard = ({
               {" "}
               <StarRating
                 rating={product.rating}
-                maxRating={product.reviewCount}
+                reviewCount={product.reviews?.length}
               />{" "}
               <span
                 className={`text-xs pl-1 text-gray-400 font-normal hidden lg:block  `}
@@ -126,24 +178,30 @@ const ProductCard = ({
                 isLarge ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
               }`}
             >
-              {formatPrice(product.price)}
+              {product.inventory?.listing?.type === "instant"
+                ? formatPrice(
+                    product?.variants?.find((item) => item?.name === "Default")?.options?.[0]?.price ?? 0
+                  )
+                : ""}
             </span>
-            {product.originalPrice && (
+            {/* {product.inventory?.listing?.type === "instant" && (
               <span className="text-xs sm:text-sm text-gray-500 line-through">
-                {formatPrice(product.originalPrice)}
+                {formatPrice(product.inventory?.listing?.instant?.price ?? 0)}
               </span>
-            )}
+            )} */}
           </div>
 
           <div className="flex items-center gap-2">
             <span
               className={`text-xs px-2 sm:px-3 py-1 rounded-full ${
-                product.category === "Wholesale"
+                product.category?.main?.name === "Wholesale"
                   ? "bg-purple-100 text-purple-700"
                   : "bg-orange-100 text-orange-700"
               }`}
             >
-              {product.category}
+            
+              {product?.category?.sub &&
+                product?.category?.sub[product.category.sub?.length - 1]?.name}
             </span>
           </div>
         </div>
@@ -153,7 +211,7 @@ const ProductCard = ({
             View Details
           </button>
         )}
-      </div>
+      </Link>
     </div>
   );
 };

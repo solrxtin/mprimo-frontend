@@ -37,9 +37,6 @@ const useAllProducts =  useQuery({
   });
 
 
-  console.log("all Products", useAllProducts)
-
-
 
   return (
     <div className="font-roboto " >

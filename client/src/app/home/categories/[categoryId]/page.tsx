@@ -32,6 +32,11 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useRouter } from "next/navigation";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { AllProduct } from "@/utils/config";
+import ProductCard from "@/components/ProductCard";
+import { ProductType } from "@/types/product.type";
 
 const brands = [
   "Apple",
@@ -180,6 +185,46 @@ export default function PhonesTabletsPage() {
   const [selectedGalaxyModel, setSelectedGalaxyModel] = useState("");
   const [wishlistedItems, setWishlistedItems] = useState<string[]>([]);
 
+  const fetchCategories = async () => {
+    const response = await fetchWithAuth(
+      "http://localhost:5800/api/v1/search-categories-slug"
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch categories");
+    }
+    const data = await response.json();
+    return data; // Return the entire response object
+  };
+
+  const useCategories = useQuery({
+    queryKey: ["categories"],
+    queryFn: fetchCategories,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 24 * 60 * 60 * 1000, // 1 day
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+
+  const fetchAllProducts = async () => {
+    const response = await fetchWithAuth(`${AllProduct}?page=10&category=684c08266a4f7d5babe67284`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch user subscriptions");
+    }
+    const data = await response.json();
+    return data.products;
+  };
+
+  const useAllProducts = useQuery({
+    queryKey: ["useAllProducts"],
+    queryFn: fetchAllProducts,
+    // enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+  const allProductData = useAllProducts?.data || [];
+
   const toggleWishlist = (productId: string) => {
     setWishlistedItems((prev) =>
       prev.includes(productId)
@@ -212,9 +257,9 @@ export default function PhonesTabletsPage() {
   };
 
   const SidebarContent = ({ type }: { type: string }) => (
-    <div  className={` space-y-6`}>
+    <div className={` space-y-6`}>
       {/* Categories */}
-      <div >
+      <div>
         <h3 className="font-bold text-sm  lg:text-lg mb-4">CATEGORIES</h3>
         <div className="space-y-2 bg-white">
           <Button
@@ -246,7 +291,6 @@ export default function PhonesTabletsPage() {
           </Button>
         </div>
       </div>
-
       {/* Price Range */}
       <div>
         <h3 className="font-bold text-sm  lg:text-lg mb-4">PRICE RANGE</h3>
@@ -295,7 +339,6 @@ export default function PhonesTabletsPage() {
           </RadioGroup>
         </div>
       </div>
-
       {/* Brands */}
       <div>
         <h3 className="font-bold text-sm  lg:text-lg mb-4">BRANDS</h3>
@@ -340,298 +383,294 @@ export default function PhonesTabletsPage() {
             </div>
           </div>
         </div>
-   {/* Main Content */}
-         <div className="w-[70%] w-full ">
-        <div className="mb-8 grid grid-cols-2">
-          <div className="flex flex-col  gap-4 col-span-1">
-            <div className="flex-1 font-normal hidden md:block">
-              <div className=" flex w-full  bg-white  py-[5px] border border-[#ADADAD] rounded-3xl">
-                <button className=" border-r px-2 ">
-                  <Search className="w-2 h-2 md:w-4 md:h-4" color="black" />
-                </button>
-                <input
-                  placeholder="Search category..."
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                  className="flex-1 border-0 px-2 w-full pl-[2px] outline-0 text-[#121212] placeholder:text-sm"
-                />
+        {/* Main Content */}
+        <div className="w-[70%] w-full ">
+          <div className="mb-8 grid grid-cols-2">
+            <div className="flex flex-col  gap-4 col-span-1">
+              <div className="flex-1 font-normal hidden md:block">
+                <div className=" flex w-full  bg-white  py-[5px] border border-[#ADADAD] rounded-3xl">
+                  <button className=" border-r px-2 ">
+                    <Search className="w-2 h-2 md:w-4 md:h-4" color="black" />
+                  </button>
+                  <input
+                    placeholder="Search category..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="flex-1 border-0 px-2 w-full pl-[2px] outline-0 text-[#121212] placeholder:text-sm"
+                  />
 
-                <button className="py-[4px] font-normal md:py-2 w-[80px] text-xs md:w-[90px] lg:w-[100px] bg-secondary text-white placeholder:text-xs  rounded-4xl mr-1  ">
-                  Search
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sort By */}
-          <div className="col-span-1  w-full flex  justify-end">
-            <div className="flex  items-center space-x-2 ">
-              <span className="text-sm text-gray-600 whitespace-nowrap">
-                Sort by:
-              </span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="min-w-[140px] justify-between"
-                  >
-                    {sortBy}
-                    <ChevronDown className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuItem onClick={() => setSortBy("Most Popular")}>
-                    Most Popular
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortBy("Price: Low to High")}
-                  >
-                    Price: Low to High
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortBy("Price: High to Low")}
-                  >
-                    Price: High to Low
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy("Newest")}>
-                    Newest
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortBy("Customer Rating")}
-                  >
-                    Customer Rating
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSortBy("Type");
-                      setShowGalaxyFilter(true);
-                    }}
-                  >
-                    Type
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy("Condition")}>
-                    Condition
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {/* Galaxy Filter Dropdown */}
-              {showGalaxyFilter && (
-                <div className="mb-4">
-                  <DropdownMenu
-                    open={showGalaxyFilter}
-                    onOpenChange={setShowGalaxyFilter}
-                  >
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="min-w-[200px] justify-between"
-                      >
-                        {selectedGalaxyModel || "Select Galaxy Model"}
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 max-h-64 overflow-y-auto">
-                      <DropdownMenuItem
-                        onClick={() => setSelectedGalaxyModel("")}
-                      >
-                        All
-                      </DropdownMenuItem>
-                      {galaxyModels.map((model) => (
-                        <DropdownMenuItem
-                          key={model}
-                          onClick={() => setSelectedGalaxyModel(model)}
-                        >
-                          {model}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <button className="py-[4px] font-normal md:py-2 w-[80px] text-xs md:w-[90px] lg:w-[100px] bg-secondary text-white placeholder:text-xs  rounded-4xl mr-1  ">
+                    Search
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="flex ">
-       
-          <div className="flex-1">
-
-
-            <div className="flex items-center space-x-4 w-full lg:w-auto">
-              {/* Mobile Filter Button */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="lg:hidden">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filters
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-80">
-                  <div className="py-6">
-                    <SidebarContent  type="mobile"/>
+            {/* Sort By */}
+            <div className="col-span-1  w-full flex  justify-end">
+              <div className="flex  items-center space-x-2 ">
+                <span className="text-sm text-gray-600 whitespace-nowrap">
+                  Sort by:
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="min-w-[140px] justify-between"
+                    >
+                      {sortBy}
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56">
+                    <DropdownMenuItem onClick={() => setSortBy("Most Popular")}>
+                      Most Popular
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortBy("Price: Low to High")}
+                    >
+                      Price: Low to High
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortBy("Price: High to Low")}
+                    >
+                      Price: High to Low
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy("Newest")}>
+                      Newest
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortBy("Customer Rating")}
+                    >
+                      Customer Rating
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSortBy("Type");
+                        setShowGalaxyFilter(true);
+                      }}
+                    >
+                      Type
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy("Condition")}>
+                      Condition
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {/* Galaxy Filter Dropdown */}
+                {showGalaxyFilter && (
+                  <div className="mb-4">
+                    <DropdownMenu
+                      open={showGalaxyFilter}
+                      onOpenChange={setShowGalaxyFilter}
+                    >
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="min-w-[200px] justify-between"
+                        >
+                          {selectedGalaxyModel || "Select Galaxy Model"}
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56 max-h-64 overflow-y-auto">
+                        <DropdownMenuItem
+                          onClick={() => setSelectedGalaxyModel("")}
+                        >
+                          All
+                        </DropdownMenuItem>
+                        {galaxyModels.map((model) => (
+                          <DropdownMenuItem
+                            key={model}
+                            onClick={() => setSelectedGalaxyModel(model)}
+                          >
+                            {model}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-
-            {/* Active Filters and Results Count */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#F1F4F9] rounded-md py-[6px] px-2 mb-3">
-              <div className="flex items-center space-x-2 text-sm">
-                <span className="text-gray-600">Active Filters:</span>
-                <Badge
-                  variant="secondary"
-                  className="bg-gray-200 text-gray-700"
-                >
-                  Household ×
-                </Badge>
-                <Badge
-                  variant="secondary"
-                  className="bg-gray-200 text-gray-700"
-                >
-                  Fashion ×
-                </Badge>
-              </div>
-              <div className="text-sm text-gray-600">
-                <span className="font-bold">37,848</span> Results
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Products Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6 mb-8">
-              {products.map((product) => (
-                <Card
-                  key={product.id}
-                  className="hover:shadow-lg transition-shadow"
-                >
-                  <CardContent className="p-4">
-                    <div className="relative mb-4">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        width={200}
-                        height={200}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      {product.badge && (
-                        <Badge className="absolute top-2 left-2 bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                          {product.badge}
-                        </Badge>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
-                        onClick={() => toggleWishlist(product.id)}
-                      >
-                        <Heart
-                          className={`w-5 h-5 ${
-                            wishlistedItems.includes(product.id)
-                              ? "fill-red-500 text-red-500"
-                              : ""
-                          }`}
-                        />
-                      </Button>
+          <div className="flex ">
+            <div className="flex-1">
+              <div className="flex items-center space-x-4 w-full lg:w-auto">
+                {/* Mobile Filter Button */}
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="lg:hidden">
+                      <Filter className="w-4 h-4 mr-2" />
+                      Filters
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-80">
+                    <div className="py-6">
+                      <SidebarContent type="mobile" />
                     </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
 
-                    <div className="flex items-center mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < product.rating
-                              ? "text-yellow-400 fill-yellow-400"
-                              : "text-gray-300"
-                          }`}
+              {/* Active Filters and Results Count */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#F1F4F9] rounded-md py-[6px] px-2 mb-3">
+                <div className="flex items-center space-x-2 text-sm">
+                  <span className="text-gray-600">Active Filters:</span>
+                  <Badge
+                    variant="secondary"
+                    className="bg-gray-200 text-gray-700"
+                  >
+                    Household ×
+                  </Badge>
+                  <Badge
+                    variant="secondary"
+                    className="bg-gray-200 text-gray-700"
+                  >
+                    Fashion ×
+                  </Badge>
+                </div>
+                <div className="text-sm text-gray-600">
+                  <span className="font-bold">37,848</span> Results
+                </div>
+              </div>
+
+              {/* Products Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6 mb-8">
+                {allProductData.map((product: ProductType) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+
+                {/* {products.map((product) => (
+                  <Card
+                    key={product.id}
+                    className="hover:shadow-lg transition-shadow"
+                  >
+                    <CardContent className="p-4">
+                      <div className="relative mb-4">
+                        <Image
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name}
+                          width={200}
+                          height={200}
+                          className="w-full h-48 object-cover rounded-lg"
                         />
-                      ))}
-                      <span className="text-xs text-gray-500 ml-1">
-                        ({product.reviews})
-                      </span>
-                      <Button
-                        variant="link"
-                        className="text-xs text-blue-600 ml-auto p-0 h-auto"
-                      >
-                        View Ratings
-                      </Button>
-                    </div>
+                        {product.badge && (
+                          <Badge className="absolute top-2 left-2 bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                            {product.badge}
+                          </Badge>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                          onClick={() => toggleWishlist(product.id)}
+                        >
+                          <Heart
+                            className={`w-5 h-5 ${
+                              wishlistedItems.includes(product.id)
+                                ? "fill-red-500 text-red-500"
+                                : ""
+                            }`}
+                          />
+                        </Button>
+                      </div>
 
-                    <h3 className="font-medium text-sm mb-2 line-clamp-2">
-                      {product.name}
-                    </h3>
-                    <p className="text-xs text-gray-500 mb-3">
-                      {product.condition}
-                    </p>
-
-                    <div className="flex items-center space-x-2 mb-4">
-                      <span className="font-bold text-lg">
-                        ₦ {product.price.toLocaleString()}
-                      </span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">
-                          ₦ {product.originalPrice.toLocaleString()}
+                      <div className="flex items-center mb-2">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < product.rating
+                                ? "text-yellow-400 fill-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({product.reviews})
                         </span>
-                      )}
-                    </div>
+                        <Button
+                          variant="link"
+                          className="text-xs text-blue-600 ml-auto p-0 h-auto"
+                        >
+                          View Ratings
+                        </Button>
+                      </div>
 
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-1" />
-                        Add to Cart
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-orange-100 text-orange-800 hover:bg-orange-200"
-                      >
-                        <Heart className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <h3 className="font-medium text-sm mb-2 line-clamp-2">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 mb-3">
+                        {product.condition}
+                      </p>
 
-            {/* Pagination */}
-            <div className="flex justify-center items-center space-x-2 mb-8">
-              <Button variant="ghost" size="sm" disabled>
-                Prev
-              </Button>
-              <Button
-                size="sm"
-                className="bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                1
-              </Button>
-              <Button variant="ghost" size="sm">
-                2
-              </Button>
-              <Button variant="ghost" size="sm">
-                3
-              </Button>
-              <span className="text-gray-500">...</span>
-              <Button variant="ghost" size="sm">
-                100
-              </Button>
-              <Button variant="ghost" size="sm">
-                Next
-              </Button>
+                      <div className="flex items-center space-x-2 mb-4">
+                        <span className="font-bold text-lg">
+                          ₦ {product.price.toLocaleString()}
+                        </span>
+                        {product.originalPrice && (
+                          <span className="text-sm text-gray-500 line-through">
+                            ₦ {product.originalPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-1" />
+                          Add to Cart
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-orange-100 text-orange-800 hover:bg-orange-200"
+                        >
+                          <Heart className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))} */}
+              </div>
+
+              {/* Pagination */}
+              <div className="flex justify-center items-center space-x-2 mb-8">
+                <Button variant="ghost" size="sm" disabled>
+                  Prev
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  1
+                </Button>
+                <Button variant="ghost" size="sm">
+                  2
+                </Button>
+                <Button variant="ghost" size="sm">
+                  3
+                </Button>
+                <span className="text-gray-500">...</span>
+                <Button variant="ghost" size="sm">
+                  100
+                </Button>
+                <Button variant="ghost" size="sm">
+                  Next
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-
-      </div>
-
-        <div>
-
-        </div>
+        <div></div>
       </div>
 
       {/* Main Content */}
-     
     </div>
   );
 }

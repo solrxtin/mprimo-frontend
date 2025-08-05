@@ -51,6 +51,7 @@ export const cartController = {
         });
       } else {
         wishlist.items.push({ productId, priceWhenAdded, addedAt: new Date() });
+        
       }
 
       await wishlist.save();

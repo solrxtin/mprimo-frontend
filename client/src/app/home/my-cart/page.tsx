@@ -18,6 +18,8 @@ import {
   useRemoveFromCart,
   useUpdateQuantity,
 } from "@/stores/cartHook";
+import { useUserStore } from "@/stores/useUserStore";
+import { useAuthModalStore } from "@/stores/useAuthModalStore";
 
 interface CartItem {
   id: string;
@@ -38,6 +40,9 @@ export default function CartPage() {
   const { clearCart } = useClearCart();
   const cartSummary = useCartSummary();
   console.log("cartSummary", cartItem);
+
+  const { user } = useUserStore();
+  const { openModal } = useAuthModalStore();
 
   const [activeTab, setActiveTab] = useState(0);
   const [showBidModal, setShowBidModal] = useState(false);
@@ -91,8 +96,8 @@ export default function CartPage() {
   const router = useRouter();
 
   const manualBreadcrumbs: BreadcrumbItem[] = [
-    { label: "Cart", href: "/my-cart" },
-    { label: "Auction", href: null },
+    { label: "Cart", href: "/home/my-cart" },
+    { label: "Buy Now", href: null },
   ];
   const handleBreadcrumbClick = (
     item: BreadcrumbItem,
@@ -103,15 +108,6 @@ export default function CartPage() {
     if (item.href) {
       router.push(item?.href);
     }
-  };
-
-  const calculateTotal = (items: CartItem[]) => {
-    const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-    const shipping = 50000;
-    const discount = 5000;
-    const tax = 5000;
-    const total = subtotal + shipping - discount + tax;
-    return { subtotal, shipping, discount, tax, total };
   };
 
   const renderTabContent = () => {
@@ -381,42 +377,56 @@ export default function CartPage() {
                     {/* ...mobile layout... */}
                     <div className="md:hidden space-y-3">
                       <div className="flex justify-between items-start">
-                        <div className="flex space-x-3 flex-1">
-                          <div className="relative">
-                            <Image
-                              src={
-                                item?.product?.images[0] || "/placeholder.svg"
-                              }
-                              alt={item?.product?.name}
-                              width={60}
-                              height={60}
-                              className="rounded-lg object-cover"
-                            />
-                            {/* {item.badge && (
+                        <Link
+                          href={{
+                            pathname: "/home/product-details/[slug]",
+                            query: {
+                              slug: item?.product.slug,
+                              productData: JSON.stringify(item?.product), // Pass full product data
+                            },
+                          }}
+                          as={`/home/product-details/${item?.product.slug}`} // Clean URL in browser
+                          className=""
+                        >
+                          {" "}
+                          <div className="flex space-x-3 flex-1">
+                            <div className="relative">
+                              <Image
+                                src={
+                                  item?.product?.images[0] || "/placeholder.svg"
+                                }
+                                alt={item?.product?.name}
+                                width={60}
+                                height={60}
+                                className="rounded-lg object-cover"
+                              />
+                              {/* {item.badge && (
                               <Badge className="absolute -bottom-1 -right-1 text-xs px-1 py-0 h-5 bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
                                 {item.badge}
                               </Badge>
                             )} */}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-sm leading-tight">
-                              {item?.product?.name}
-                            </h3>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {item?.product?.description}
-                            </p>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <span className="font-bold text-sm">
-                                ₦ {item.selectedVariant?.price.toLocaleString()}
-                              </span>
-                              {/* {item.badge && (
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-sm leading-tight">
+                                {item?.product?.name}
+                              </h3>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {item?.product?.description}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-2">
+                                <span className="font-bold text-sm">
+                                  ₦{" "}
+                                  {item.selectedVariant?.price.toLocaleString()}
+                                </span>
+                                {/* {item.badge && (
                                 <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">
                                   {item.badge}
                                 </Badge>
                               )} */}
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        </Link>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -469,26 +479,43 @@ export default function CartPage() {
                         >
                           <X className="w-4 h-4" />
                         </Button>
-                        <div className="relative">
-                          <Image
-                            src={item?.product?.images[0] || "/placeholder.svg"}
-                            alt={item?.product?.name}
-                            width={80}
-                            height={80}
-                            className="rounded-lg object-cover"
-                          />
-                          {/* {item.badge && (
+                        <Link
+                          href={{
+                            pathname: "/home/product-details/[slug]",
+                            query: {
+                              slug: item?.product.slug,
+                              productData: JSON.stringify(item?.product), // Pass full product data
+                            },
+                          }}
+                          as={`/home/product-details/${item?.product.slug}`} // Clean URL in browser
+                          className="flex items-center space-x-3"
+                        >
+                          {" "}
+                          <div className="relative">
+                            <Image
+                              src={
+                                item?.product?.images[0] || "/placeholder.svg"
+                              }
+                              alt={item?.product?.name}
+                              width={80}
+                              height={80}
+                              className="rounded-lg object-cover"
+                            />
+                            {/* {item.badge && (
                             <Badge className="absolute -bottom-1 -right-1 text-xs px-2 py-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
                               {item.badge}
                             </Badge>
                           )} */}
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{item?.product?.name}</h3>
-                          <p className="text-sm text-gray-500">
-                            {item?.product?.description}{" "}
-                          </p>
-                        </div>
+                          </div>
+                          <div>
+                            <h3 className="font-medium">
+                              {item?.product?.name}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {item?.product?.description}{" "}
+                            </p>
+                          </div>
+                        </Link>
                       </div>
                       <div className="col-span-2">
                         <div className="flex items-center space-x-2">
@@ -543,9 +570,9 @@ export default function CartPage() {
 
           {/* Cart Total Sidebar */}
           <div className="lg:col-span-1">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-bold text-lg mb-4">Cart Total</h3>
+            <div>
+              <div className="">
+                <h3 className="font-semibold text-center text-lg mb-4">Cart Total</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span>Sub Total:</span>
@@ -570,20 +597,28 @@ export default function CartPage() {
                   </div>
                 </div>
                 <div className="space-y-3 mt-6">
-                  <Link href="/checkout">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                      Checkout
-                    </Button>
-                  </Link>
+                  <Button
+                    onClick={() => {
+                      if (!user) {
+                        openModal();
+                        return;
+                      } else {
+                        router.push("/home/checkout");
+                      }
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Checkout
+                  </Button>
                   <Button
                     variant="outline"
-                    className="w-full bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
+                    className="w-full bg-secondary text-black border-orange-200 hover:bg-orange-200"
                   >
                     Cancel
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -619,7 +654,7 @@ export default function CartPage() {
                 {cartItem && cartItem?.length} Items
               </span>
             </div>
-            <div className="flex flex-wrap justify-center gap-8  border-gray-200 p-3">
+            {/* <div className="flex flex-wrap justify-center gap-8  border-gray-200 p-3">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -633,7 +668,7 @@ export default function CartPage() {
                   {tab.label}
                 </button>
               ))}
-            </div>
+            </div> */}
             <Button
               variant="link"
               className="text-blue-600 hover:text-blue-800 p-0 h-auto font-normal"
@@ -645,7 +680,9 @@ export default function CartPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="py-4">{renderTabContent()}</div>
+        <div className="py-4">
+          <BuyNow />
+        </div>
 
         {selectedAuctionItem && (
           <BidModal

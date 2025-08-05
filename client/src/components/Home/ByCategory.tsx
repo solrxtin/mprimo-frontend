@@ -1,14 +1,22 @@
 import React, { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ArrowRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { useCategories } from "@/hooks/queries";
+import ICategory from "@/types/category.type";
+import { Category } from "@/types/product.type";
 
 const ShopCategoriesComponent = () => {
-  const [activeCategory, setActiveCategory] = useState("All Kinds");
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const categoryData = useCategories() || [];
+  console.log(
+    "Category Data:",
+    categoryData?.data?.categories?.filter((item: any) => item.level === 1)
+  );
+  const categories =
+    categoryData?.data?.categories?.filter((item: any) => item.level === 1) ||
+    [];
 
   const navCategories = [
     "All Products",
@@ -132,12 +140,8 @@ const ShopCategoriesComponent = () => {
 
         {/* Navigation */}
         <div className="flex  items-center gap-2 ">
-         
-
           {/* Desktop navigation */}
           <div className="hidden lg:flex items-center ">
-           
-
             {navCategories.map((category, index) => (
               <button
                 key={category}
@@ -152,7 +156,10 @@ const ShopCategoriesComponent = () => {
             ))}
           </div>
 
-          <Link href="/home/categories" className="flex text-xs md:text-sm underline items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
+          <Link
+            href="/home/categories"
+            className="flex text-xs md:text-sm underline items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
             Browse All Categories
             <ArrowRight className="w-4 h-4" />
           </Link>
@@ -181,30 +188,36 @@ const ShopCategoriesComponent = () => {
             className="flex transition-transform duration-500 ease-out gap-4 lg:gap-6"
             style={{
               transform: `translateX(-${
-                currentSlide * (100 / Math.min(categoryCards.length, 3))
+                currentSlide * (100 / Math.min(categories.length, 3))
               }%)`,
             }}
           >
-            {categoryCards.map((card) => (
-              <div
-                key={card.id}
-                className="flex-shrink-0 w-full border border-[#ADADAD4D]   md::w-[190px] lg:w-[230px] group cursor-pointer"
-              >
+            {categories.map((card: Category) => (
+              <Link key={card._id} href={`/home/categories/${card.slug}`}>
                 <div
-                  className={`${card.bgColor}  p-2 md:p-4 h-72 flex flex-col justify-between transform transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+                  key={card._id}
+                  className="flex-shrink-0 w-full border border-[#ADADAD4D]   md::w-[190px] lg:w-[230px] group cursor-pointer"
                 >
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="w-32 h-32 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                     <img src="/images/tv.png" alt="" className=""/>
+                  <div
+                    className={` p-2 md:p-4 h-72 flex flex-col justify-between transform transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+                  >
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="w-32 h-32 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                        <img
+                          src={card.image ?? "/images/tv.png"}
+                          alt=""
+                          className=""
+                        />
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-sm md:text-base lg:text-lg font-semibold text-gray-900 group-hover:text-gray-700 transition-colors">
+                        {card.name}
+                      </h3>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <h3 className="text-sm md:text-base lg:text-lg font-semibold text-gray-900 group-hover:text-gray-700 transition-colors">
-                      {card.title}
-                    </h3>
-                  </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
