@@ -79,6 +79,7 @@ const socketService = new SocketService(httpServer);
 
 // Apply CORS middleware before other middleware
 app.use(corsMiddleware);
+// Webhooks must be before express.json middleware
 app.use('/api/v1/webhooks', webhookRoutes);
 app.use(helmet());
 // app.use(
@@ -137,6 +138,12 @@ initializeWalletWatching();
 export {tokenWatcher}
 
 app.use(setPreferencesMiddleware);
+
+// Add debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 app.use("/api/v1/push", pushNotificationRoutes);
 app.use("/api/v1/auth", authRoutes);
