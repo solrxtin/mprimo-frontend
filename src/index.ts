@@ -23,10 +23,22 @@ import auditLogRoutes from "./routes/audit-log.routes";
 import twoFactorRoutes from "./routes/two-factor.routes";
 import walletRoutes from "./routes/wallet.route";
 import adminRoutes from "./routes/admin.routes";
-import dashboardRoutes from "./routes/dashboard.routes"
+import dashboardRoutes from "./routes/dashboard.routes";
 import messageRoutes from "./routes/message.routes";
 import reviewsRoutes from "./routes/review.routes";
 import webhookRoutes from './routes/webhook.routes';
+import vendorRoutes from "./routes/vendor.routes";
+import userRoutes from "./routes/user.route";
+import paymentRoutes from "./routes/payment.routes";
+import subscriptionRoutes from "./routes/subscription.routes";
+import issueRoutes from "./routes/issue.routes";
+import refundRoutes from "./routes/refund.routes";
+import vendorPayoutRoutes from "./routes/vendor-payout.routes";
+import disputeChatRoutes from "./routes/dispute-chat.routes";
+import bannerRoutes from "./routes/banner.routes";
+import checkoutRoutes from "./routes/checkout.routes";
+import verificationRoutes from "./routes/verification.routes";
+import productImportRoutes from "./routes/product-import.routes";
 
 import { requestLogger } from "./middlewares/request-logger.middleware";
 import { errorLogger } from "./middlewares/error-logger.middleware";
@@ -47,7 +59,19 @@ let swaggerDoc = {};
 try {
   swaggerDoc = require("./swagger-output.json");
 } catch (error) {
-  console.warn("Swagger documentation not found - API docs will be unavailable");
+  console.warn("Swagger documentation not found - generating basic docs");
+  swaggerDoc = {
+    swagger: "2.0",
+    info: {
+      title: "Mprimo API",
+      version: "1.0.0",
+      description: "Mprimo e-commerce platform API"
+    },
+    host: "mprimo.railway.app",
+    basePath: "/api/v1",
+    schemes: ["https"],
+    paths: {}
+  };
 }
 
 // Initialize Socket.IO
@@ -128,6 +152,18 @@ app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/reviews", reviewsRoutes);
+app.use("/api/v1/vendor", vendorRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/payments", paymentRoutes);
+app.use("/api/v1/subscriptions", subscriptionRoutes);
+app.use("/api/v1/issues", issueRoutes);
+app.use("/api/v1/refunds", refundRoutes);
+app.use("/api/v1/vendor-payouts", vendorPayoutRoutes);
+app.use("/api/v1/dispute-chat", disputeChatRoutes);
+app.use("/api/v1/banners", bannerRoutes);
+app.use("/api/v1/checkout", checkoutRoutes);
+app.use("/api/v1/verification", verificationRoutes);
+app.use("/api/v1/product-import", productImportRoutes);
 
 app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to see if it's up
 
