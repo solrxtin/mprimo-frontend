@@ -1,10 +1,16 @@
 "use client";
 import React, { useState } from "react";
-import { X, Box, ShoppingBag, MessageSquare, CheckCircle } from "lucide-react";
+import { X, Box, ShoppingBag, MessageSquare, CheckCircle, CreditCard } from "lucide-react";
 import Image from "next/image";
 import { useNotifications } from "@/contexts/NotificationContext";
 
-type NotificationType = "review" | "order" | "product-listed" | "message" | 'offer';
+type NotificationType =
+  | "review"
+  | "order"
+  | "payment"
+  | "product-listed"
+  | "message"
+  | "offer";
 
 interface Notification {
   id: string;
@@ -32,104 +38,19 @@ interface NotificationModalProps {
   anchorEl?: HTMLElement | null;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "product-listed",
-    title: "Product Listed",
-    message: "Your product has been successfully listed",
-    time: "8 min ago",
-    read: true,
-    product: {
-      productId: "xyz",
-      productName: "Bluetooth Speaker",
-      productImage: "/images/bluetooth-speaker.png",
-    },
-  },
-  {
-    id: "2",
-    type: "message",
-    title: "New Message",
-    message: "Sent you a message about your product",
-    time: "17 min ago",
-    read: true,
-    product: {
-      productName: "Fitness Tracker",
-      productImage: "/images/smart-watch.png",
-      productId: "abc",
-    },
-    sender: {
-      name: "Edward Curry",
-      profileImg: "/images/edward-curry.jpg",
-      message:
-        "Hello, I'm interested in your product. Can you provide more details?",
-    },
-  },
-  {
-    id: "3",
-    type: "message",
-    title: "New Message",
-    message: "You have unread messages from Maria Hill",
-    time: "45 min ago",
-    read: false,
-    product: {
-      productId: "def",
-      productName: "Wireless Headphones",
-      productImage: "/images/wireless-headset.png",
-    },
-    sender: {
-      name: "Maria Hill",
-      profileImg: "/images/maria-hill.jpg",
-      message:
-        "Hey, how's it going? I'm interested in your product. Can you provide more details?",
-      comment: "I'm interested in your product. Can you provide more details?",
-    },
-  },
-  {
-    id: "4",
-    type: "review",
-    title: "New Review",
-    message: "Left a 5-star review on your product",
-    time: "1 day ago",
-    read: false,
-    product: {
-      productId: "ghi",
-      productName: "Wireless Headphones",
-      productImage: "/images/wireless-headset.png",
-    },
-    sender: {
-      name: "Bovie Wealth",
-      profileImg: "/images/vendor-image.jpg",
-      comment:
-        "This is a nice bag! the color, the size, the material! They are all super nice. I am definatelly getting more of this cool bag......and yeah, the delivery was swift. ",
-    },
-  },
-  {
-    id: "5",
-    type: "order",
-    title: "New Order",
-    message: "You received a new order #12345",
-    time: "6 hour ago",
-    read: false,
-    product: {
-      productId: "tuv",
-      productName: "Smart Watch",
-      productImage: "/images/smart-watch.png",
-    },
-  },
-];
-
 const NotificationIcon = ({ type }: { type: NotificationType }) => {
   switch (type) {
     case "review":
       return <Box className="text-yellow-500" size={18} />;
+    case "payment":
+      return <CreditCard className="text-yellow-500" size={18} />;
     case "order":
       return <ShoppingBag className="text-blue-500" size={18} />;
     case "product-listed":
       return <Box className="text-green-500" size={18} />;
     case "message":
       return <MessageSquare className="text-purple-500" size={18} />;
-    case 'offer':
+    case "offer":
       return <Box className="text-green-500" size={18} />;
     default:
       return null;
@@ -186,16 +107,17 @@ const NotificationModal = ({
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer"
                 >
                   Mark all as read
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="text-gray-50 hover:text-gray-700 bg-red-500 rounded-full p-0.5 "
+                className="text-gray-50 hover:text-red-500 hover:bg-white bg-red-500 rounded-full p-0.5 cursor-pointer hover:shadow-md hover:border border-gray-200 transition-all duration-200"
+                aria-label="Close"
               >
-                <X size={16} strokeWidth={4}/>
+                <X size={16} strokeWidth={4} />
               </button>
             </div>
           </div>
@@ -210,7 +132,7 @@ const NotificationModal = ({
             <div className="">
               {notifications.map((notification: any) => (
                 <div
-                  key={notification.id}
+                  key={notification._id}
                   className={`p-4 border-b border-b-[#dcdee4] ${
                     notification.read ? "bg-[#fafbff]" : "bg-white"
                   }`}
@@ -244,7 +166,7 @@ const NotificationModal = ({
                             {notification.message}
                           </p>
                           <span className="text-xs text-gray-600">
-                            {notification.time}
+                            {new Date(notification.createdAt).toLocaleString()}
                           </span>
                         </div>
                         {notification?.product?.productName && (

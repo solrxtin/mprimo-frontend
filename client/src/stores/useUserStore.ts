@@ -1,4 +1,4 @@
-import { User } from "@/types/user.type";
+import { IUser } from "@/types/user.type";
 import ICryptoWallet from "@/types/wallet.type";
 import { create } from "zustand";
 import {
@@ -8,8 +8,8 @@ import {
 } from "zustand/middleware";
 
 interface UserState {
-  user: User | null;
-  setUser: (user: User | null) => void;
+  user: IUser | null;
+  setUser: (user: IUser | null) => void;
   deviceId: string | null;
   setDeviceId: (deviceId: any) => void;
   wallet: ICryptoWallet | null;
@@ -36,7 +36,7 @@ export const useUserStore = create<UserState>()(
   persist(
     (set, get) => ({
       user: null,
-      setUser: (user: User | null) => set({ user }),
+      setUser: (user: IUser | null) => set({ user }),
       deviceId: null,
       setDeviceId: (deviceId: string | null) => set({ deviceId }),
       wallet: null,

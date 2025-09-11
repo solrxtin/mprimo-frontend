@@ -18,7 +18,9 @@ type Props = {};
 const Page = (props: Props) => {
   const { vendor } = useProductStore();
   const socket = useSocket();
-  const { data, isFetching: isLoading } = useVendorAnalytics(vendor?._id!);
+  const { data, isLoading } = useVendorAnalytics(vendor?._id!);
+
+  const [vendorCurrency] = useState(data?.dashboard?.salesTotal?.currency || "")
 
   useUserNotifications();
 
@@ -53,9 +55,21 @@ const Page = (props: Props) => {
             </>
           ) : (
             <>
-              <AnalyticsCard title="Sales Total" percentageIncrease={data?.change?.revenue} amount={data?.currentData?.totalRevenue} />
-              <AnalyticsCard title="Total Orders" percentageIncrease={data?.change?.sales} value={data?.currentData?.totalSales} />
-              <AnalyticsCard title="Total Products" percentageIncrease={data?.change?.productCount} value={data?.currentData?.productCount} />
+              <AnalyticsCard 
+                title="Sales Total" 
+                percentageIncrease={data?.dashboard?.salesTotal} 
+                amount={data?.dashboard?.salesTotal?.value}
+                currency={data?.dashboard?.salesTotal?.currency}
+              />
+              <AnalyticsCard 
+                title="Total Orders" 
+                percentageIncrease={data?.dashboard?.totalOrders} 
+                value={data?.dashboard?.totalOrders?.value}
+              />
+              <AnalyticsCard 
+                title="Total Products" 
+                value={data?.dashboard?.totalProducts?.value}
+              />
             </>
           )}
         </div>
@@ -63,7 +77,7 @@ const Page = (props: Props) => {
         {/* Sales Overview & Activity */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
           <div className="col-span-1 xl:col-span-8">
-            {isLoading ? <SalesOverviewSkeleton /> : <SalesOverview currentData={data?.currentData} dailySales={data?.dailySales} />}
+            {isLoading ? <SalesOverviewSkeleton /> : <SalesOverview vendorId={vendor?._id!} />}
           </div>
           <div className="col-span-1 xl:col-span-4">
             {isLoading ? <SalesActivitySkeleton /> : <SalesActivity />}
@@ -71,7 +85,7 @@ const Page = (props: Props) => {
         </div>
 
         {/* Recent Orders */}
-        {isLoading ? <RecentOrdersSkeleton /> : <RecentOrders />}
+        <RecentOrders currency={vendorCurrency} />
       </div>
     </div>
   );

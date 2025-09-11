@@ -15,7 +15,38 @@ const doc = {
   host: process.env.HOST || "localhost:5800",
   basePath: "/api/v1",
   schemes: ["http", "https"],
-  
+  securityDefinitions: {
+    Bearer: {
+      type: "apiKey",
+      name: "Authorization",
+      in: "header",
+      description: "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'"
+    }
+  },
+  definitions: {
+    Advertisement: {
+      type: "object",
+      required: ["title", "description", "targetUrl", "adType", "duration"],
+      properties: {
+        title: { type: "string", maxLength: 100 },
+        description: { type: "string", maxLength: 300 },
+        targetUrl: { type: "string" },
+        adType: { type: "string", enum: ["banner", "featured", "sponsored"] },
+        duration: { type: "number", minimum: 1 }
+      }
+    },
+    Promotion: {
+      type: "object",
+      required: ["title", "description", "startDate", "endDate"],
+      properties: {
+        title: { type: "string", maxLength: 100 },
+        description: { type: "string", maxLength: 500 },
+        status: { type: "string", enum: ["active", "inactive", "expired"] },
+        startDate: { type: "string", format: "date-time" },
+        endDate: { type: "string", format: "date-time" }
+      }
+    }
+  }
 };
 
 const outputFile = "../swagger-output.json";

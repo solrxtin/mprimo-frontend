@@ -1,5 +1,5 @@
 // src/services/product.service.ts
-import { ProductType } from "../types/product.type";
+import { ProductType, ReviewDocument, ReviewType } from "../types/product.type";
 import ProductModel, { ProductDraft } from "../models/product.model";
 import CategoryModel from "../models/category.model";
 import createError from "http-errors";
@@ -10,7 +10,7 @@ import redisService from "./redis.service";
 import { IVendor } from "../types/vendor.type";
 import Notification from "../models/notification.model";
 import { socketService } from "..";
-
+import Vendor from "../models/vendor.model";
 
 function isMongoError(error: any): error is MongoError {
   return error.code !== undefined && typeof error.code === "number";
@@ -194,11 +194,14 @@ export class ProductService {
     id: string,
     vendorId: Types.ObjectId
   ): Promise<ProductType> {
-    const result = await ProductModel.findOneAndDelete({ _id: id, vendorId }).lean();
+    const result = await ProductModel.findOneAndDelete({
+      _id: id,
+      vendorId,
+    }).lean();
     if (!result) {
       throw createError(404, "Product not found");
     }
-    return result;
+    return result as ProductType;
   }
 
   static async updateVariantInventory(
@@ -394,8 +397,9 @@ export class ProductService {
 
   static async addReview(
     id: string,
-    reviewData: ProductType["reviews"][0],
-    userId: Types.ObjectId
+    reviewData: ReviewType,
+    userId: Types.ObjectId,
+    vendorRating?: number
   ): Promise<ProductType> {
     const product = await ProductModel.findByIdAndUpdate(
       id,
@@ -405,6 +409,29 @@ export class ProductService {
 
     if (!product) {
       throw createError(404, "Product not found");
+    }
+
+    if (vendorRating) {
+      const vendor = await Vendor.findById(product.vendorId);
+
+      if (!vendor) {
+        throw createError(404, "Vendor not found");
+      }
+
+      if (!vendor.ratings) {
+        vendor.ratings = { average: 0, count: 0 };
+      }
+
+      const totalScore = vendor.ratings.average * vendor.ratings.count;
+      const newTotalScore = totalScore + vendorRating;
+      const newCount = vendor.ratings.count + 1;
+      const newAverage = newTotalScore / newCount;
+
+      // Update the ratings
+      vendor.ratings.average = newAverage;
+      vendor.ratings.count = newCount;
+
+      await vendor.save();
     }
 
     const order = await Order.findOne({
@@ -428,7 +455,7 @@ export class ProductService {
 
     // Update average rating
     const totalRatings = product.reviews.reduce(
-      (sum, review) => sum + review.rating,
+      (sum, review: ReviewType) => sum + review.rating,
       0
     );
     product.rating = totalRatings / product.reviews.length;
@@ -505,5 +532,74 @@ export class ProductService {
     });
 
     return !!result;
+  }
+
+  static async getBrandsForCategory(filters: {
+    category?: string;
+    subCategory1?: string;
+    subCategory2?: string;
+    subCategory3?: string;
+    subCategory4?: string;
+  }): Promise<string[]> {
+    const categoryFilter: any = {};
+    if (filters.category) categoryFilter["category.main"] = filters.category;
+    if (filters.subCategory1)
+      categoryFilter["category.sub"] = { $in: [filters.subCategory1] };
+    if (filters.subCategory2)
+      categoryFilter["category.sub"] = { $in: [filters.subCategory2] };
+    if (filters.subCategory3)
+      categoryFilter["category.sub"] = { $in: [filters.subCategory3] };
+    if (filters.subCategory4)
+      categoryFilter["category.sub"] = { $in: [filters.subCategory4] };
+
+    const brands = await ProductModel.distinct("brand", categoryFilter);
+    return brands.filter(Boolean).sort();
+  }
+
+  static async getCategoryTree(filters: {
+    category?: string;
+    subCategory1?: string;
+    subCategory2?: string;
+    subCategory3?: string;
+    subCategory4?: string;
+  }): Promise<any[]> {
+    const tree = [];
+
+    if (filters.category) {
+      const mainCategory = await CategoryModel.findById(
+        filters.category
+      ).select("name slug");
+      if (mainCategory) tree.push(mainCategory);
+
+      if (filters.subCategory1) {
+        const sub1 = await CategoryModel.findById(filters.subCategory1).select(
+          "name slug"
+        );
+        if (sub1) tree.push(sub1);
+
+        if (filters.subCategory2) {
+          const sub2 = await CategoryModel.findById(
+            filters.subCategory2
+          ).select("name slug");
+          if (sub2) tree.push(sub2);
+
+          if (filters.subCategory3) {
+            const sub3 = await CategoryModel.findById(
+              filters.subCategory3
+            ).select("name slug");
+            if (sub3) tree.push(sub3);
+
+            if (filters.subCategory4) {
+              const sub4 = await CategoryModel.findById(
+                filters.subCategory4
+              ).select("name slug");
+              if (sub4) tree.push(sub4);
+            }
+          }
+        }
+      }
+    }
+
+    return tree;
   }
 }

@@ -8,6 +8,7 @@ import {
   CreditCard,
   HomeIcon,
   LogOut,
+  Megaphone,
   MessageCircleMore,
   Settings,
   ShoppingBasket,
@@ -33,6 +34,7 @@ const navItems = [
     icon: <MessageCircleMore />,
   },
   { name: "Settings", href: "/vendor/dashboard/settings", icon: <Settings /> },
+  { name: "Advert", href: "/vendor/dashboard/advert", icon: <Megaphone /> },
   { name: "Reviews", href: "/vendor/dashboard/reviews", icon: <StarIcon /> },
   { name: "Wallets", href: "/vendor/dashboard/wallets", icon: <CreditCard /> },
 ];
@@ -62,6 +64,14 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
     setLoadingPath(link);
     // Navigate to the link
     router.push(link);
+
+    // Close sidebar after 2 seconds on mobile
+  if (window.innerWidth < 768 && onClose) {
+    setTimeout(() => {
+      onClose();
+    }, 2000);
+  }
+
   };
 
   // Handle tap on tablet
@@ -97,7 +107,6 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
   }, [pathname]);
 
   const handleLogoutClicked = () => {
-    const { mutate: logoutUser, isPending } = useLogoutUser();
     logoutUser(undefined, {
       onSuccess: (data) => {
         logout();
@@ -129,7 +138,7 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
         </div>
         <h1 className="text-xl font-semibold mb-10 hidden md:block">Mprimo</h1>
         <nav>
-          <ul className="space-y-4">
+          <ul className="space-y-3">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               const isItemLoading = isLoading && loadingPath === item.href;
@@ -192,7 +201,7 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
           </ul>
         </nav>
       </div>
-      <div className="absolute bottom-20 left-5">
+      <div className="absolute bottom-10 left-5">
         <button
           className="flex gap-x-2 items-center cursor-pointer active:bg-gray-200 p-2 rounded transition-colors duration-150"
           onClick={handleLogoutClicked}

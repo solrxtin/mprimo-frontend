@@ -5,12 +5,19 @@ import Order, { Refund } from "../models/order.model";
 import Notification from "../models/notification.model";
 import Product from "../models/product.model";
 import { redisService, socketService } from "..";
-import { ItemType } from "../types/order.type";
+import { IOrder, ItemType } from "../types/order.type";
 import mongoose from "mongoose";
 import AuditLogService from "../services/audit-log.service";
 import { Types } from "mongoose";
 import { OrderService } from "../services/order.service";
 import { strictRateLimit } from "../middlewares/enhanced-rate-limit.middleware";
+import { StripeService } from "../services/stripe.service";
+import { CryptoPaymentService } from "../services/crypto-payment.service";
+import Payment, { VendorPayment } from "../models/payment.model";
+import CryptoWallet from "../models/cryptoWallet.model";
+import { IPayment } from "../types/payment.type";
+
+const cryptoService = new CryptoPaymentService();
 
 const generateEstimatedDelivery = (daysAhead: number = 7): Date => {
   const estimatedDate = new Date();
@@ -23,31 +30,45 @@ export const makeOrder = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { id: productId, vendorId } = req.params;
-  const { items, paymentMethod, totalAmount, address } = req.body;
+  const { validatedItems, pricing, paymentData, address } = req.body;
   const userId = req.userId;
+  let lockKey = "";
+  let currency: any = "";
+  let order: any = null;
+
+  if (paymentData.type === "crypto") {
+    currency = paymentData.token;
+  } else if (paymentData.type === "stripe") {
+    currency = pricing.currency;
+  }
 
   try {
-    const lockAcquired = await redisService.acquireLock(productId, vendorId);
-    if (!lockAcquired) {
+    // Validate required fields
+    if (
+      !validatedItems ||
+      validatedItems.length === 0 ||
+      !pricing ||
+      !address
+    ) {
       return res
-        .status(429)
-        .json({ success: false, message: "Duplicate order in progress" });
-    }
-
-    if (!items || !paymentMethod || !totalAmount) {
-      res
         .status(400)
-        .json({ message: "Missing required fields", success: false });
-      return;
+        .json({ success: false, message: "Missing required data" });
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      res.status(400).json({
+    // Create comprehensive lock key
+    lockKey = `order:${userId}:${validatedItems
+      .map((i: any) => i.variantId)
+      .sort()
+      .join(",")}`;
+    const lockAcquired = await redisService.acquireLock(
+      lockKey,
+      userId.toString()
+    );
+    if (!lockAcquired) {
+      return res.status(429).json({
         success: false,
-        message: "Order must include at least one item",
+        message: "Order already in progress",
       });
-      return;
     }
 
     const user = await User.findById(userId);
@@ -60,41 +81,160 @@ export const makeOrder = async (
     }
 
     const userAddress =
-      address || user?.addresses?.find((address) => address.isDefault);
-    const trackingNumber = generateTrackingNumber();
-    const estimatedDelivery = generateEstimatedDelivery();
+      address || user?.addresses?.find((addr) => addr.isDefault);
+    if (!userAddress) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipping address required",
+      });
+    }
 
-    const orderInfo = {
-      userId,
-      items,
-      payment: {
-        method: paymentMethod,
-        amount: totalAmount,
-        currency: user?.preferences?.currency,
-      },
-      shipping: {
-        address: userAddress,
-        carrier: "fedex",
-        trackingNumber,
-        estimatedDelivery,
-      },
-      totalAmount,
-      trackingNumber,
+    const shipping = {
       address: userAddress,
+      carrier: "fedex",
+      trackingNumber: generateTrackingNumber(),
+      status: "pending",
+      estimatedDelivery: generateEstimatedDelivery(),
     };
 
-    // Save Order
-    const order = await Order.create(orderInfo);
+    // Process payment first
+    if (paymentData.type === "stripe" && paymentData.paymentIntentId) {
+      // Verify Stripe payment using StripeService
+      const intent = await StripeService.retrievePaymentIntent(
+        paymentData.paymentIntentId
+      );
+      if (intent.status !== "succeeded") {
+        return res.status(400).json({
+          success: false,
+          message: "Payment not successful",
+        });
+      }
 
+      let payment = await Payment.findOne({ transactionId: intent.id });
+
+      if (!payment) {
+        payment = await Payment.create({
+          userId,
+          amount: pricing.total,
+          currency,
+          method: "stripe",
+          status: "pending",
+          transactionId: paymentData.paymentIntentId,
+          gateway: "stripe",
+        });
+      }
+
+      order = await Order.create({
+        userId,
+        paymentId: payment._id,
+        shipping,
+        items: validatedItems,
+        status: "processing",
+      });
+    } else if (paymentData.type === "crypto") {
+      // Get user's crypto wallet
+      const userWallet = await cryptoService.getWalletByUserId(userId);
+      if (!userWallet) {
+        return res.status(400).json({
+          success: false,
+          message: "Crypto wallet not found",
+        });
+      }
+
+      // Check user balance
+      const balance = await cryptoService.getBalance(
+        userWallet.address,
+        paymentData.tokenType.toLowerCase() as "usdc" | "usdt"
+      );
+      if (parseFloat(balance) < paymentData.amount) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient ${paymentData.tokenType} balance. Required: ${paymentData.amount}, Available: ${balance}`,
+        });
+      }
+
+      let paymentRecord = await Payment.create({
+        userId,
+        amount: pricing.total,
+        currency,
+        method: "crypto",
+        status: "pending",
+        transactionId: `crypto-${Date.now()}`,
+        gateway: "crypto",
+      });
+
+      order = await Order.create({
+        userId,
+        paymentId: paymentRecord._id,
+        shipping,
+        items: validatedItems,
+        status: "processing",
+      });
+
+      // Get vendor wallet for each item and transfer payment
+      await Promise.all(
+        validatedItems.map(async (item: any) => {
+          const product = await Product.findById(item.productId).populate({
+            path: "vendorId",
+            populate: { path: "userId", select: "_id" },
+          });
+
+          if (!product || !product.vendorId) return null;
+
+          const vendorUserId = (product.vendorId as any).userId;
+          const vendorWallet = await cryptoService.getWalletByUserId(
+            vendorUserId
+          );
+
+          if (!vendorWallet) return null;
+
+          const itemTotal = item.price * item.quantity;
+
+          const transfer = await cryptoService.signTransaction(
+            userId,
+            vendorWallet.address,
+            itemTotal.toString(),
+            paymentData.tokenType.toUpperCase() as "USDC" | "USDT"
+          );
+
+          // Create VendorPayment record
+          await VendorPayment.create({
+            vendorId: (product.vendorId as any)._id,
+            orderId: order._id,
+            tokenType: transfer.tokenType,
+            amount: transfer.amount,
+            transactionHash: transfer.transactionHash,
+            method: "crypto",
+            status: "completed",
+          });
+
+          console.log(`Transaction hash: ${transfer.transactionHash}`);
+        })
+      );
+
+      paymentRecord.status = "completed";
+      await paymentRecord.save();
+    }
+
+    // Track related purchases
     await Promise.all(
-      items.flatMap((item1, i) =>
-        items
+      validatedItems.flatMap((item1: any, i: number) =>
+        validatedItems
           .slice(i + 1)
-          .map(
-            (item2) =>
-              item1 !== item2 && redisService.trackRelatedPurchase(item1, item2)
+          .map((item2: any) =>
+            redisService.trackRelatedPurchase(item1.productId, item2.productId)
           )
       )
+    );
+
+    // Update inventory
+    await Promise.all(
+      validatedItems.map(async (item: any) => {
+        await Product.findOneAndUpdate(
+          { _id: item.productId, "variants.options.sku": item.variantId },
+          { $inc: { "variants.$.options.$.quantity": -item.quantity } }
+        );
+      })
     );
 
     // Notify User
@@ -114,54 +254,91 @@ export const makeOrder = async (
       order,
     });
 
-    // Notify vendors concurrently
+    // Group items by vendor and notify
+    const vendorGroups = new Map();
+    for (const item of validatedItems) {
+      const product = await Product.findById(item.productId).populate({
+        path: "vendorId",
+        populate: { path: "userId", select: "_id" },
+      });
+
+      if (product) {
+        const vendorId = (product.vendorId as any)._id.toString();
+        if (!vendorGroups.has(vendorId)) {
+          vendorGroups.set(vendorId, {
+            vendorUserId: (product.vendorId as any).userId,
+            items: [],
+          });
+        }
+        vendorGroups
+          .get(vendorId)
+          .items.push({ ...item, productName: product.name });
+      }
+    }
+
+    // Notify each vendor
     await Promise.all(
-      items.map(async (item: ItemType) => {
-        await redisService.trackEvent(
-          item.productId.toString(),
-          "purchase",
-          userId,
-          item.price * item.quantity
-        );
+      Array.from(vendorGroups.entries()).map(
+        async ([vendorId, { vendorUserId, items }]) => {
+          // Track events
+          await Promise.all(
+            items.map((item: any) =>
+              redisService.trackEvent(
+                item.productId,
+                "purchase",
+                userId,
+                item.price * item.quantity
+              )
+            )
+          );
 
-        const product = await Product.findById(item.productId)
-          .populate({
-            path: "vendorId name",
-            select: "userId _id",
-            // populate: {
-            //   path: "userId",
-            //   select: "_id",
-            // },
-          })
-          .select("vendorId");
+          // Create notification
+          const notification = await Notification.create({
+            userId: vendorUserId,
+            message: `New order ${order._id} with ${items.length} items`,
+            title: "New Order Received",
+            type: "order",
+            case: "new-order",
+            data: {
+              redirectUrl: `/vendor/orders/${order._id}`,
+              entityId: order._id,
+              entityType: "order",
+            },
+          });
 
-        if (!product) return;
-
-        const vendorId = product.vendorId._id;
-        const vendorUserId = (product.vendorId as any).userId;
-
-        // Create notification
-        const notification = await Notification.create({
-          userId: vendorUserId,
-          message: `Order ${order._id} for ${product.name}`,
-          title: "New Order Received",
-          type: "order",
-          case: "new-order",
-          data: {
-            redirectUrl: `/vendor/orders/${order._id}`,
-            entityId: order._id,
-            entityType: "order",
-          },
-          read: false,
-        });
-
-        // Send socket notification
-        socketService.notifyVendor(vendorId, {
-          event: "saleActivity",
-          notification,
-        });
-      })
+          // Send socket notification
+          socketService.notifyVendor(vendorId, {
+            event: "saleActivity",
+            notification,
+          });
+        }
+      )
     );
+
+    if (paymentData.type === "stripe") {
+      await Promise.all(
+        validatedItems.map(async (item: any) => {
+          const product = await Product.findById(item.productId).populate({
+            path: "vendorId",
+            populate: { path: "userId", select: "_id" },
+          });
+
+          if (!product || !product.vendorId) return null;
+
+          const itemTotal = item.price * item.quantity;
+          // Create VendorPayment record
+          await VendorPayment.create({
+            vendorId: (product.vendorId as any)._id,
+            orderId: order._id,
+            tokenType: currency,
+            amount: paymentData.amount,
+            transactionHash: paymentData.paymentIntentId,
+            method: "stripe",
+            status: "completed",
+          });
+        })
+      );
+    }
 
     await AuditLogService.log(
       "ORDER_CREATED",
@@ -170,9 +347,9 @@ export const makeOrder = async (
       {
         orderId: order._id,
         userId,
-        totalAmount: order.payment.amount,
+        totalAmount: paymentData.amount,
         itemCount: order.items.length,
-        paymentMethod: order.payment?.method,
+        paymentMethod: paymentData.paymentMethod,
       },
       req,
       (order._id as Types.ObjectId).toString()
@@ -195,32 +372,7 @@ export const makeOrder = async (
     );
     next(error);
   } finally {
-    await redisService.releaseLock(productId, vendorId);
-  }
-};
-
-export const getUserOrders = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = req.userId!.toString();
-    const { page = 1, limit = 10, status } = req.query;
-
-    const orders = await OrderService.getOrdersByUser(
-      userId,
-      Number(page),
-      Number(limit),
-      status as string
-    );
-
-    res.json({
-      success: true,
-      ...orders
-    });
-  } catch (error) {
-    next(error);
+    await redisService.releaseLock(lockKey, userId.toString());
   }
 };
 
@@ -363,13 +515,11 @@ export const getOrder = async (
 ) => {
   try {
     const { orderId } = req.params;
-    const userId = req.userId!.toString();
-
-    const order = await OrderService.getOrderById(orderId, userId);
+    const order = await OrderService.getOrderById(orderId);
 
     res.json({
       success: true,
-      order
+      order,
     });
   } catch (error) {
     next(error);
@@ -429,14 +579,14 @@ export const cancelOrder = async (
 
     // Log order cancellation
     await AuditLogService.log(
-      'ORDER_CANCELLED',
-      'order',
-      'warning',
+      "ORDER_CANCELLED",
+      "order",
+      "warning",
       {
         orderId,
         userId: req.userId,
         reason,
-        totalAmount: order.payment.amount
+        totalAmount: (order.paymentId as IPayment)?.amount ?? 0,
       },
       req,
       orderId
@@ -454,13 +604,13 @@ export const cancelOrder = async (
       errorMessage = error.message;
     }
     await AuditLogService.log(
-      'ORDER_CANCELLATION_ERROR',
-      'order',
-      'error',
-      { 
-        error: errorMessage, 
+      "ORDER_CANCELLATION_ERROR",
+      "order",
+      "error",
+      {
+        error: errorMessage,
         orderId: req.params.id,
-        userId: req.userId 
+        userId: req.userId,
       },
       req
     );
@@ -468,25 +618,34 @@ export const cancelOrder = async (
   }
 };
 
-export const refundOrder = async (req: Request, res: Response, next: NextFunction) => {
+export const refundOrder = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { orderId } = req.params;
     const { amount, reason } = req.body;
     const userId = req.userId!.toString();
 
-    const refund = await OrderService.processRefund(orderId, amount, reason, userId);
+    const refund = await OrderService.processRefund(
+      orderId,
+      amount,
+      reason,
+      userId
+    );
 
     // Log refund processing
     await AuditLogService.log(
-      'ORDER_REFUND_PROCESSED',
-      'order',
-      'warning',
+      "ORDER_REFUND_PROCESSED",
+      "order",
+      "warning",
       {
         orderId,
         refundAmount: amount,
         reason,
         processedBy: userId,
-        refundId: refund._id
+        refundId: refund._id,
       },
       req,
       orderId
@@ -494,8 +653,8 @@ export const refundOrder = async (req: Request, res: Response, next: NextFunctio
 
     res.json({
       success: true,
-      message: 'Refund processed successfully',
-      refund
+      message: "Refund processed successfully",
+      refund,
     });
   } catch (error) {
     let errorMessage = "Unknown error";
@@ -503,32 +662,38 @@ export const refundOrder = async (req: Request, res: Response, next: NextFunctio
       errorMessage = error.message;
     }
     await AuditLogService.log(
-      'ORDER_REFUND_ERROR',
-      'order',
-      'error',
-      { 
-        error: errorMessage, 
+      "ORDER_REFUND_ERROR",
+      "order",
+      "error",
+      {
+        error: errorMessage,
         orderId: req.params.id,
-        userId: req.userId 
+        userId: req.userId,
       },
       req
     );
     next(error);
   }
-}
+};
 
-export const getRefunds = async (req: Request, res: Response, next: NextFunction) => {
+export const getRefunds = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const refunds = await Refund.find({}).sort({ createdAt: -1 }).populate('orderId');
+    const refunds = await Refund.find({})
+      .sort({ createdAt: -1 })
+      .populate("orderId");
 
     res.json({
       success: true,
-      refunds
+      refunds,
     });
   } catch (error) {
     next(error);
   }
-}
+};
 
 export const getOrderStats = async (
   req: Request,
@@ -543,18 +708,217 @@ export const getOrderStats = async (
       {
         status: status as string,
         startDate: startDate ? new Date(startDate as string) : undefined,
-        endDate: endDate ? new Date(endDate as string) : undefined
+        endDate: endDate ? new Date(endDate as string) : undefined,
       }
     );
 
     res.json({
       success: true,
-      ...orders
+      ...orders,
     });
-  } catch(error) {
-    next(error)
+  } catch (error) {
+    next(error);
   }
-}
+};
+
+export const getVendorOrderMetrics = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { vendorId } = req.params;
+    const { dateRange = 7 } = req.query;
+
+    const days = Number(dateRange);
+    const currentDate = new Date();
+    const currentPeriodStart = new Date(
+      currentDate.getTime() - days * 24 * 60 * 60 * 1000
+    );
+    const previousPeriodStart = new Date(
+      currentDate.getTime() - 2 * days * 24 * 60 * 60 * 1000
+    );
+
+    const metrics = await Order.aggregate([
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.productId",
+          foreignField: "_id",
+          as: "productDocs",
+        },
+      },
+      {
+        $match: {
+          "productDocs.vendorId": new Types.ObjectId(vendorId),
+        },
+      },
+      {
+        $facet: {
+          currentPeriod: [
+            { $match: { createdAt: { $gte: currentPeriodStart } } },
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                successfulOrders: {
+                  $sum: {
+                    $cond: [
+                      { $in: ["$status", ["delivered", "completed"]] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                failedOrders: {
+                  $sum: {
+                    $cond: [
+                      { $in: ["$status", ["cancelled", "failed", "returned"]] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                pendingOrders: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $in: [
+                          "$status",
+                          ["pending", "processing", "awaiting_payment"],
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+          previousPeriod: [
+            {
+              $match: {
+                createdAt: {
+                  $gte: previousPeriodStart,
+                  $lt: currentPeriodStart,
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                successfulOrders: {
+                  $sum: {
+                    $cond: [
+                      { $in: ["$status", ["delivered", "completed"]] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                failedOrders: {
+                  $sum: {
+                    $cond: [
+                      { $in: ["$status", ["cancelled", "failed", "returned"]] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                pendingOrders: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $in: [
+                          "$status",
+                          ["pending", "processing", "awaiting_payment"],
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const current = metrics[0].currentPeriod[0] || {
+      totalOrders: 0,
+      successfulOrders: 0,
+      failedOrders: 0,
+      pendingOrders: 0,
+    };
+
+    const previous = metrics[0].previousPeriod[0] || {
+      totalOrders: 0,
+      successfulOrders: 0,
+      failedOrders: 0,
+      pendingOrders: 0,
+    };
+
+    const calculateChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Number((((current - previous) / previous) * 100).toFixed(1));
+    };
+
+    const formatNumber = (num: number) => {
+      return new Intl.NumberFormat("en-US").format(num);
+    };
+
+    res.json({
+      success: true,
+      metrics: {
+        totalOrders: {
+          title: "Total Orders",
+          value: formatNumber(current.totalOrders),
+          rawValue: current.totalOrders,
+          change: calculateChange(current.totalOrders, previous.totalOrders),
+          trend: current.totalOrders >= previous.totalOrders ? "up" : "down",
+        },
+        successfulOrders: {
+          title: "Successful Orders",
+          value: formatNumber(current.successfulOrders),
+          rawValue: current.successfulOrders,
+          change: calculateChange(
+            current.successfulOrders,
+            previous.successfulOrders
+          ),
+          trend:
+            current.successfulOrders >= previous.successfulOrders
+              ? "up"
+              : "down",
+        },
+        failedOrders: {
+          title: "Order Refunded",
+          value: formatNumber(current.failedOrders),
+          rawValue: current.failedOrders,
+          change: calculateChange(current.failedOrders, previous.failedOrders),
+          trend: current.failedOrders <= previous.failedOrders ? "up" : "down", // Inverted for failed orders
+        },
+        pendingOrders: {
+          title: "Pending Orders",
+          value: formatNumber(current.pendingOrders),
+          rawValue: current.pendingOrders,
+          change: calculateChange(
+            current.pendingOrders,
+            previous.pendingOrders
+          ),
+          trend:
+            current.pendingOrders >= previous.pendingOrders ? "up" : "down",
+        },
+      },
+      period: `Last ${days} days`,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 const updateOrderStatus = async (
   req: Request,
@@ -571,7 +935,7 @@ const updateOrderStatus = async (
       orderId,
       status,
       shippingStatus,
-      {trackingNumber, carrier}
+      { trackingNumber, carrier }
     );
 
     await AuditLogService.log(
@@ -621,5 +985,3 @@ const updateOrderStatus = async (
 export const OrderController = {
   updateOrderStatus: [strictRateLimit, updateOrderStatus],
 };
-
-

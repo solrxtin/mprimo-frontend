@@ -9,7 +9,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useSocket } from "@/hooks/useSocket";
-import { useQueryClient } from "@tanstack/react-query";
+import { useUserNotifications } from "@/hooks/queries";
 import { INotification } from "@/types/notification.type";
 
 type Activity = {
@@ -20,44 +20,6 @@ type Activity = {
   createdAt?: string;
 };
 import { formatDistanceToNow } from "date-fns";
-
-// const activities: Activity[] = [
-//   {
-//     id: "act-1",
-//     type: "new-order",
-//     title: "New Order Received",
-//     description: "Order #12345 for Wireless Headphones",
-//     time: "10 minutes ago",
-//   },
-//   {
-//     id: "act-2",
-//     type: "payment-received",
-//     title: "Payment Received",
-//     description: "£250.00 payment for Order #12340",
-//     time: "2 hours ago",
-//   },
-//   {
-//     id: "act-3",
-//     type: "low-stock",
-//     title: "Low Stock Alert",
-//     description: "Smart Watch (Black) - Only 3 left",
-//     time: "5 hours ago",
-//   },
-//   {
-//     id: "act-4",
-//     type: "new-order",
-//     title: "New Order Received",
-//     description: "Order #12339 for Bluetooth Speaker",
-//     time: "1 day ago",
-//   },
-//   {
-//     id: "act-5",
-//     type: "payment-received",
-//     title: "Payment Received",
-//     description: "£120.50 payment for Order #12335",
-//     time: "1 day ago",
-//   },
-// ];
 
 const ActivityIcon = ({ type }: { type: INotification["case"] }) => {
   switch (type) {
@@ -89,23 +51,18 @@ const SalesActivity = () => {
     null
   );
   const socket = useSocket();
-
-  const vendorAnalytics = useQueryClient().getQueryData<INotification[] | null>(
-    ["userNotifications"]
-  );
-
-  console.log("Query Data:", vendorAnalytics);
+  const { data: userNotifications } = useUserNotifications();
 
   useEffect(() => {
-    if (!vendorAnalytics) return;
+    if (!userNotifications) return;
     setActivityFeed(
-      vendorAnalytics.filter((notification) =>
+      userNotifications.filter((notification: INotification) =>
         ["low-stock", "payment-received", "new-order"].includes(
           notification.case
         )
       )
     );
-  }, [vendorAnalytics]);
+  }, [userNotifications]);
 
   useEffect(() => {
     if (!socket) return;
@@ -143,30 +100,28 @@ const SalesActivity = () => {
           </button>
         )}
       </div>
-      {activityFeed ? (
-        activityFeed.map((activity) => (
-          <div className="space-y-4 mt-6">
+      {activityFeed && activityFeed.length > 0 ? (
+        <div className="space-y-4 mt-6">
+          {activityFeed.map((activity) => (
             <div
               key={activity._id}
-              className="flex md:flex-col lg:flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0"
+              className="flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0"
             >
-              <div className="flex gap-x-2 items-center">
-                <ActivityIcon type={activity.case} />
-                <div className="">
-                  <h3 className="font-medium text-sm">{activity.title}</h3>
-                  <p className="text-gray-500 text-xs mt-1">
-                    {activity.message}
-                  </p>
-                  <p className="text-gray-400 text-xs whitespace-nowrap">
-                    {formatDistanceToNow(new Date(activity?.createdAt!), {
-                      addSuffix: true,
-                    })}
-                  </p>
-                </div>
+              <ActivityIcon type={activity.case} />
+              <div>
+                <h3 className="font-medium text-sm">{activity.title}</h3>
+                <p className="text-gray-500 text-xs mt-1">
+                  {activity.message}
+                </p>
+                <p className="text-gray-400 text-xs whitespace-nowrap">
+                  {formatDistanceToNow(new Date(activity?.createdAt!), {
+                    addSuffix: true,
+                  })}
+                </p>
               </div>
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       ) : (
         <div className="text-center py-10 px-4 animate-fade-in">
           <p className="text-lg font-semibold text-gray-700 mb-1">

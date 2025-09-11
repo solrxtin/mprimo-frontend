@@ -3,7 +3,7 @@
 import { NextFunction, Request, Response, Router } from "express";
 import { verifyToken } from "../middlewares/verify-token.middleware";
 import { authorizeRole } from "../middlewares/authorize-role.middleware";
-import { getVendorAnalytics } from "../controllers/dashboard.controller";
+import { getVendorDashboard } from "../controllers/dashboard.controller";
 
 
 const router = Router()
@@ -18,7 +18,7 @@ router.get(
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await getVendorAnalytics(req, res, next);
+      await getVendorDashboard(req, res, next);
     } catch (error) {
       next(error);
     }

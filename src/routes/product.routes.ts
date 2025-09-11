@@ -153,6 +153,23 @@ router.post(
   }
 );
 
+router.get(
+  "/:productId/performance",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  (req: Request, res: Response, next: NextFunction) => {
+    authorizeRole(["business", "admin"])(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.getProductPerformance(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // Process checkout
 // router.post(
 //   "/checkout",

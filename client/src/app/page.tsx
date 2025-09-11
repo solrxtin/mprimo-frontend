@@ -6,11 +6,18 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { toastConfigError } from "./config/toast.config";
 import { useProductStore } from "@/stores/useProductStore";
+import { useSocket } from "@/hooks/useSocket";
+import { useEffect } from "react";
 
 
 export default function Home() {
   const { user, logout } = useUserStore();
   const { mutate: logoutUser } = useLogoutUser();
+  const socket = useSocket();
+
+  useEffect(() => {
+    if (socket && user) if (socket) socket.emit("authenticate", {userId: user._id})
+  }, [socket, user])
 
   const handleLogoutClicked = () => {
     logoutUser(undefined, {

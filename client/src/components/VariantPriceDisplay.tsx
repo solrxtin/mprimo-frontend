@@ -39,7 +39,7 @@ const VariantPriceDisplay = ({ product }: Props) => {
 
   // Calculate summary for variants
   const allOptions = product.variants.flatMap((v: Variant) => v.options);
-  const prices = allOptions.map((o: VariantOption) => o.price).filter(p => p > 0);
+  const prices = allOptions.map((o: VariantOption) => o.price).filter((p: any) => p > 0);
   const totalQuantity = allOptions.reduce((sum: number, o: VariantOption) => sum + (o.quantity || 0), 0);
   
   if (prices.length === 0) return <div className="text-xs text-gray-500">No pricing set</div>;

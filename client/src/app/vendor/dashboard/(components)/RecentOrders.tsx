@@ -4,6 +4,8 @@ import { useProductStore } from "@/stores/useProductStore";
 import { ArrowRight, Box, Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { FaEye } from "react-icons/fa";
+import { useRouter } from "next/navigation";
+import RecentOrdersSkeleton from "./skeletons/RecentOrdersSkeleton";
 
 type Item = {
   product: string;
@@ -18,17 +20,13 @@ type Order = {
   createdAt?: string;
 };
 
-const RecentOrders = () => {
-  const [recentOrders, setRecentOrders] = useState<any>([]);
+const RecentOrders = ({ currency }: { currency: string}) => {
   const { vendor } = useProductStore();
   const { data: products } = useVendorProducts(vendor?._id!);
-  const { data } = useVendorOrders(vendor?._id!);
+  const { data, isLoading: isOrderdsLoading } = useVendorOrders(vendor?._id!);
+  const router = useRouter();
 
-  useEffect(() => {
-    if (data) {
-      setRecentOrders(data.orders);
-    }
-  }, [data]);
+  console.log("Data: ", data)
 
   const calculateOrderAmount = (items: Item[]) => {
     items.reduce((acc, item) => {
@@ -36,21 +34,28 @@ const RecentOrders = () => {
     }, 0);
   };
 
+  if (isOrderdsLoading) {
+    return <RecentOrdersSkeleton />
+  }
+
   return (
     <div className="bg-white px-6 py-4 rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-6">
         <h1 className="font-bold text-2xl text-gray-600">Recent Orders</h1>
-        {recentOrders && recentOrders?.length > 0 && (
-          <button className="flex cursor-pointer text-blue-600 text-sm items-center ">
+        {data && data.orders && data.orders?.length > 0 && (
+          <button
+            className="flex cursor-pointer text-blue-600 text-sm items-center disabled:cursor-not-allowed"
+            disabled={isOrderdsLoading}
+          >
             <div>View All</div>
             <ArrowRight size={16} className="ml-1" />
           </button>
         )}
       </div>
 
-      {/* Desktop Table */}
-      {recentOrders && recentOrders?.length > 0 && (
+      {data && data.orders && data.orders?.length > 0 && (
         <>
+          {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full">
               <thead>
@@ -68,9 +73,6 @@ const RecentOrders = () => {
                     Date
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
-                    Address
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
@@ -82,21 +84,36 @@ const RecentOrders = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {recentOrders &&
-                  recentOrders?.map((order: any) => (
+                {data &&
+                  data.orders?.map((order: any) => (
                     <tr key={order?._id}>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {order?.id}
+                        {order?._id.length > 15
+                          ? `${order._id.slice(0, 15)}...`
+                          : order._id}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order?.customer}
+                        {order?.user?.profile?.firstName}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.items && calculateOrderAmount(order.items)}
+                        {order.payment.amount.toLocaleString("en-US", {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        })}{" "}
+                        {currency}
                       </td>
+
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order?.createdAt}
+                        {new Date(order?.createdAt).toLocaleString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
                       </td>
+
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -110,14 +127,20 @@ const RecentOrders = () => {
                         : "bg-red-100 text-red-800"
                     }`}
                         >
-                          {order?.status}
+                          {order?.status.charAt(0).toUpperCase() +
+                            order?.status.slice(1)}
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                         {order?.items.length} item(s)
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <button className="text-blue-600 hover:text-blue-900">
+                        <button
+                          onClick={() =>
+                            router.push(`/vendor/dashboard/orders/${order._id}`)
+                          }
+                          className="text-blue-600 hover:text-blue-900 cursor-pointer"
+                        >
                           <FaEye />
                         </button>
                       </td>
@@ -129,8 +152,8 @@ const RecentOrders = () => {
 
           {/* Mobile Cards */}
           <div className="md:hidden space-y-4">
-            {recentOrders &&
-              recentOrders?.map((order: any) => (
+            {data &&
+              data.orders?.map((order: any) => (
                 <div
                   key={order._id}
                   className="bg-white border rounded-lg p-4 shadow-sm"
@@ -149,12 +172,13 @@ const RecentOrders = () => {
                     : "bg-red-100 text-red-800"
                 }`}
                     >
-                      {order.status}
+                      {order.status.charAt(0).toUpperCase() +
+                        order.status.slice(1)}
                     </span>
                   </div>
                   <div className="text-sm text-gray-500 mb-1">
                     <span className="font-medium">Customer:</span>{" "}
-                    {order.customer}
+                    {order?.user?.profile?.firstName}
                   </div>
                   {order?.amount && (
                     <div className="text-sm text-gray-500 mb-1">
@@ -172,7 +196,12 @@ const RecentOrders = () => {
                     </span>
                   </div>
                   <div className="mt-2 flex justify-end">
-                    <button className="text-blue-600 hover:text-blue-900 flex items-center gap-1 text-sm">
+                    <button
+                      onClick={() =>
+                        router.push(`/vendor/dashboard/orders/${order._id}`)
+                      }
+                      className="text-blue-600 hover:text-blue-900 flex items-center gap-1 text-sm"
+                    >
                       <FaEye size={14} /> View Details
                     </button>
                   </div>
@@ -181,7 +210,7 @@ const RecentOrders = () => {
           </div>
         </>
       )}
-      {recentOrders.length === 0 && (!products || products.length === 0) && (
+      {data && data.orders && data.orders?.length === 0 && (!products || products.length === 0) && (
         <div className="flex flex-col justify-center items-center gap-y-5 h-40">
           <p className="font-semibold text-2xl">No data available</p>
           <p className="text-sm text-gray-500">Add a product to get started</p>
@@ -197,7 +226,7 @@ const RecentOrders = () => {
         </div>
       )}
 
-      {recentOrders.length === 0 && products?.length > 0 && (
+      {data && data.orders && data.orders?.length === 0 && products?.length > 0 && (
         <div className="text-center py-10 px-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 animate-fade-in">
           <Box size={24} className="mx-auto text-gray-500 mb-2" />
           <p className="text-lg font-semibold text-gray-700 mb-1">

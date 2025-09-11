@@ -3,18 +3,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useUserStore } from '@/stores/useUserStore';
 import socketService from '@/utils/socketService';
+import { useUserNotifications } from '@/hooks/queries';
+import { INotification } from '@/types/notification.type';
 
-interface Notification {
-  id: string;
-  title: string;
-  body: string;
-  data?: any;
-  read: boolean;
-  timestamp: Date;
-}
+
 
 interface NotificationContextType {
-  notifications: Notification[];
+  notifications: INotification[];
   unreadCount: number;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
@@ -25,7 +20,8 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<INotification[]>([]);
+  const { data: userNotifications } = useUserNotifications();
   const { user } = useUserStore();
   
   // Use the initialized socket from socketService
@@ -49,30 +45,25 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (!socket) return;
     
-    const handleNotification = (notification: any) => {
+    const handleNotification = (notification: INotification) => {
       // Add new notification to state
       setNotifications(prev => [
-        {
-          id: Math.random().toString(36).substring(2, 9),
-          ...notification,
-          read: false,
-          timestamp: new Date(notification.timestamp || Date.now())
-        },
+        notification,
         ...prev
       ]);
       
       // Show browser notification if permission granted
       if (Notification.permission === 'granted') {
         const browserNotification = new Notification(notification.title, {
-          body: notification.body,
+          body: notification.message,
           icon: '/logo192.png'
         });
         
         // Handle click on notification
         browserNotification.onclick = () => {
           window.focus();
-          if (notification.data?.url) {
-            window.location.href = notification.data.url;
+          if (notification.data?.redirectUrl) {
+            window.location.href = notification.data.redirectUrl;
           }
         };
       }
@@ -85,21 +76,28 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       socket.off('notification', handleNotification);
     };
   }, [socket]);
+
+  // Sync notifications from server on initial load
+  useEffect(() => {
+    if (userNotifications) {
+      setNotifications(userNotifications);
+    }
+  }, [userNotifications]);
   
   // Calculate unread count
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: INotification) => !n.isRead).length;
   
   // Mark notification as read
   const markAsRead = (id: string) => {
     setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
+      prev.map(n => n._id === id ? { ...n, isRead: true } : n)
     );
   };
   
   // Mark all notifications as read
   const markAllAsRead = () => {
     setNotifications(prev => 
-      prev.map(n => ({ ...n, read: true }))
+      prev.map(n => ({ ...n, isRead: true }))
     );
   };
   

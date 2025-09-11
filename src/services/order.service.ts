@@ -1,71 +1,80 @@
 // src/services/order.service.ts
-import Order, { Refund } from '../models/order.model';
-import Product from '../models/product.model';
-import createError from 'http-errors';
-import mongoose from 'mongoose';
+import Order, { Refund } from "../models/order.model";
+import Product from "../models/product.model";
+import createError from "http-errors";
+import mongoose from "mongoose";
 
 export class OrderService {
   static async updateOrderStatus(
     orderId: string,
-    status?: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'refunded',
-    shippingStatus?: 'processing' | 'shipped' | 'delivered' | 'returned',
+    status?:
+      | "pending"
+      | "confirmed"
+      | "shipped"
+      | "delivered"
+      | "cancelled"
+      | "refunded",
+    shippingStatus?: "processing" | "shipped" | "delivered" | "returned",
     options?: { trackingNumber?: string; carrier?: string }
   ) {
     const order = await Order.findById(orderId);
-    
+
     if (!order) {
-      throw createError(404, 'Order not found');
+      throw createError(404, "Order not found");
     }
 
     if (!status || !shippingStatus) {
-      throw createError(400, 'Status and/or shipping status is required');
+      throw createError(400, "Status and/or shipping status is required");
     }
 
     // Update status
     if (status) order.status = status;
     if (shippingStatus) order.shipping.status = shippingStatus;
-    
+
     if (options?.carrier) {
       order.shipping.carrier = options.carrier;
     }
 
     await order.save();
-    
+
     return order.populate([
       {
-        path: 'items.productId',
-        select: 'name images'
+        path: "items.productId",
+        select: "name images",
       },
       {
-        path: 'userId',
-        select: 'profile email'
-      }
+        path: "userId",
+        select: "profile email",
+      },
     ]);
   }
 
-  static async cancelOrder(orderId: string,  reason?: string) {
-    const order = await Order.findById(orderId);
-    
+  static async cancelOrder(orderId: string, reason?: string) {
+    const order = await Order.findById(orderId).populate({
+      path: "paymentId",
+      select: "userId amount currency method status",
+    });
+
     if (!order) {
-      throw createError(404, 'Order not found');
+      throw createError(404, "Order not found");
     }
 
     // Check if order can be cancelled
-    if (order.status === 'delivered' || order.status === 'cancelled') {
-      throw createError(400, 'Order cannot be cancelled');
+    if (order.status === "delivered" || order.status === "cancelled") {
+      throw createError(400, "Order cannot be cancelled");
     }
 
-    order.status = 'cancelled';
+    order.status = "cancelled";
     order.cancellationReason = reason;
     order.cancelledAt = new Date();
 
     await order.save();
-    
+
     return order.populate([
       {
-        path: 'items.productId',
-        select: 'name images'
-      }
+        path: "items.productId",
+        select: "name images",
+      },
     ]);
   }
 
@@ -76,13 +85,16 @@ export class OrderService {
     processedBy: string
   ) {
     const order = await Order.findById(orderId);
-    
+
     if (!order) {
-      throw createError(404, 'Order not found');
+      throw createError(404, "Order not found");
     }
 
-    if (order.status !== 'delivered' && order.status !== 'cancelled') {
-      throw createError(400, 'Order must be delivered or cancelled to process refund');
+    if (order.status !== "delivered" && order.status !== "cancelled") {
+      throw createError(
+        400,
+        "Order must be delivered or cancelled to process refund"
+      );
     }
 
     // Create refund record (you might have a separate Refund model)
@@ -93,15 +105,15 @@ export class OrderService {
       reason,
       processedBy: new mongoose.Types.ObjectId(processedBy),
       processedAt: new Date(),
-      status: 'processed'
+      status: "processed",
     };
 
     // Update order with refund info
-    await Refund.create(refund); 
-    order.status = 'refunded';
-    
+    await Refund.create(refund);
+    order.status = "refunded";
+
     await order.save();
-    
+
     return refund;
   }
 
@@ -114,37 +126,39 @@ export class OrderService {
       deliveredOrders,
       cancelledOrders,
       totalRevenue,
-      monthlyStats
+      monthlyStats,
     ] = await Promise.all([
       Order.countDocuments(),
-      Order.countDocuments({ status: 'pending' }),
-      Order.countDocuments({ status: 'processing' }),
-      Order.countDocuments({ status: 'shipped' }),
-      Order.countDocuments({ status: 'delivered' }),
-      Order.countDocuments({ status: 'cancelled' }),
+      Order.countDocuments({ status: "pending" }),
+      Order.countDocuments({ status: "processing" }),
+      Order.countDocuments({ status: "shipped" }),
+      Order.countDocuments({ status: "delivered" }),
+      Order.countDocuments({ status: "cancelled" }),
       Order.aggregate([
-        { $match: { status: { $in: ['delivered', 'processing'] } } },
-        { $group: { _id: null, total: { $sum: '$payment.amount' } } }
+        { $match: { status: { $in: ["delivered", "processing"] } } },
+        { $group: { _id: null, total: { $sum: "$payment.amount" } } },
       ]),
       Order.aggregate([
         {
           $match: {
-            createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-          }
+            createdAt: {
+              $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+            },
+          },
         },
         {
           $group: {
             _id: {
-              year: { $year: '$createdAt' },
-              month: { $month: '$createdAt' },
-              day: { $dayOfMonth: '$createdAt' }
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+              day: { $dayOfMonth: "$createdAt" },
             },
             count: { $sum: 1 },
-            revenue: { $sum: '$payment.amount' }
-          }
+            revenue: { $sum: "$payment.amount" },
+          },
         },
-        { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
-      ])
+        { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } },
+      ]),
     ]);
 
     return {
@@ -154,11 +168,12 @@ export class OrderService {
         processing: processingOrders,
         shipped: shippedOrders,
         delivered: deliveredOrders,
-        cancelled: cancelledOrders
+        cancelled: cancelledOrders,
       },
       totalRevenue: totalRevenue[0]?.total || 0,
       monthlyStats,
-      conversionRate: totalOrders > 0 ? (deliveredOrders / totalOrders) * 100 : 0
+      conversionRate:
+        totalOrders > 0 ? (deliveredOrders / totalOrders) * 100 : 0,
     };
   }
 
@@ -170,7 +185,7 @@ export class OrderService {
   ) {
     const skip = (page - 1) * limit;
     const query: any = { userId: new mongoose.Types.ObjectId(userId) };
-    
+
     if (status) {
       query.status = status;
     }
@@ -178,17 +193,41 @@ export class OrderService {
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate({
-          path: 'items.productId',
-          select: 'name images inventory reviews ratings vendorId',
+          path: "items.productId",
+          select: "name images inventory reviews ratings vendorId",
           populate: {
-            path: 'vendorId',
-            select: 'businessInfo.name accountType ratings.average'
-          }
+            path: "vendorId",
+            select: "businessInfo.name accountType ratings.average",
+          },
+        })
+        .populate({
+          path: "receivedItems.productId",
+          select: "name images inventory reviews ratings vendorId",
+          populate: {
+            path: "vendorId",
+            select: "businessInfo.name accountType ratings.average",
+          },
+        })
+        .populate({
+          path: "rejectedItems.productId",
+          select: "name images inventory reviews ratings vendorId",
+          populate: {
+            path: "vendorId",
+            select: "businessInfo.name accountType ratings.average",
+          },
+        })
+        .populate({
+          path: "paymentId",
+          select: "amount status currency method transactionId",
+        })
+        .populate({
+          path: "userId",
+          select: "profile",
         })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Order.countDocuments(query)
+      Order.countDocuments(query),
     ]);
 
     return {
@@ -197,34 +236,34 @@ export class OrderService {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     };
   }
 
   static async getOrderById(orderId: string, userId?: string) {
-    const query: any = { _id: orderId };
-    
-    if (userId) {
-      query.userId = new mongoose.Types.ObjectId(userId);
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      throw createError(400, "Invalid order ID format");
     }
 
-    const order = await Order.findOne(query)
+    const order = await Order.findById(orderId)
       .populate({
-        path: 'items.productId',
-        select: 'name images inventory vendorId',
+        path: "items.productId",
+        select: "name images inventory vendorId",
         populate: {
-          path: 'vendorId',
-          select: 'businessInfo.name accountType'
-        }
+          path: "vendorId",
+          select: "businessInfo.name accountType",
+        },
       })
       .populate({
-        path: 'userId',
-        select: 'profile email'
+        path: "userId",
+        select: "profile email",
       });
 
+    console.log(order);
+
     if (!order) {
-      throw createError(404, 'Order not found');
+      throw createError(404, "Order not found");
     }
 
     return order;
@@ -255,21 +294,21 @@ export class OrderService {
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate({
-          path: 'items.productId',
-          select: 'name images vendorId',
+          path: "items.productId",
+          select: "name images vendorId",
           populate: {
-            path: 'vendorId',
-            select: 'businessInfo.name'
-          }
+            path: "vendorId",
+            select: "businessInfo.name",
+          },
         })
         .populate({
-          path: 'userId',
-          select: 'profile email'
+          path: "userId",
+          select: "profile email",
         })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Order.countDocuments(query)
+      Order.countDocuments(query),
     ]);
 
     return {
@@ -278,23 +317,25 @@ export class OrderService {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     };
   }
 
   static async createOrder(orderData: any) {
     const order = await Order.create(orderData);
-    
+
     return order.populate([
       {
-        path: 'items.productId',
-        select: 'name images'
+        path: "items.productId",
+        select: "name images",
       },
       {
-        path: 'userId',
-        select: 'profile email'
-      }
+        path: "userId",
+        select: "profile email",
+      },
     ]);
   }
+
+  // Track order
 }

@@ -8,9 +8,13 @@ import dotenv from "dotenv";
 import { LoggerService } from "./logger.service";
 import { CartItem } from "../types/cart.type";
 import Notification from "../models/notification.model";
-import pushNotificationService, { PushNotificationService } from "./push-notification.service";
+import pushNotificationService, {
+  PushNotificationService,
+} from "./push-notification.service";
 import { socketService } from "..";
 import { ProductType } from "../types/product.type";
+import { SubscriptionService } from "./subscription.service";
+import Vendor from "../models/vendor.model";
 
 dotenv.config();
 const logger = LoggerService.getInstance();
@@ -196,9 +200,38 @@ class RedisService {
       if (eventType === "view") {
         await this.redisClient.zincrby("popular:products", 1, entityId);
       }
+
+      // Track user views
+      if (eventType === "view" && userId) {
+        const userViewKey = `user:views:${userId.toString()}`;
+        const viewData = JSON.stringify({ entityId, timestamp: Date.now() });
+
+        await this.redisClient.lpush(userViewKey, viewData);
+        await this.redisClient.ltrim(userViewKey, 0, 49); // Keep only the 50 most recent views
+      }
     } catch (error) {
       logger.error("Error tracking event:", error);
     }
+  }
+
+  async getRecentUserViews(
+    userId: Types.ObjectId,
+    limit: number
+  ): Promise<Array<{ entityId: string; timestamp: number }>> {
+    const userViewKey = `user:views:${userId.toString()}`;
+    const rawViews = await this.redisClient.lrange(userViewKey, 0, limit - 1);
+
+    return rawViews
+      .map((view) => {
+        try {
+          return JSON.parse(view);
+        } catch {
+          return null;
+        }
+      })
+      .filter(
+        (entry): entry is { entityId: string; timestamp: number } => !!entry
+      );
   }
 
   // ==================== REAL-TIME INVENTORY ====================
@@ -273,7 +306,7 @@ class RedisService {
       } else {
         newItem = {
           productId: new mongoose.Types.ObjectId(productId),
-          variantId: selectedVariant || '',
+          variantId: selectedVariant || "",
           quantity,
           price,
           addedAt: new Date(),
@@ -350,6 +383,118 @@ class RedisService {
   }
 
   async removeFromWishlist(userId: string, productId: string) {
+    if (!this.isConnected) return;
+
+    try {
+      const wishlistKey = `wishlist:${userId}`;
+      await this.redisClient.srem(wishlistKey, productId);
+    } catch (error) {
+      logger.error("Error removing from wishlist:", error);
+    }
+  }
+
+  // ==================== REVIEW HELPFUL ====================
+  async toggleReviewHelpful(
+    productId: string,
+    reviewId: string,
+    userId: string
+  ) {
+    if (!this.isConnected) return null;
+
+    try {
+      const helpfulKey = `review:helpful:${productId}:${reviewId}`;
+      const userHelpfulKey = `user:helpful:${userId}`;
+
+      // Check if user already marked as helpful
+      const isHelpful = await this.redisClient.sismember(helpfulKey, userId);
+
+      if (isHelpful) {
+        // Remove helpful
+        await this.redisClient.srem(helpfulKey, userId);
+        await this.redisClient.srem(userHelpfulKey, `${productId}:${reviewId}`);
+      } else {
+        // Add helpful
+        await this.redisClient.sadd(helpfulKey, userId);
+        await this.redisClient.sadd(userHelpfulKey, `${productId}:${reviewId}`);
+      }
+
+      // Get updated count
+      const helpfulCount = await this.redisClient.scard(helpfulKey);
+
+      // Schedule database sync
+      await this.scheduleReviewSync(productId, reviewId);
+
+      return {
+        helpful: !isHelpful,
+        helpfulCount,
+      };
+    } catch (error) {
+      logger.error("Error toggling review helpful:", error);
+      return null;
+    }
+  }
+
+  async getReviewHelpfulCount(productId: string, reviewId: string) {
+    if (!this.isConnected) return 0;
+
+    try {
+      const helpfulKey = `review:helpful:${productId}:${reviewId}`;
+      return await this.redisClient.scard(helpfulKey);
+    } catch (error) {
+      logger.error("Error getting helpful count:", error);
+      return 0;
+    }
+  }
+
+  async isReviewHelpful(productId: string, reviewId: string, userId: string) {
+    if (!this.isConnected) return false;
+
+    try {
+      const helpfulKey = `review:helpful:${productId}:${reviewId}`;
+      return await this.redisClient.sismember(helpfulKey, userId);
+    } catch (error) {
+      logger.error("Error checking if review is helpful:", error);
+      return false;
+    }
+  }
+
+  private async scheduleReviewSync(productId: string, reviewId: string) {
+    try {
+      const syncKey = `sync:review:${productId}:${reviewId}`;
+      await this.redisClient.set(syncKey, Date.now(), "EX", 300); // 5 minutes
+    } catch (error) {
+      logger.error("Error scheduling review sync:", error);
+    }
+  }
+
+  async syncReviewHelpfulToDatabase() {
+    if (!this.isConnected) return;
+
+    try {
+      const syncKeys = await this.redisClient.keys("sync:review:*");
+
+      for (const syncKey of syncKeys) {
+        const [, , productId, reviewId] = syncKey.split(":");
+        const helpfulKey = `review:helpful:${productId}:${reviewId}`;
+
+        // Get all helpful user IDs from Redis
+        const helpfulUsers = await this.redisClient.smembers(helpfulKey);
+
+        // Update database
+        await ProductModel.findOneAndUpdate(
+          { _id: productId, "reviews._id": reviewId },
+          { $set: { "reviews.$.helpful": helpfulUsers } }
+        );
+
+        // Remove sync key
+        await this.redisClient.del(syncKey);
+      }
+    } catch (error) {
+      logger.error("Error syncing review helpful to database:", error);
+    }
+  }
+
+  async removeFromWishlist2(userId: string, productId: string) {
     if (!this.isConnected) return;
 
     try {
@@ -490,18 +635,29 @@ class RedisService {
   // ==================== RECOMMENDATION ENGINE ====================
   async trackRelatedPurchase(productA: ProductType, productB: ProductType) {
     if (!this.isConnected) return;
-  
+
     try {
       let score = 1;
-  
-      if (productA.category.main.toString() === productB.category.main.toString()) score += 2;
+
+      if (
+        productA.category.main.toString() === productB.category.main.toString()
+      )
+        score += 2;
       if (productA.brand === productB.brand) score += 2;
-  
+
       // Prevent noisy associations
       if (score < 2) return;
-  
-      await this.redisClient.zincrby(`related:${productA._id!.toString()}`, score, productB._id!.toString());
-      await this.redisClient.zincrby(`related:${productB._id!.toString()}`, score, productA._id!.toString());
+
+      await this.redisClient.zincrby(
+        `related:${productA._id!.toString()}`,
+        score,
+        productB._id!.toString()
+      );
+      await this.redisClient.zincrby(
+        `related:${productB._id!.toString()}`,
+        score,
+        productA._id!.toString()
+      );
     } catch (error) {
       logger.error("Error tracking related purchase:", error);
     }
@@ -516,6 +672,34 @@ class RedisService {
       logger.error("Error getting related products:", error);
       return [];
     }
+  }
+
+  async getUserRecommendations(userId: Types.ObjectId, count = 10) {
+    const recentViews = await this.getRecentUserViews(userId, 10);
+    const viewedIds = [...new Set(recentViews.map((view) => view.entityId))];
+
+    const recommendedSet = new Set<string>();
+
+    for (const id of viewedIds) {
+      const related = await this.getRelatedProducts(id, 5);
+      related.forEach((relId) => {
+        if (!viewedIds.includes(relId)) recommendedSet.add(relId);
+      });
+
+      if (recommendedSet.size >= count) break;
+    }
+
+    // Fallback to popular products
+    if (recommendedSet.size < count) {
+      const popular = await this.redisClient.zrevrange(
+        "popular:products",
+        0,
+        count - 1
+      );
+      popular.forEach((id) => recommendedSet.add(id));
+    }
+
+    return Array.from(recommendedSet).slice(0, count);
   }
 
   // ==================== SESSION MANAGEMENT ====================
@@ -605,6 +789,16 @@ class RedisService {
     scheduleJob("* * * * *", async () => {
       await this.startAuction();
       await this.endAuction();
+    });
+
+    // Sync review helpful data every 2 minutes
+    scheduleJob("*/2 * * * *", async () => {
+      await this.syncReviewHelpfulToDatabase();
+    });
+
+    // Daily subscription tasks at 9 AM
+    scheduleJob("0 9 * * *", async () => {
+      await this.processSubscriptionTasks();
     });
   }
 
@@ -781,20 +975,27 @@ class RedisService {
           productsToExpire.map(async (product) => {
             const auction = product.inventory.listing.auction;
 
-            if (auction && auction.isExpired) {
+            if (auction && !auction.isExpired) {
               auction.isExpired = true;
             }
 
             // Notify winner (if any)
             const winner = product.bids.find((bid) => bid.isWinning);
-            if (winner) {
+            if (
+              winner &&
+              auction?.reservePrice &&
+              winner.currentAmount > auction.reservePrice
+            ) {
+              auction.reservePriceMet = true;
+              auction.finalPrice = winner.currentAmount;
+
               const [notification] = await Notification.create([
                 {
                   userId: winner.userId,
                   type: "bid",
                   case: "win",
                   title: `You won the auction for ${product.name}`,
-                  message: `Your bid of $${winner.currentAmount} won the auction.`,
+                  message: `Your bid of ${winner.currentAmount} won the auction.`,
                   data: {
                     redirectUrl: `/product/${product._id}`,
                     entityId: product._id,
@@ -809,6 +1010,31 @@ class RedisService {
                 "bid",
                 notification
               );
+            } else if (
+              winner &&
+              auction?.reservePrice &&
+              winner.currentAmount < auction.reservePrice
+            ) {
+              auction.reservePriceMet = false;
+              const vendorUserId = await Vendor.findById(
+                product.vendorId
+              ).select("userId");
+
+              await Notification.create([
+                {
+                  userId: vendorUserId,
+                  type: "bid",
+                  case: "reservePriceNotMet",
+                  title: `Reserve price not met for ${product.name}`,
+                  message: `The reserve price of ${auction.reservePrice} was not met by ${winner.userId} and auction closed. You can reauction`,
+                  data: {
+                    redirectUrl: `/product/${product._id}`,
+                    entityId: product._id,
+                    entityType: "product",
+                  },
+                  isRead: false,
+                },
+              ]);
             }
 
             await product.save();
@@ -819,7 +1045,7 @@ class RedisService {
               {
                 productId: product._id,
                 expiredAt: now,
-                winner: winner?.userId ?? null,
+                winner: auction?.reservePriceMet ? winner?.userId : null,
               }
             );
 
@@ -829,6 +1055,20 @@ class RedisService {
       }
     } catch (error) {
       logger.error("Error expiring auctions:", error);
+    }
+  }
+
+  private async processSubscriptionTasks() {
+    try {
+      // Send trial reminders
+      const remindersCount = await SubscriptionService.sendTrialReminders();
+      logger.info(`Sent ${remindersCount} trial reminders`);
+
+      // Process expired trials
+      const expiredCount = await SubscriptionService.processExpiredTrials();
+      logger.info(`Processed ${expiredCount} expired trials`);
+    } catch (error) {
+      logger.error("Error processing subscription tasks:", error);
     }
   }
 }

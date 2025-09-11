@@ -36,7 +36,7 @@ function containsSensitiveInfo(message: string): boolean {
 export class SocketService {
   private io: SocketServer;
   vendorSockets = new Map();
-  userSockets = new Map();
+  userSockets = new Map<string, Set<string>>();
 
   constructor(server: HttpServer) {
     this.io = new SocketServer(server, {
@@ -54,6 +54,14 @@ export class SocketService {
     this.io.on("connection", (socket) => {
       console.log(`Client connected: ${socket.id}`);
 
+      socket.on("authenticate", ({ userId }) => {
+        const uid = userId.toString();
+        if (!this.userSockets.has(uid)) {
+          this.userSockets.set(uid, new Set());
+        }
+        this.userSockets.get(uid)?.add(socket.id);
+      });
+
       // Handle joining a room
       socket.on("join_room", (room: string) => {
         socket.join(room);
@@ -66,32 +74,54 @@ export class SocketService {
         console.log(`User ${socket.id} left room: ${room}`);
       });
 
+      socket.on("join-chat", async(payload) => {
+        const {userId, chatId, product } = payload;
+        let newChat =null;
+        const isReceiverOnline = this.userSockets.has(product.vendorId.userId.toString());
+        if (!chatId ) {
+          newChat = await Chat.create({
+            participants: [
+              userId,
+              product.vendorId.userId,
+            ],
+            productId: product._id,
+            archivedBy: new Map(),
+          })
+          socket.join(newChat._id.toString());
+          socket.emit("chat-joined", { chatId: newChat._id });
+          socket.emit("isOnline", isReceiverOnline)
+        } else {
+          socket.join(chatId);
+          socket.emit("chat-joined", { chatId });
+          socket.emit("isOnline", isReceiverOnline)
+        }
+      })
+
       // Handle custom messages
       socket.on("send_message", async (payload) => {
-        const { senderId, receiverId, message, chatId, productId } = payload;
-        
+        const { senderId, receiverId, message, chatId } = payload;
+      
         try {
-          if (!senderId || !receiverId || !message || !productId) {
-            this.emitToRoom(productId, "error", { message: "Missing required fields" });
+          if (!chatId) return
+          if (!senderId || !receiverId || !message) {
+            this.emitToRoom(chatId, "error", { message: "Missing required fields" });
             return;
           }
+      
           const isFlagged = containsSensitiveInfo(message);
           const flaggedReason = isFlagged ? "Contains sensitive information" : "";
-          const _id = new mongoose.Types.ObjectId();
-          const isChatArchivedByReceiver = await Chat.exists({
-            _id: chatId,
-            [`archivedBy.${receiverId.toString()}`]: true
-          });
-          const isReceiverOnline = this.userSockets.has(receiverId);
+      
+          const chat = await Chat.findById(chatId);
+          const isChatArchivedByReceiver = chat?.archivedBy?.get(receiverId.toString()) === true;
+          const isReceiverOnline = this.userSockets.has(receiverId.toString());
           const io = this.getIO();
-
+      
           if (isFlagged) {
             console.log(`Message flagged: ${message}`);
-            this.emitToRoom(chatId, "messageFlagged", {flaggedReason});
+            this.emitToRoom(chatId, "messageFlagged", { flaggedReason });
           }
-
-          let newMessage = {
-            _id,
+      
+          const newMessage = {
             chatId,
             senderId,
             receiverId,
@@ -100,42 +130,10 @@ export class SocketService {
             flaggedReason,
             read: false,
           };
-
-          if (chatId) {
-            console.log(`Sending message in existing chat: ${chatId}`);
-
-            if (!isFlagged) {
-              this.emitToRoom(chatId, "message", newMessage);
-            }
-
-            const persistedMessage = await Message.create(newMessage);
-            this.emitToRoom(chatId, "persisted-message", persistedMessage);
-          } else {
-            console.log(`Creating new chat for product: ${productId}`);
-            const chatId = new mongoose.Types.ObjectId();
-            
-            newMessage = {
-              ...newMessage,
-              chatId,
-            };
-
-            this.emitToRoom(chatId.toString(), "message", newMessage);
-
-            const newChat = {
-              _id: chatId,
-              participants: [
-                senderId,
-                receiverId,
-              ],
-              productId,
-              archivedBy: new Map(),
-            };
-
-            await Chat.create(newChat);
-            const persistedMessage = await Message.create(newMessage);
-            this.emitToRoom(chatId.toString(), "persisted-message", persistedMessage);
-          }
-
+      
+          const persistedMessage = await Message.create(newMessage);
+          this.emitToRoom(chatId, "persisted-message", persistedMessage);
+      
           if (!isReceiverOnline && !isChatArchivedByReceiver) {
             console.log(`Receiver ${receiverId} is offline, sending notification`);
             const notification: INotification = {
@@ -145,7 +143,7 @@ export class SocketService {
               type: "chat",
               case: "new_message",
               data: {
-                redirectUrl: `/chat/${chatId}`, // Correct URL to redirect to chat
+                redirectUrl: `/chat/${chatId}`,
                 entityId: chatId,
                 entityType: "chat",
               },
@@ -167,9 +165,9 @@ export class SocketService {
         );
       });
 
-      socket.on("registerUser", (userId: string) => {
-        this.userSockets.set(userId, socket.id); // Map User ID to socket ID
-      });
+      // socket.on("registerUser", (userId: string) => {
+      //   this.userSockets.set(userId, socket.id); // Map User ID to socket ID
+      // });
 
       socket.onAny((event, ...args) => {
         console.log("Received event:", event, args);
@@ -185,11 +183,12 @@ export class SocketService {
           }
         });
         // Remove user from map on disconnect
-        this.userSockets.forEach((value, key) => {
-          if (value === socket.id) {
-            this.userSockets.delete(key);
+        for (const [uid, socketSet] of this.userSockets.entries()) {
+          socketSet.delete(socket.id);
+          if (socketSet.size === 0) {
+            this.userSockets.delete(uid); // optional: treat user as offline
           }
-        });
+        }      
       });
     });
   }
@@ -225,21 +224,26 @@ export class SocketService {
     userId: string,
     { event, notification }: { event: string; notification: INotification }
   ): void {
-    const userSocketId = this.userSockets.get(userId);
-    if (userSocketId) {
-      this.io.to(userSocketId).emit(event, { notification });
+    const socketIdSet = this.userSockets.get(userId);
+  
+    if (socketIdSet && socketIdSet.size > 0) {
+      const socketIds = Array.from(socketIdSet); // Convert Set<string> to string[]
+      this.io.to(socketIds).emit(event, { notification });
     } else {
       console.log(`User ${userId} is not online.`);
     }
   }
+  
 
   public notifyUserForOrder(
     userId: any,
     { event, message, order }: { event: string; message: string; order: IOrder }
   ): void {
-    const userSocketId = this.userSockets.get(userId);
-    if (userSocketId) {
-      this.io.to(userSocketId).emit(event, { message, order });
+    const socketIdSet = this.userSockets.get(userId);
+
+    if (socketIdSet && socketIdSet.size > 0) {
+      const socketIds = Array.from(socketIdSet); // Convert Set<string> to string[]
+      this.io.to(socketIds).emit(event, { message, order });
     } else {
       console.log(`User ${userId} is not online.`);
     }

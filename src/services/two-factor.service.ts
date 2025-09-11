@@ -8,7 +8,7 @@ export class TwoFactorService {
   // Generate secret and QR code
   static async generateSecret(userId: Types.ObjectId, email: string) {
     const secret = speakeasy.generateSecret({
-      name: `Emprimo:${email}`,
+      name: `Mprimo:${email}`,
       length: 20,
     });
 

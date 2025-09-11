@@ -3,7 +3,7 @@ import helmet from "helmet";
 import { createServer } from "http";
 import cookieParser from "cookie-parser";
 import mongoSanitize from "express-mongo-sanitize";
-import xss from "xss-clean";
+// import xss from "xss-clean";
 import passport from "passport";
 import session from "express-session";
 
@@ -25,6 +25,9 @@ import walletRoutes from "./routes/wallet.route";
 import adminRoutes from "./routes/admin.routes";
 import dashboardRoutes from "./routes/dashboard.routes"
 import messageRoutes from "./routes/message.routes";
+import reviewsRoutes from "./routes/review.routes";
+import webhookRoutes from './routes/webhook.routes';
+
 import { requestLogger } from "./middlewares/request-logger.middleware";
 import { errorLogger } from "./middlewares/error-logger.middleware";
 import { LoggerService } from "./services/logger.service";
@@ -40,13 +43,19 @@ const app = express();
 const httpServer = createServer(app);
 
 const logger = LoggerService.getInstance();
-const swaggerDoc = require("./swagger-output.json");
+let swaggerDoc = {};
+try {
+  swaggerDoc = require("./swagger-output.json");
+} catch (error) {
+  console.warn("Swagger documentation not found - API docs will be unavailable");
+}
 
 // Initialize Socket.IO
 const socketService = new SocketService(httpServer);
 
 // Apply CORS middleware before other middleware
 app.use(corsMiddleware);
+app.use('/api/v1/webhooks', webhookRoutes);
 app.use(helmet());
 // app.use(
 //   mongoSanitize({
@@ -56,7 +65,7 @@ app.use(helmet());
 //     replaceWith: "_", // Prevents modifying req.query directly
 //   })
 // );//Sanitize NoSQL Injection
-// app.use(xss()); //XSS protection
+// app.use(xss()); //XSS protection - package not installed
 // app.set('trust proxy', true); // tells Express to trust x-forwarded-for from your proxy (not the open internet)
 // Other middleware and routes
 app.use(express.json({ limit: "10mb" }));
@@ -118,8 +127,13 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/messages", messageRoutes);
+app.use("/api/v1/reviews", reviewsRoutes);
 
 app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to see if it's up
+
+// Debug routes
+app.get("/api/v1/test", (req, res) => {res.json({message: "API v1 working"})});
+app.get("/api/v1/products/test", (req, res) => {res.json({message: "Products route working"})});
 
 // Serve Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));

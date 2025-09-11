@@ -130,11 +130,15 @@ const productSchema = new mongoose.Schema<ProductType>(
           },
           reservePrice: {
             type: Number,
+
             required: function (this: any) {
               return this.inventory?.listing?.type === "auction";
             },
           },
           buyNowPrice: {
+            type: Number,
+          },
+          finalPrice: {
             type: Number,
           },
           startTime: {
@@ -170,6 +174,18 @@ const productSchema = new mongoose.Schema<ProductType>(
           isExpired: {
             type: Boolean,
             default: false
+          },
+          reservePriceMet: {
+            type: Boolean,
+            default: false
+          },
+          relistCount: {
+            type: Number,
+            default: 0
+          },
+          priorityScore: {
+            type: Number,
+            default: 100
           }
         },
       },
@@ -286,6 +302,21 @@ const productSchema = new mongoose.Schema<ProductType>(
           required: true,
           trim: true,
           maxlength: [500, "Comment cannot exceed 500 characters"],
+        },
+        helpful: [{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }],
+        vendorResponse: {
+          comment: {
+            type: String,
+            trim: true,
+            maxlength: [500, "Vendor response cannot exceed 400 characters"],
+          },
+          createdAt: {
+            type: Date,
+            default: Date.now,
+          },
         },
         createdAt: {
           type: Date,
@@ -654,9 +685,31 @@ productSchema.pre("save", async function (next) {
 
 productSchema.post("save", async function (doc, next) {
   try {
+    // Update product count for the vendor
     await Vendor.findByIdAndUpdate(doc.vendorId, {
       $inc: { "analytics.productCount": 1 },
     });
+
+    // ⭐ If product has reviews, update vendor ratings
+    if (doc.reviews && doc.reviews.length > 0) {
+      const ratings = doc.reviews.map((review: any) => review.rating);
+      const ratingSum = ratings.reduce((acc, r) => acc + r, 0);
+      const average = parseFloat((ratingSum / ratings.length).toFixed(2));
+      const count = ratings.length;
+
+      await Vendor.findByIdAndUpdate(
+        doc.vendorId,
+        {
+          $set: {
+            "ratings.average": average,
+            "ratings.count": count,
+            "analytics.averageRating": average
+          }
+        },
+        { new: true }
+      );
+    }
+
     next();
   } catch (err) {
     next(err as CallbackError);

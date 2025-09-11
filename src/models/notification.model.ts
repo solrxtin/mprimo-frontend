@@ -6,7 +6,6 @@ const notificationSchema = new mongoose.Schema<INotification>(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     type: {
       type: String,
-      enum: ["order", "payment", "promotion", "system", "chat", "offer", "bid"],
     },
     case: String,
     title: String,
@@ -16,7 +15,10 @@ const notificationSchema = new mongoose.Schema<INotification>(
       entityId: mongoose.Schema.Types.ObjectId,
       entityType: String,
     },
-    isRead: Boolean,
+    isRead: {
+      type: Boolean,
+      default: false
+    },
   },
   { timestamps: true }
 );

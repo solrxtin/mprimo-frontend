@@ -20,80 +20,13 @@ import { strictRateLimit, moderateRateLimit } from "../middlewares/rate-limit.mi
 import User from "../models/user.model";
 import { IUser } from "../types/user.type";
 
+
 const router = Router();
-/**
- * @swagger
- * /signup:
- *   post:
- *     summary: User Signup
- *     description: Creates a new user account and sends a verification email.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *               - firstName
- *               - lastName
- *               - phoneNumber
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: "user@example.com"
- *               password:
- *                 type: string
- *                 format: password
- *                 example: "StrongPassword123!"
- *               firstName:
- *                 type: string
- *                 example: "John"
- *               lastName:
- *                 type: string
- *                 example: "Doe"
- *               phoneNumber:
- *                 type: string
- *                 example: "+1234567890"
- *     responses:
- *       201:
- *         description: User created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "User created successfully"
- *                 user:
- *                   type: object
- *                   properties:
- *                     email:
- *                       type: string
- *                     profile:
- *                       type: object
- *                       properties:
- *                         firstName:
- *                           type: string
- *                         lastName:
- *                           type: string
- *                         phoneNumber:
- *                           type: string
- *       400:
- *         description: Missing required fields
- *       409:
- *         description: Email already registered
- *       500:
- *         description: Internal server error
- */
 
 // 3 Registerations per IP per day
 router.post(
   "/register",
-  // rateLimitMiddleware.register,
+  strictRateLimit,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await signup(req, res);
@@ -269,15 +202,18 @@ router.get(
   }
 );
 
-router.get("/auth/apple", passport.authenticate("apple"));
+// Apple Sign In with identity token
+// router.post("/apple", appleLogin);
 
-router.get(
-  "/auth/apple/callback",
-  passport.authenticate("apple", { failureRedirect: "/login" }),
-  (req, res) => {
-    res.redirect("/");
-  }
-);
+// router.get("/auth/apple", passport.authenticate("apple"));
+
+// router.get(
+//   "/auth/apple/callback",
+//   passport.authenticate("apple", { failureRedirect: "/login" }),
+//   (req, res) => {
+//     res.redirect("/");
+//   }
+// );
 
 
 export default router;

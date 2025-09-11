@@ -17,6 +17,10 @@ const orderSchema = new mongoose.Schema<IOrder>(
           ref: "Product",
           required: [true, "Product ID is required"],
         },
+        variantId: {
+          type: String,
+          required: [true, "Variant ID (SKU) is required"],
+        },
         quantity: {
           type: Number,
           required: [true, "Quantity is required"],
@@ -30,56 +34,10 @@ const orderSchema = new mongoose.Schema<IOrder>(
         },
       },
     ],
-    payment: {
-      method: {
-        type: String,
-        required: [true, "Payment method is required"],
-        enum: {
-          values: ["credit_card", "paypal", "bank_transfer", "crypto"],
-          message: "Invalid payment method",
-        },
-      },
-      status: {
-        type: String,
-        enum: {
-          values: ["pending", "completed", "failed", "refunded"],
-          message: "Invalid payment status",
-        },
-        default: "pending",
-      },
-      transactionId: {
-        type: String,
-        required: [
-          function (this: IOrder) {
-            return this.payment?.status === "completed";
-          },
-          "Transaction ID is required for completed payments",
-        ],
-      },
-      amount: {
-        type: Number,
-        required: [true, "Payment amount is required"],
-        min: [0.01, "Amount must be at least 0.01"],
-        validate: {
-          validator: function (this: IOrder, value: number) {
-            if (this.items) {
-              const calculatedTotal = this.items.reduce(
-                (sum, item) => sum + item.price * item.quantity,
-                0
-              );
-              return Math.abs(value - calculatedTotal) < 0.01;
-            }
-            return true;
-          },
-          message: "Payment amount must match order total",
-        },
-      },
-      currency: {
-        type: String,
-        required: [true, "Currency is required"],
-        uppercase: true,
-        default: "USD",
-      },
+    paymentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+      required: [true, "Payment ID is required"],
     },
     shipping: {
       address: {
@@ -149,7 +107,16 @@ const orderSchema = new mongoose.Schema<IOrder>(
       status: {
         type: String,
         enum: {
-          values: ["pending", "processing", "shipped", "delivered", "returned"],
+          values: [
+            "pending",
+            "paid",
+            "shippedToWarehouse",
+            "confirmed",
+            "shipped",
+            "delivered",
+            "cancelled",
+            "refunded",
+          ],
           message: "Invalid shipping status",
         },
         default: "pending",
@@ -166,6 +133,14 @@ const orderSchema = new mongoose.Schema<IOrder>(
           message: "Estimated delivery must be in the future",
         },
       },
+      type: {
+        type: String,
+        enum: {
+          values: ["normal", "go-fast", "go-faster"],
+          message: "Invalid shipping type",
+        },
+        default: "normal",
+        }
     },
     status: {
       type: String,
@@ -174,13 +149,13 @@ const orderSchema = new mongoose.Schema<IOrder>(
         message: "Invalid order status",
       },
       default: "pending",
-    },   
+    },
     cancellationReason: {
       type: String,
       trim: true,
       maxlength: [200, "Cancellation reason cannot exceed 200 characters"],
     },
-    
+
     cancelledAt: {
       type: Date,
       validate: {
@@ -190,7 +165,68 @@ const orderSchema = new mongoose.Schema<IOrder>(
         message: "cancelledAt must be set when status is cancelled",
       },
     },
-    
+    confirmations: [
+      {
+        role: { type: String, enum: ["buyer", "courier"], required: true },
+        confirmedAt: { type: Date, default: Date.now },
+      },
+    ],
+    receivedItems: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: [true, "Product ID is required"],
+        },
+        vendorId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Vendor",
+          required: [true, "Vendor ID is required"],
+        },
+        receivedAt: {
+          type: Date,
+          default: Date.now
+        },
+        receivedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        }
+      }
+    ],
+    rejectedItems: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: [true, "Product ID is required"]
+        },
+        vendorId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Vendor",
+          required: [true, "Vendor ID is required"]
+        },
+        reason: {
+          type: String,
+          required: [true, "Rejection reason is required"],
+          maxlength: [200, "Reason cannot exceed 200 characters"]
+        },
+        explanation: {
+          type: String,
+          maxlength: [500, "Explanation cannot exceed 500 characters"]
+        },
+        rejectedAt: {
+          type: Date,
+          default: Date.now
+        },
+        rejectedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      }
+    ],
+    deliveryMethod: {
+      type: String
+    }
   },
   {
     timestamps: true,
@@ -208,7 +244,7 @@ const orderSchema = new mongoose.Schema<IOrder>(
 );
 
 // Validate at least one order item exists
-orderSchema.pre("validate", function (next) {
+orderSchema.pre("validate", function (this: IOrder, next) {
   if (this.items && this.items.length < 1) {
     this.invalidate("items", "At least one order item is required");
   }
@@ -216,7 +252,7 @@ orderSchema.pre("validate", function (next) {
 });
 
 // Validate order status transitions
-orderSchema.pre("save", function (next) {
+orderSchema.pre("save", function (this: IOrder, next) {
   const statusOrder = ["pending", "confirmed", "shipped", "delivered"];
   const currentStatusIndex = statusOrder.indexOf(this.status);
   const previousStatus = this.isModified("status")
@@ -240,55 +276,68 @@ orderSchema.pre("save", function (next) {
   next();
 });
 
-orderSchema.post("save", async function (doc, next) {
-  try {
-    // Ensure it's a new order (not an update)
-    if (!doc.isNew) return next();
+orderSchema.post(
+  "save",
+  async function (doc: mongoose.Document & IOrder, next) {
+    try {
+      // Ensure it's a new order (not an update)
+      if (!doc.isNew) return next();
 
-    const order = doc;
-    const vendorSalesMap = new Map();
+      const vendorSalesMap = new Map();
 
-    // Group items by vendor and sum their totals
-    for (const item of order.items) {
-      const product = await Product.findById(item.productId).select("vendorId");
-      if (!product) continue;
+      // Group items by vendor and sum their totals
+      for (const item of doc.items) {
+        const product = await Product.findById(item.productId).select(
+          "vendorId"
+        );
+        if (!product) continue;
 
-      const vendorId = product.vendorId.toString();
-      const salesCount = item.quantity;
-      const revenue = item.quantity * item.price;
+        const vendorId = product.vendorId.toString();
+        const salesCount = item.quantity;
+        const revenue = item.quantity * item.price;
 
-      const current = vendorSalesMap.get(vendorId) || { totalSales: 0, totalRevenue: 0 };
-      vendorSalesMap.set(vendorId, {
-        totalSales: current.totalSales + salesCount,
-        totalRevenue: current.totalRevenue + revenue,
-      });
-    }
-
-    // Update each vendor's analytics
-    await Promise.all(
-      Array.from(vendorSalesMap.entries()).map(async ([vendorId, { totalSales, totalRevenue }]) => {
-        await Vendor.findByIdAndUpdate(vendorId, {
-          $inc: {
-            "analytics.totalSales": totalSales,
-            "analytics.totalRevenue": totalRevenue,
-          },
+        const current = vendorSalesMap.get(vendorId) || {
+          totalSales: 0,
+          totalRevenue: 0,
+        };
+        vendorSalesMap.set(vendorId, {
+          totalSales: current.totalSales + salesCount,
+          totalRevenue: current.totalRevenue + revenue,
         });
-      })
-    );
+      }
 
-    next();
-  } catch (error) {
-    console.error("Error updating vendor analytics:", error);
-    next(error as CallbackError);
+      // Update each vendor's analytics
+      await Promise.all(
+        Array.from(vendorSalesMap.entries()).map(
+          async ([vendorId, { totalSales, totalRevenue }]) => {
+            await Vendor.findByIdAndUpdate(vendorId, {
+              $inc: {
+                "analytics.totalSales": totalSales,
+                "analytics.totalRevenue": totalRevenue,
+              },
+            });
+          }
+        )
+      );
+
+      next();
+    } catch (error) {
+      console.error("Error updating vendor analytics:", error);
+      next(error as CallbackError);
+    }
   }
-});
-
+);
 
 const refundSchema = new mongoose.Schema<IRefund>(
   {
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
+      required: true,
+    },
+    vendorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vendor",
       required: true,
     },
     amount: {
@@ -322,7 +371,6 @@ const refundSchema = new mongoose.Schema<IRefund>(
 );
 
 export const Refund = mongoose.model<IRefund>("Refund", refundSchema);
-
 
 const Order = mongoose.model<IOrder>("Order", orderSchema);
 

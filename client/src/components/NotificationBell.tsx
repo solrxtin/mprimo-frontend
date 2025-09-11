@@ -25,7 +25,7 @@ const NotificationBell: React.FC = () => {
   return (
     <div className="relative flex bg-white size-8 justify-center items-center rounded-full border border-gray-200 shadow-md">
       <button
-        className="p-2 rounded-full hover:bg-gray-100"
+        className="p-2 rounded-full hover:bg-gray-100 cursor-pointer"
         onClick={() => setShowDropdown(!showDropdown)}
         ref={notificationBellRef}
       >
