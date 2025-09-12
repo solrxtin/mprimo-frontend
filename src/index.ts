@@ -37,8 +37,7 @@ import vendorPayoutRoutes from "./routes/vendor-payout.routes";
 import disputeChatRoutes from "./routes/dispute-chat.routes";
 import bannerRoutes from "./routes/banner.routes";
 import checkoutRoutes from "./routes/checkout.routes";
-import verificationRoutes from "./routes/verification.routes";
-import productImportRoutes from "./routes/product-import.routes";
+
 
 import { requestLogger } from "./middlewares/request-logger.middleware";
 import { errorLogger } from "./middlewares/error-logger.middleware";
@@ -169,8 +168,7 @@ app.use("/api/v1/vendor-payouts", vendorPayoutRoutes);
 app.use("/api/v1/dispute-chat", disputeChatRoutes);
 app.use("/api/v1/banners", bannerRoutes);
 app.use("/api/v1/checkout", checkoutRoutes);
-app.use("/api/v1/verification", verificationRoutes);
-app.use("/api/v1/product-import", productImportRoutes);
+
 
 app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to see if it's up
 
