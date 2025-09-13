@@ -4,7 +4,7 @@
   "description": "E-commerce marketplace backend",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && copy swagger-output.json dist\\swagger-output.json",
+    "build": "tsc && cp swagger-output.json dist/swagger-output.json",
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
     "test": "jest",
