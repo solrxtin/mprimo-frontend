@@ -57,13 +57,14 @@ const logger = LoggerService.getInstance();
 let swaggerDoc: any = {};
 try {
   swaggerDoc = require("./swagger-output.json");
+  console.log("Swagger doc loaded, paths count:", Object.keys(swaggerDoc.paths || {}).length);
   // Update host for production
   if (swaggerDoc) {
     swaggerDoc.host = "mprimo.up.railway.app";
     swaggerDoc.schemes = ["https"];
   }
 } catch (error) {
-  console.warn("Swagger documentation not found - generating basic docs");
+  console.error("Swagger documentation not found:", error);
   swaggerDoc = {
     swagger: "2.0",
     info: {
