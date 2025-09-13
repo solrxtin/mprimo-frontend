@@ -54,9 +54,14 @@ const app = express();
 const httpServer = createServer(app);
 
 const logger = LoggerService.getInstance();
-let swaggerDoc = {};
+let swaggerDoc: any = {};
 try {
   swaggerDoc = require("./swagger-output.json");
+  // Update host for production
+  if (swaggerDoc) {
+    swaggerDoc.host = "mprimo.up.railway.app";
+    swaggerDoc.schemes = ["https"];
+  }
 } catch (error) {
   console.warn("Swagger documentation not found - generating basic docs");
   swaggerDoc = {
@@ -66,7 +71,7 @@ try {
       version: "1.0.0",
       description: "Mprimo e-commerce platform API"
     },
-    host: "mprimo.railway.app",
+    host: "mprimo.up.railway.app",
     basePath: "/api/v1",
     schemes: ["https"],
     paths: {}
