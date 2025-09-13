@@ -56,7 +56,7 @@ const httpServer = createServer(app);
 const logger = LoggerService.getInstance();
 let swaggerDoc: any = {};
 try {
-  swaggerDoc = require("./swagger-output.json");
+  swaggerDoc = require("../swagger-output.json");
   console.log("Swagger doc loaded, paths count:", Object.keys(swaggerDoc.paths || {}).length);
   // Update host for production
   if (swaggerDoc) {
@@ -181,6 +181,32 @@ app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to 
 // Debug routes
 app.get("/api/v1/test", (req, res) => {res.json({message: "API v1 working"})});
 app.get("/api/v1/products/test", (req, res) => {res.json({message: "Products route working"})});
+
+// Debug swagger file existence
+app.get("/api/v1/debug/swagger", (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  const swaggerPath = path.join(__dirname, '../swagger-output.json');
+  const exists = fs.existsSync(swaggerPath);
+  
+  let fileContent = null;
+  if (exists) {
+    try {
+      fileContent = JSON.parse(fs.readFileSync(swaggerPath, 'utf8'));
+    } catch (error: any) {
+      fileContent = { error: error.message };
+    }
+  }
+  
+  res.json({
+    swaggerFileExists: exists,
+    swaggerPath,
+    currentDir: __dirname,
+    pathsCount: fileContent?.paths ? Object.keys(fileContent.paths).length : 0,
+    fileContent: exists ? 'File exists' : 'File not found'
+  });
+});
 
 // Serve Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));
