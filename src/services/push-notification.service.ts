@@ -14,6 +14,8 @@ dotenv.config();
 type OrderStatus = "processing" | "shipped" | "delivered" | "cancelled";
 
 export class PushNotificationService {
+  private isConfigured: boolean = false;
+
   
   constructor() {
     const publicKey = process.env.VAPID_PUBLIC_KEY;
@@ -21,12 +23,13 @@ export class PushNotificationService {
     const email = process.env.VAPID_EMAIL;
 
     if (!publicKey || !privateKey || !email) {
-      throw new Error(
-        "VAPID keys and email must be set in environment variables"
-      );
+      console.warn("VAPID keys not configured - push notifications will be disabled");
+      this.isConfigured = false;
+      return;
     }
 
     webpush.setVapidDetails(`mailto:${email}`, publicKey, privateKey);
+    this.isConfigured = true;
   }
 
   async sendNotification(

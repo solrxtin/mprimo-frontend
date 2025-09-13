@@ -20,23 +20,34 @@ export const authorizeRole = (roles: UserRole[] = []) => {
   };
 };
 
-export const authorizeVendor = () => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (req.user) {
-      const user = req.user as IUser;
-      if (user.role === "personal" && user.status === "inactive") {
-        return res.status(403).json({
-          message: "Permissions not granted",
-          success: false,
-        });
-      }
-      if (user.role !== "business") {
-        return res.status(403).json({
-          message: "Permissions not granted",
-          success: false,
-        });
-      }
-    }
-    next();
-  };
+
+export const authorizeVendor = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      message: "Unauthorized",
+      success: false,
+    });
+  }
+
+  const user = req.user as IUser;
+
+  if (user.status === "inactive") {
+    return res.status(403).json({
+      message: "Account is inactive",
+      success: false,
+    });
+  }
+
+  if (user.role === "business") {
+    return next();
+  }
+
+  if (user.role === "personal" && user.canMakeSales) {
+    return next();
+  }
+
+  return res.status(403).json({
+    message: "Permissions not granted",
+    success: false,
+  });
 };

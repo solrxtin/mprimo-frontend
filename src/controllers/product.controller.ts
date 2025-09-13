@@ -12,13 +12,17 @@ import { IVendor } from "../types/vendor.type";
 import { socketService } from "..";
 import AuditLogService from "../services/audit-log.service";
 
-import { PushNotificationService } from '../services/push-notification.service';
-import { CurrencyService } from '../services/currency.service';
-import Country from '../models/country.model';
-import { CartService } from '../services/cart.service';
+import { PushNotificationService } from "../services/push-notification.service";
+import { CurrencyService } from "../services/currency.service";
+import Country, { ICountry } from "../models/country.model";
+import { CartService } from "../services/cart.service";
+import mongoose, { Types } from "mongoose";
+import { WishList } from "../models/cart.model";
+import Order from "../models/order.model";
 
 export class ProductController {
   static async createProduct(req: Request, res: Response, next: NextFunction) {
+    // I have to add bid increment from country
     try {
       const supposedVendor = await Vendor.findOne({ userId: req.userId });
       const result = await validateProductData(req.body);
@@ -31,6 +35,14 @@ export class ProductController {
         return;
       }
 
+      if (!supposedVendor) {
+        res.status(404).json({
+          success: false,
+          message: "Vendor not found",
+        });
+        return;
+      }
+
       // Ensure variants exist and have default flags
       if (!req.body.variants || req.body.variants.length === 0) {
         return res.status(400).json({
@@ -38,12 +50,12 @@ export class ProductController {
           message: "At least one variant is required for product creation",
         });
       }
-      
+
       // Ensure at least one variant and option is marked as default
       if (!req.body.variants.some((v: any) => v.isDefault)) {
         req.body.variants[0].isDefault = true;
       }
-      
+
       req.body.variants.forEach((variant: any) => {
         if (variant.isDefault && variant.options?.length > 0) {
           if (!variant.options.some((o: any) => o.isDefault)) {
@@ -58,7 +70,7 @@ export class ProductController {
       };
 
       // Create product and fetch populated product details in parallel
-      const [savedProduct, indexedProduct] = await Promise.all([
+      const [savedProduct, _] = await Promise.all([
         Product.create(productData),
         redisService.indexProduct(productData), // Index while creating
       ]);
@@ -93,27 +105,83 @@ export class ProductController {
         page = 1,
         limit = 10,
         category,
+        subCategory1,
+        subCategory2,
+        subCategory3,
+        subCategory4,
+        brand,
         status,
         priceRange,
         sort,
       } = req.query;
 
+      // Cast query params to strings
+      const categoryStr = category ? String(category) : undefined;
+      const subCategory1Str = subCategory1 ? String(subCategory1) : undefined;
+      const subCategory2Str = subCategory2 ? String(subCategory2) : undefined;
+      const subCategory3Str = subCategory3 ? String(subCategory3) : undefined;
+      const subCategory4Str = subCategory4 ? String(subCategory4) : undefined;
+      const brandStr = brand ? String(brand) : undefined;
+      const statusStr = status ? String(status) : undefined;
+      const priceRangeStr = priceRange ? String(priceRange) : undefined;
+
+      // Build category filter
+      const categoryFilter: any = {};
+      if (categoryStr) categoryFilter["category.main"] = categoryStr;
+      if (subCategory1Str)
+        categoryFilter["category.sub"] = { $in: [subCategory1Str] };
+      if (subCategory2Str)
+        categoryFilter["category.sub"] = { $in: [subCategory2Str] };
+      if (subCategory3Str)
+        categoryFilter["category.sub"] = { $in: [subCategory3Str] };
+      if (subCategory4Str)
+        categoryFilter["category.sub"] = { $in: [subCategory4Str] };
+
       const query = {
-        ...(category && { "category.main": category }),
-        ...(status && { status }),
-        ...(priceRange && { priceRange }),
+        ...categoryFilter,
+        ...(brandStr && { brand: { $regex: brandStr, $options: "i" } }),
+        ...(statusStr && { status: statusStr }),
+        ...(priceRangeStr && {
+          "variants.options.price": {
+            $gte: Number(priceRangeStr.split("-")[0]),
+            $lte: Number(priceRangeStr.split("-")[1]),
+          },
+        }),
       };
 
-      const sortQuery = sort ? JSON.parse(String(sort)) : undefined;
+      const sortQuery = sort ? JSON.parse(String(sort)) : { createdAt: -1 };
 
-      const result = await ProductService.getProducts(
-        query,
-        Number(page),
-        Number(limit),
-        sortQuery
-      );
+      // Get products and additional data in parallel
+      const [result, brands, categoryTree] = await Promise.all([
+        ProductService.getProducts(
+          query,
+          Number(page),
+          Number(limit),
+          sortQuery
+        ),
+        ProductService.getBrandsForCategory({
+          category: categoryStr,
+          subCategory1: subCategory1Str,
+          subCategory2: subCategory2Str,
+          subCategory3: subCategory3Str,
+          subCategory4: subCategory4Str,
+        }),
+        ProductService.getCategoryTree({
+          category: categoryStr,
+          subCategory1: subCategory1Str,
+          subCategory2: subCategory2Str,
+          subCategory3: subCategory3Str,
+          subCategory4: subCategory4Str,
+        }),
+      ]);
 
-      res.json(result);
+      res.json({
+        ...result,
+        filters: {
+          brands,
+          categoryTree,
+        },
+      });
     } catch (error) {
       next(error);
     }
@@ -163,26 +231,31 @@ export class ProductController {
       }
 
       // Convert prices to user's currency
-      const userCurrency = req.preferences?.currency || 'USD';
+      const userCurrency = req.preferences?.currency || "USD";
       const productCountry = await Country.findById(product.country);
-      const productCurrency = productCountry?.currency || 'USD';
+      const productCurrency = productCountry?.currency || "USD";
 
       if (product.variants && product.variants.length > 0) {
         for (const variant of product.variants) {
           for (const option of variant.options) {
             if (productCurrency !== userCurrency) {
-              const priceConversion = await CurrencyService.getProductPriceForUser(
-                option.price,
-                productCurrency,
-                userCurrency
-              );
+              const priceConversion =
+                await CurrencyService.getProductPriceForUser(
+                  option.salePrice ? option.salePrice : option.price,
+                  productCurrency,
+                  userCurrency
+                );
               option.displayPrice = priceConversion.displayPrice;
               option.displayCurrency = priceConversion.displayCurrency;
               option.currencySymbol = priceConversion.currencySymbol;
+              option.exchangeRate = priceConversion.exchangeRate;
             } else {
-              option.displayPrice = option.price;
+              option.displayPrice = option.salePrice
+                ? option.salePrice
+                : option.price;
               option.displayCurrency = productCurrency;
-              option.currencySymbol = productCountry?.currencySymbol || productCurrency;
+              option.currencySymbol =
+                productCountry?.currencySymbol || productCurrency;
             }
           }
         }
@@ -239,6 +312,89 @@ export class ProductController {
       }
 
       res.json({ product });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getProductPerformance(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { productId } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid product ID format",
+        });
+      }
+
+      const product = await Product.findById(productId)
+        .populate("country", "currency")
+        .select("analytics variants country");
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
+
+      // Get order data for this product
+      const orderStats = await Order.aggregate([
+        {
+          $match: {
+            "items.productId": new mongoose.Types.ObjectId(productId),
+            "payment.status": "completed",
+          },
+        },
+        {
+          $unwind: "$items",
+        },
+        {
+          $match: {
+            "items.productId": new mongoose.Types.ObjectId(productId),
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalSales: { $sum: "$items.quantity" },
+            totalRevenue: {
+              $sum: { $multiply: ["$items.price", "$items.quantity"] },
+            },
+            orderCount: { $sum: 1 },
+          },
+        },
+      ]);
+
+      // Get wishlist count
+      const wishlistCount = await WishList.countDocuments({
+        "items.productId": productId,
+      });
+
+      const stats = orderStats[0] || {
+        totalSales: 0,
+        totalRevenue: 0,
+        orderCount: 0,
+      };
+      const currency = (product.country as ICountry).currency || "USD";
+
+      const performance = {
+        views: product.analytics.views,
+        favorites: wishlistCount,
+        sales: stats.orderCount,
+        revenue: stats.totalRevenue,
+        totalSales: stats.totalSales,
+        currency,
+        averageOrderValue:
+          stats.orderCount > 0 ? stats.totalRevenue / stats.orderCount : 0,
+      };
+
+      res.json(performance);
     } catch (error) {
       next(error);
     }
@@ -347,22 +503,24 @@ export class ProductController {
     const productId = req.params.id;
     const userId = req.userId!;
     const vendor = await Vendor.findOne({ userId });
-    
+
     if (!variantId) {
-      res.status(400).json({ success: false, message: "variantId is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "variantId is required" });
       return;
     }
 
     try {
       const originalProduct = await ProductService.getProductById(productId);
-      
+
       // Find the specific variant option
       let originalQuantity = 0;
       let newQuantity = 0;
-      
+
       if (originalProduct?.variants) {
         for (const variant of originalProduct.variants) {
-          const option = variant.options.find(opt => opt.sku === variantId);
+          const option = variant.options.find((opt) => opt.sku === variantId);
           if (option) {
             originalQuantity = option.quantity;
             break;
@@ -381,7 +539,7 @@ export class ProductController {
       // Get new quantity
       if (product?.variants) {
         for (const variant of product.variants) {
-          const option = variant.options.find(opt => opt.sku === variantId);
+          const option = variant.options.find((opt) => opt.sku === variantId);
           if (option) {
             newQuantity = option.quantity;
             break;
@@ -391,18 +549,19 @@ export class ProductController {
 
       // Update inventory in Redis
       try {
-        const change = operation === "add" ? Number(quantity) : -Number(quantity);
+        const change =
+          operation === "add" ? Number(quantity) : -Number(quantity);
         await redisService.updateInventory(productId, change);
         await redisService.invalidateProductCache({ id: productId });
         redisService.indexProduct(product);
       } catch (error) {
         console.error("Error updating Redis inventory:", error);
       }
-      
+
       await AuditLogService.log(
-        'INVENTORY_UPDATED',
-        'product',
-        'info',
+        "INVENTORY_UPDATED",
+        "product",
+        "info",
         {
           productId,
           productName: product.name,
@@ -411,12 +570,12 @@ export class ProductController {
           operation,
           quantity: Number(quantity),
           previousQuantity: originalQuantity,
-          newQuantity
+          newQuantity,
         },
         req,
         productId
       );
-      
+
       res.json({ product });
     } catch (error) {
       next(error);
@@ -447,13 +606,13 @@ export class ProductController {
       redisService.indexProduct(product);
 
       await AuditLogService.log(
-        'PRODUCT_VARIANT_ADDED',
-        'product',
-        'info',
+        "PRODUCT_VARIANT_ADDED",
+        "product",
+        "info",
         {
           productId: req.params.id,
           vendorId: req.userId,
-          variantName: req.body.name
+          variantName: req.body.name,
         },
         req,
         req.params.id
@@ -529,67 +688,6 @@ export class ProductController {
       );
 
       res.json(results);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async addReview(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { id } = req.params;
-      const { rating, comment } = req.body;
-      const userId = req.userId;
-
-      const reviewData = {
-        userId,
-        rating,
-        comment,
-        createdAt: new Date(),
-      };
-
-      const result = await ProductService.addReview(id, reviewData, userId);
-
-      // Invalidate product cache after adding review
-      try {
-        await redisService.invalidateProductCache({ id });
-      } catch (error) {
-        console.error("Error invalidating cache:", error);
-      }
-      redisService.indexProduct(result);
-
-      await AuditLogService.log(
-        'PRODUCT_REVIEW_ADDED',
-        'product',
-        'info',
-        {
-          productId: id,
-          reviewerId: userId,
-          rating,
-          hasComment: !!comment
-        },
-        req,
-        id
-      );
-
-      res.status(201).json({
-        success: true,
-        message: "Review added successfully",
-        product: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async getReviews(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { id } = req.params;
-      const reviews = await ProductService.getReviews(id);
-
-      res.json({
-        success: true,
-        reviews,
-      });
     } catch (error) {
       next(error);
     }
@@ -721,6 +819,75 @@ export class ProductController {
     }
   }
 
+  // ===================== Review section ==========================
+  static async addReview(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { rating, comment, vendorRating } = req.body;
+      const userId = req.userId;
+
+      const reviewData = {
+        userId,
+        rating,
+        comment,
+        createdAt: new Date(),
+        helpful: [] as unknown as Types.Array<Types.ObjectId>,
+      };
+
+      const result = await ProductService.addReview(
+        id,
+        reviewData,
+        userId,
+        vendorRating
+      );
+
+      // Invalidate product cache after adding review
+      try {
+        await redisService.invalidateProductCache({ id });
+      } catch (error) {
+        console.error("Error invalidating cache:", error);
+      }
+      redisService.indexProduct(result);
+
+      await AuditLogService.log(
+        "PRODUCT_REVIEW_ADDED",
+        "product",
+        "info",
+        {
+          productId: id,
+          reviewerId: userId,
+          rating,
+          hasComment: !!comment,
+        },
+        req,
+        id
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Review added successfully",
+        product: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getReviews(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const reviews = await ProductService.getReviews(id);
+
+      res.json({
+        success: true,
+        reviews,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Draft section
   static async saveDraft(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
@@ -855,15 +1022,18 @@ export class ProductController {
     }
   }
 
+  // Cart section
   static async addToCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
       const { productId, quantity, price, variantId } = req.body;
 
       if (!userId || !productId || !quantity || !price || !variantId) {
-        res
-          .status(400)
-          .json({ success: false, message: "Missing cart parameters (productId, quantity, price, variantId required)" });
+        res.status(400).json({
+          success: false,
+          message:
+            "Missing cart parameters (productId, quantity, price, variantId required)",
+        });
         return;
       }
 
@@ -871,14 +1041,18 @@ export class ProductController {
         productId,
         variantId,
         quantity,
-        price
+        price,
       });
 
       if (success) {
         await redisService.trackEvent(productId, "addToCart", userId);
-        res.status(200).json({ success: true, message: "Product added to cart" });
+        res
+          .status(200)
+          .json({ success: true, message: "Product added to cart" });
       } else {
-        res.status(500).json({ success: false, message: "Failed to add to cart" });
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to add to cart" });
       }
     } catch (error) {
       next(error);
@@ -891,12 +1065,16 @@ export class ProductController {
       const { cart } = req.body;
 
       if (!userId || !cart) {
-        res.status(400).json({ success: false, message: "Missing user or cart" });
+        res
+          .status(400)
+          .json({ success: false, message: "Missing user or cart" });
         return;
       }
 
       if (!Array.isArray(cart)) {
-        res.status(400).json({ success: false, message: "Invalid cart format" });
+        res
+          .status(400)
+          .json({ success: false, message: "Invalid cart format" });
         return;
       }
 
@@ -908,15 +1086,15 @@ export class ProductController {
             productId: item.productId,
             variantId: item.variantId,
             quantity: item.quantity,
-            price: item.price
+            price: item.price,
           });
           if (success) successCount++;
         }
       }
 
-      res.status(200).json({ 
-        success: true, 
-        message: `Cart merged: ${successCount}/${cart.length} items added` 
+      res.status(200).json({
+        success: true,
+        message: `Cart merged: ${successCount}/${cart.length} items added`,
       });
     } catch (error) {
       next(error);
@@ -930,16 +1108,26 @@ export class ProductController {
       const { variantId } = req.body;
 
       if (!userId || !productId) {
-        res.status(400).json({ success: false, message: "Missing user or productId" });
+        res
+          .status(400)
+          .json({ success: false, message: "Missing user or productId" });
         return;
       }
 
-      const success = await CartService.removeFromCart(userId.toString(), productId, variantId);
-      
+      const success = await CartService.removeFromCart(
+        userId.toString(),
+        productId,
+        variantId
+      );
+
       if (success) {
-        res.status(200).json({ success: true, message: "Product removed from cart" });
+        res
+          .status(200)
+          .json({ success: true, message: "Product removed from cart" });
       } else {
-        res.status(500).json({ success: false, message: "Failed to remove from cart" });
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to remove from cart" });
       }
     } catch (error) {
       next(error);
@@ -972,17 +1160,20 @@ export class ProductController {
       }
 
       const success = await CartService.clearCart(userId.toString());
-      
+
       if (success) {
         res.status(200).json({ success: true, message: "Cart cleared" });
       } else {
-        res.status(500).json({ success: false, message: "Failed to clear cart" });
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to clear cart" });
       }
     } catch (error) {
       next(error);
     }
   }
 
+  // Wishlist section
   static async addToWishlist(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
@@ -990,21 +1181,26 @@ export class ProductController {
       const { price, currency } = req.body;
 
       if (!productId || !userId || !price || !currency) {
-        res.status(400).json({ success: false, message: "Missing required fields (productId, price, currency)" });
+        res.status(400).json({
+          success: false,
+          message: "Missing required fields (productId, price, currency)",
+        });
         return;
       }
 
       const success = await CartService.addToWishlist(userId.toString(), {
         productId,
         priceWhenAdded: price,
-        currency
+        currency,
       });
 
       if (success) {
         await redisService.trackEvent(productId, "wishlist", userId);
         res.status(200).json({ success: true, message: "Added to wishlist" });
       } else {
-        res.status(500).json({ success: false, message: "Failed to add to wishlist" });
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to add to wishlist" });
       }
     } catch (error) {
       next(error);
@@ -1025,12 +1221,19 @@ export class ProductController {
         return;
       }
 
-      const success = await CartService.removeFromWishlist(userId.toString(), productId);
-      
+      const success = await CartService.removeFromWishlist(
+        userId.toString(),
+        productId
+      );
+
       if (success) {
-        res.status(200).json({ success: true, message: "Removed from wishlist" });
+        res
+          .status(200)
+          .json({ success: true, message: "Removed from wishlist" });
       } else {
-        res.status(500).json({ success: false, message: "Failed to remove from wishlist" });
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to remove from wishlist" });
       }
     } catch (error) {
       next(error);
@@ -1061,17 +1264,20 @@ export class ProductController {
       }
 
       const success = await CartService.clearWishlist(userId.toString());
-      
+
       if (success) {
         res.status(200).json({ success: true, message: "Wishlist cleared" });
       } else {
-        res.status(500).json({ success: false, message: "Failed to clear wishlist" });
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to clear wishlist" });
       }
     } catch (error) {
       next(error);
     }
   }
 
+  // ============= Offer Section =================
   static async makeOffer(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
@@ -1243,7 +1449,6 @@ export const makeCounterOffer = async (
   }
 };
 
-// ============= Offer Section =================
 export const acceptOffer = async (
   req: Request,
   res: Response,
@@ -1553,7 +1758,6 @@ export const rejectCounterOffer = async (
 };
 
 // ======================= Bidding Section ========================
-// Add the maxAmount check and make sure it is greater than 0.01
 export const placeProxyBid = async (
   req: Request,
   res: Response,
@@ -1563,7 +1767,7 @@ export const placeProxyBid = async (
     const { productId } = req.params;
     const { userId, maxBid } = req.body;
 
-    if (!productId || !userId || typeof maxBid !== "number") {
+    if (!productId || !userId || typeof maxBid !== "number" || maxBid <= 0.01) {
       return res.status(400).json({ success: false, message: "Invalid input" });
     }
 
@@ -1710,5 +1914,76 @@ export const placeProxyBid = async (
   } catch (error) {
     console.error("Bid error:", error);
     next(error);
+  }
+};
+
+export const relistItemForAuction = async (req: Request, res: Response) => {
+  const { productId } = req.params;
+  const { startBidPrice, reservePrice, startTime, endTime, buyNowPrice } =
+    req.body;
+
+  try {
+    const product = await Product.findById(productId)
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    if (!startBidPrice || !reservePrice || !startTime || !endTime) {
+      return res.status(404).json({
+        message:
+          "Auction listing requires startBidPrice, reservePrice,  startTime, endTime",
+        success: false,
+      });
+    }
+
+    if (product.inventory.listing.type !== "auction") {
+      return res.status(404).json({
+        message: "Chosen product can't be relisted",
+        success: false,
+      });
+    }
+
+    // Validate auction dates
+    const now = new Date();
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+
+    if (startDate <= now) {
+      throw new Error("Auction start time must be in the future");
+    }
+
+    if (endDate <= startDate) {
+      throw new Error("Auction end time must be after start time");
+    }
+
+    const minDurationMs = 24 * 60 * 60 * 1000; // 24 hours
+    if (endDate.getTime() - startDate.getTime() < minDurationMs) {
+      throw new Error("Auction duration must be at least 24 hours");
+    }
+
+    if (product.inventory.listing.auction) {
+      product.inventory.listing.auction.startBidPrice = startBidPrice;
+      product.inventory.listing.auction.reservePrice = reservePrice;
+      if (buyNowPrice) {
+        product.inventory.listing.auction.buyNowPrice = buyNowPrice;
+      }
+      product.inventory.listing.auction.startTime = startTime;
+      product.inventory.listing.auction.endTime = endTime;
+      product.inventory.listing.auction.isStarted = false;
+      product.inventory.listing.auction.isExpired = false;
+      product.inventory.listing.auction.priorityScore =
+        100 / (product.inventory.listing.auction.relistCount + 1);
+      product.inventory.listing.auction.relistCount += 1;
+    }
+  } catch (error: any) {
+    console.error(error);
+    // add logger
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };

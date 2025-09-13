@@ -4,7 +4,7 @@ export interface INotification {
     userId: Types.ObjectId;
     title: string;
     case: string;
-    type: 'order' | 'payment' | 'promotion' | 'system' | 'chat' | 'offer' | 'bid';
+    type: string;
     message: string;
     data: {
         redirectUrl: string;

@@ -11,6 +11,7 @@ import redisService from "../services/redis.service";
 import { generateTrackingNumber } from "../utils/generateTrackingNumber";
 import Vendor from "../models/vendor.model";
 import AnalyticsModel from "../models/analytics.model";
+import Notification from "../models/notification.model";
 
 dotenv.config();
 
@@ -44,10 +45,11 @@ async function seedInteractions() {
     await Payment.deleteMany({});
     await Chat.deleteMany({});
     await Message.deleteMany({});
+    await Notification.deleteMany({});
     
     // Clear analytics to prevent duplicate key errors
     await AnalyticsModel.deleteMany({});
-    console.log("Cleared existing interactions, orders, payments, messages, and analytics");
+    console.log("Cleared existing interactions, orders, payments, messages, notifications, and analytics");
 
     let cartCount = 0;
     let wishlistCount = 0;
@@ -206,52 +208,123 @@ async function seedInteractions() {
             const orderStatus = orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
             const shippingStatus = shippingStatuses[Math.floor(Math.random() * shippingStatuses.length)];
             
-            // Create order
-            const order = await Order.create({
-              userId: user._id,
-              items: orderItems,
-              payment: {
+            // Create order with proper validation
+            try {
+              const orderData = {
+                userId: user._id,
+                items: orderItems,
+                paymentId: new mongoose.Types.ObjectId(), // Temporary payment ID
+                payment: {
+                  method: paymentMethod,
+                  status: orderStatus === 'delivered' ? 'completed' : 'pending',
+                  transactionId: orderStatus === 'delivered' ? `txn_${Math.random().toString(36).substring(2, 15)}` : undefined,
+                  amount: totalAmount,
+                  currency: 'USD'
+                },
+                shipping: {
+                  address: {
+                    street: '123 Main St',
+                    city: 'Sample City',
+                    state: 'Sample State',
+                    country: 'Sample Country',
+                    postalCode: '12345'
+                  },
+                  carrier: shippingStatus !== 'pending' ? 'fedex' : undefined,
+                  trackingNumber: shippingStatus !== 'pending' ? generateTrackingNumber() : undefined,
+                  status: shippingStatus,
+                  estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                },
+                status: orderStatus
+              };
+              
+              const order = await Order.create(orderData);
+              console.log('Order created successfully:', order._id);
+              
+              // Create notifications for each product's vendor
+              for (const item of orderItems) {
+                const product = await Product.findById(item.productId).populate('vendorId');
+                if (!product) continue;
+                
+                const vendor = await Vendor.findById(product.vendorId);
+                if (!vendor) continue;
+                
+                // New order notification
+                await Notification.create({
+                  userId: vendor.userId,
+                  type: "order",
+                  case: "new-order",
+                  title: "New Order Received",
+                  message: `Order ${order._id} for ${product.name}`,
+                  data: {
+                    redirectUrl: `/vendor/orders/${order._id}`,
+                    entityId: order._id,
+                    entityType: "order",
+                  },
+                  isRead: false,
+                });
+                
+                // Check for low stock and create notification if needed
+                const currentStock = product.variants?.[0]?.options?.[0]?.quantity || 0;
+                const lowStockThreshold = product.inventory?.lowStockAlert || 5;
+                
+                if (currentStock <= lowStockThreshold) {
+                  await Notification.create({
+                    userId: vendor.userId,
+                    type: "system",
+                    case: "low-stock",
+                    title: "Low Stock Alert",
+                    message: `${product.name} is running low on stock (${currentStock} remaining)`,
+                    data: {
+                      redirectUrl: `/vendor/products/${product._id}`,
+                      entityId: product._id,
+                      entityType: "product",
+                    },
+                    isRead: false,
+                  });
+                }
+                
+                // Payment received notification (if payment is completed)
+                if (orderData.payment.status === 'completed') {
+                  await Notification.create({
+                    userId: vendor.userId,
+                    type: "payment",
+                    case: "payment-received",
+                    title: "Payment Received",
+                    message: `Payment of $${item.price * item.quantity} received for ${product.name}`,
+                    data: {
+                      redirectUrl: `/vendor/orders/${order._id}`,
+                      entityId: order._id,
+                      entityType: "order",
+                    },
+                    isRead: false,
+                  });
+                }
+              }
+              
+              // Track purchase events
+              for (const item of orderItems) {
+                await redisService.trackEvent(item.productId.toString(), "purchase", user._id, item.price * item.quantity);
+              }
+              
+              // Create payment record
+              await Payment.create({
+                orderId: order._id,
+                userId: user._id,
+                amount: totalAmount,
+                currency: 'USD',
                 method: paymentMethod,
+                gateway: paymentMethod === 'crypto' ? 'blockchain' : 'stripe',
                 status: orderStatus === 'delivered' ? 'completed' : 'pending',
                 transactionId: orderStatus === 'delivered' ? `txn_${Math.random().toString(36).substring(2, 15)}` : undefined,
-                amount: totalAmount,
-                currency: 'USD'
-              },
-              shipping: {
-                address: {
-                  street: '123 Main St',
-                  city: 'Sample City',
-                  state: 'Sample State',
-                  country: 'Sample Country',
-                  postalCode: '12345'
-                },
-                carrier: shippingStatus !== 'pending' ? 'fedex' : undefined,
-                trackingNumber: shippingStatus !== 'pending' ? generateTrackingNumber() : undefined,
-                status: shippingStatus,
-                estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-              },
-              status: orderStatus
-            });
-            
-            // Track purchase events
-            for (const item of orderItems) {
-              await redisService.trackEvent(item.productId.toString(), "purchase", user._id, item.price * item.quantity);
+                createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
+              });
+              
+              orderCount++;
+            } catch (orderError) {
+              console.error('Error creating order:', orderError);
+              continue;
             }
-            
-            // Create payment record
-            await Payment.create({
-              orderId: order._id,
-              userId: user._id,
-              amount: totalAmount,
-              currency: 'USD',
-              method: paymentMethod,
-              gateway: paymentMethod === 'crypto' ? 'blockchain' : 'stripe',
-              status: orderStatus === 'delivered' ? 'completed' : 'pending',
-              transactionId: orderStatus === 'delivered' ? `txn_${Math.random().toString(36).substring(2, 15)}` : undefined,
-              createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000)
-            });
-            
-            orderCount++;
+
           }
         }
       } catch (error) {
@@ -344,8 +417,66 @@ async function seedInteractions() {
       }
     }
 
+    // Add reviews for delivered orders
+    console.log('⭐ Adding reviews for delivered orders...');
+    const sampleReviews = [
+      {
+        rating: 5,
+        comment: "Excellent product! Exactly as described and fast shipping.",
+      },
+      { rating: 4, comment: "Good quality, would recommend to others." },
+      { rating: 5, comment: "Amazing! Better than expected." },
+      { rating: 3, comment: "Decent product, but could be better." },
+      { rating: 4, comment: "Good value for money." },
+      { rating: 5, comment: "Perfect! Will buy again." },
+      { rating: 2, comment: "Not as expected, but okay." },
+      { rating: 4, comment: "Fast delivery and good packaging." },
+      { rating: 5, comment: "Highly recommended! Great seller." },
+      { rating: 3, comment: "Average product, nothing special." },
+    ];
+
+    let reviewCount = 0;
+    const reviewedProducts = new Map(); // Track reviews per product
+    
+    for (const order of deliveredOrders) {
+      // 70% chance the customer leaves a review for delivered orders
+      if (Math.random() > 0.3) {
+        for (const item of order.items) {
+          const product = await Product.findById(item.productId);
+          if (!product) continue;
+          
+          const review = sampleReviews[Math.floor(Math.random() * sampleReviews.length)];
+          
+          // Add review to product
+          product.reviews.push({
+            userId: order.userId,
+            rating: review.rating,
+            comment: review.comment,
+            createdAt: new Date(Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000), // Within last 15 days
+          });
+          
+          // Track for rating calculation
+          if (!reviewedProducts.has(product._id.toString())) {
+            reviewedProducts.set(product._id.toString(), []);
+          }
+          reviewedProducts.get(product._id.toString()).push(review.rating);
+          
+          await product.save();
+          reviewCount++;
+        }
+      }
+    }
+    
+    // Calculate average ratings for products with reviews
+    for (const [productId, ratings] of reviewedProducts) {
+      const averageRating = Math.round((ratings.reduce((sum: number, rating: number) => sum + rating, 0) / ratings.length) * 10) / 10;
+      await Product.findByIdAndUpdate(productId, {
+        $set: { rating: averageRating }
+      });
+    }
+
     console.log(`\nSeeding completed successfully!`);
-    console.log(`Created ${cartCount} carts, ${wishlistCount} wishlists, ${orderCount} orders, ${messageCount} messages`);
+    console.log(`Created ${cartCount} carts, ${wishlistCount} wishlists, ${orderCount} orders, ${messageCount} messages, ${reviewCount} reviews`);
     console.log(`Generated analytics data for ${products.length} products`);
     
   } catch (error) {

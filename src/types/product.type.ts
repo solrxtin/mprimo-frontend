@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { ICountry } from "../models/country.model";
 
 type ListingType = "instant" | "auction";
 
@@ -21,12 +22,16 @@ type InventoryType = {
       startBidPrice?: number;
       reservePrice?: number;
       buyNowPrice?: number;
+      finalPrice?: number;
       startTime: Date;
       endTime: Date;
       quantity: number;
       bidIncrement?: number;
       isStarted?: boolean;
       isExpired?: boolean;
+      reservePriceMet?: boolean;
+      relistCount: number;
+      priorityScore: number;
     };
   };
 };
@@ -46,12 +51,19 @@ type VariantType = {
   options: VariantOptionType[];
 };
 
-type ReviewType = {
+export type ReviewType = {
   userId: Types.ObjectId;
   rating: number;
   comment: string;
   createdAt: Date;
+  helpful: Types.Array<Types.ObjectId>;
+  vendorResponse?: {
+    response: string;
+    createdAt: Date;
+  };
 };
+
+export interface ReviewDocument extends ReviewType, Document {}
 
 type BidType = {
   userId: Types.ObjectId;
@@ -101,13 +113,13 @@ export type ProductType = {
   condition: "new" | "used" | "refurbished";
   conditionDescription?: string;
   category: CategoryType;
-  country: Types.ObjectId;
+  country: Types.ObjectId | ICountry;
   inventory: InventoryType;
   images: string[];
   specifications: SpecificationType[];
   shipping: ShippingType;
   status: "active" | "inactive" | "outOfStock";
-  reviews: ReviewType[];
+  reviews: Types.DocumentArray<ReviewDocument>;
   rating: number;
   variants: VariantType[];
   analytics: AnalyticsType;

@@ -7,7 +7,7 @@ export const getAllNotifications = async (
   next: NextFunction
 ) => {
   try {
-    const notifications = await Notification.findOne({ userId: req.userId });
+    const notifications = await Notification.find({ userId: req.userId });
     console.log("Notifications are: ", notifications)
     res.status(200).json({
       success: true,

@@ -132,9 +132,9 @@ export const uploadImageToCloudinary = async (filePath: string, folder: string =
         {
           overlay: {
             font_family: "Arial",
-            font_size: 16,
+            font_size: 24,
             font_weight: "bold",
-            text: "LockPay", // The text to overlay
+            text: "Mprimo", // The text to overlay
           },
           gravity: "south", // Position in the bottom center
           color: "#F5F5F5", // Gray text
@@ -208,7 +208,40 @@ export const uploadVideoToCloudinary = async (filePath: string, folder: string =
   }
 };
 
+export const uploadDocumentToCloudinary = async (filePath: string, folder: string = 'documents'): Promise<{ url: string; public_id: string }> => {
+  try {
+    const fileHash = await calculateHash(filePath);
+    
+    const result = await cloudinary.uploader.upload(filePath, {
+      resource_type: "raw",
+      public_id: `${folder}/${fileHash}`,
+      context: {
+        hash: fileHash,
+      }
+    });
+    
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    
+    return {
+      url: result.secure_url,
+      public_id: result.public_id
+    };
+  } catch (error) {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    throw error;
+  }
+};
+
 // Export individual upload middlewares
 export const uploadImage = multerConfig.uploadImage.single('productImage');
 export const uploadVideo = multerConfig.uploadVideo.single('video');
 export const uploadDocument = multerConfig.uploadDocument.single('document');
+
+// Dispute chat media uploads
+export const uploadDisputeImage = multerConfig.uploadImage.single('image');
+export const uploadDisputeVideo = multerConfig.uploadVideo.single('video');
+export const uploadDisputeDocument = multerConfig.uploadDocument.single('document');

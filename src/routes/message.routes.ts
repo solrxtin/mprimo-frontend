@@ -16,8 +16,8 @@ router.use(verifyToken);
 
 // Chat management
 router.post("/chat/open", openChat);
-router.get("/chats", listChats);
-router.get("/chat/:chatId/messages", getMessages);
+router.get("/chats", listChats); 
+router.get("/chat/:chatId/messages", getMessages); 
 router.post("/message", sendMessage);
 router.patch("/chat/:chatId/archive", toggleArchive);
 router.patch("/chat/:chatId/read", markChatRead);

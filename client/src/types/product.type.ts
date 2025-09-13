@@ -1,6 +1,6 @@
 type ListingType = "instant" | "auction";
 
-type PopulatedCategory = {
+export type PopulatedCategory = {
   _id: string;
   name: string;
   slug: string;
@@ -42,15 +42,20 @@ type CountryType = {
 };
 
 type VariantOptionType = {
+  id: string;
+  isDefault: boolean;
+  sku: string;
   value: string;
   price: number;
-  inventory: number;
+  quantity: number;
   isDefault: boolean;
   id: string,
   _id: string
 };
 
 type VariantType = {
+  id: string;
+  isDefault: boolean;
   name: string;
   options: VariantOptionType[];
   id: string,

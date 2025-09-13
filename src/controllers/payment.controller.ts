@@ -1,7 +1,10 @@
 // controllers/payment.controller.ts
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { CryptoPaymentService } from "../services/crypto-payment.service";
+import { ApplePayService } from "../services/apple-pay.service";
+import { StripeService } from "../services/stripe.service";
 import { tokenWatcher } from "..";
+import Payment from "../models/payment.model";
 
 const cryptoService = new CryptoPaymentService();
 
@@ -76,6 +79,136 @@ export const getPaymentAddress = async (req: Request, res: Response) => {
       success: false,
       message: "Failed to generate payment details",
     });
+  }
+};
+
+// Apple Pay payment processing
+export const processApplePayPayment = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { paymentToken, amount, currency, orderId } = req.body;
+    const userId = req.userId;
+
+    if (!paymentToken || !amount || !orderId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment token, amount, and order ID are required'
+      });
+    }
+
+    // Process Apple Pay payment
+    const paymentResult = await ApplePayService.processPayment(
+      paymentToken,
+      amount,
+      currency || 'USD'
+    );
+
+    // Create payment record
+    const payment = await Payment.create({
+      userId,
+      orderId,
+      amount: paymentResult.amount,
+      currency: paymentResult.currency,
+      method: 'apple_pay',
+      status: paymentResult.status,
+      transactionId: paymentResult.transactionId,
+      gateway: 'apple_pay',
+      gatewayResponse: paymentResult,
+      processedAt: new Date()
+    });
+
+    res.json({
+      success: true,
+      payment,
+      transactionId: paymentResult.transactionId,
+      message: 'Apple Pay payment processed successfully'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Create Stripe payment intent
+export const createPaymentIntent = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { amount, currency, paymentMethods, purpose } = req.body;
+
+    if (!amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount is required'
+      });
+    }
+
+    const paymentIntent = await StripeService.createPaymentIntent(
+      amount,
+      currency || 'usd',
+      paymentMethods || ['card', 'apple_pay'],
+      {
+        userId: req.userId.toString(),
+        purpose: purpose || 'payment'
+      }
+    );
+
+    res.json({
+      success: true,
+      ...paymentIntent
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Process Stripe payment
+export const processStripePayment = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { paymentIntentId, orderId } = req.body;
+    const userId = req.userId;
+
+    // Create payment record
+    const payment = await Payment.create({
+      userId,
+      orderId,
+      transactionId: paymentIntentId,
+      method: 'stripe',
+      status: 'completed',
+      gateway: 'stripe',
+      processedAt: new Date()
+    });
+
+    res.json({
+      success: true,
+      payment,
+      message: 'Payment processed successfully'
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Apple Pay session creation
+export const createApplePaySession = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { validationURL, domainName } = req.body;
+
+    if (!validationURL || !domainName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation URL and domain name are required'
+      });
+    }
+
+    const session = await ApplePayService.createPaymentSession(validationURL, domainName);
+
+    res.json({
+      success: true,
+      session
+    });
+
+  } catch (error) {
+    next(error);
   }
 };
 

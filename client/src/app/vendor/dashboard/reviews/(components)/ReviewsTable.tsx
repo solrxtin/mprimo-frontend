@@ -117,32 +117,6 @@ const ReviewsTable = (props: Props) => {
           </tbody>
         </table>
       </div>
-
-      {/* Mobile Cards */}
-      <div className="md:hidden space-y-4 p-2">
-        {reviews.map((review) => (
-          <div
-            key={review.itemId}
-            className="bg-white breview rounded-lg p-4 shadow-xl hover:shadow-2xl transition-shadow duration-200"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">{review.itemId}</span>
-            </div>
-            <div className="text-sm text-gray-500 mb-1">
-              <span className="font-medium">Customer:</span> {review.customer}
-            </div>
-            <div className="text-sm text-gray-500 mb-1">
-              <span className="font-medium">Date:</span> {review.date}
-            </div>
-            <div className="text-sm text-gray-500 mb-1">
-              <span className="font-medium">Rate:</span> {review.rate}
-            </div>
-            <div className="text-sm text-gray-500 mb-1">
-              <span className="font-medium">Review:</span> {review.review}
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };

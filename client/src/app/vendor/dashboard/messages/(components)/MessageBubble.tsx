@@ -4,10 +4,11 @@ import { Check, CheckCheck } from "lucide-react";
 
 interface MessageProps {
   message: {
-    id: string;
-    content: string;
-    timestamp: Date;
-    isRead: boolean;
+    _id: string;
+    text: string;
+    createdAt: string;
+    read: boolean;
+    senderId: any;
   };
   isSent: boolean;
 }
@@ -27,11 +28,11 @@ const MessageBubble: React.FC<MessageProps> = ({ message, isSent }) => {
             : 'bg-gray-100 text-gray-800 rounded-tl-none'
         }`}
       >
-        <p className="text-sm">{message.content}</p>
+        <p className="text-sm">{message.text}</p>
         <div className={`flex items-center justify-end gap-1 mt-1 text-xs ${isSent ? 'text-white/80' : 'text-gray-500'}`}>
-          <span>{formatTime(message.timestamp)}</span>
+          <span>{formatTime(new Date(message.createdAt))}</span>
           {isSent && (
-            message.isRead ? (
+            message.read ? (
               <CheckCheck size={14} />
             ) : (
               <Check size={14} />

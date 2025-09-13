@@ -20,6 +20,7 @@ import {
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import ProductImport from "./create-product/(components)/ProductImport";
+import ProductsPageSkeleton from "./ProductsPageSkeleton";
 
 type Props = {};
 
@@ -69,6 +70,7 @@ const ProductsPage = () => {
   useEffect(() => {
     if (vendorProducts) {
       setListedProducts(vendorProducts);
+      setProductList(vendorProducts);
     }
   }, [vendorProducts]);
 
@@ -187,17 +189,7 @@ const ProductsPage = () => {
     setOpenDropdownId(null);
   };
 
-  if (isLoading)
-    return (
-      <div className="flex justify-center items-center bg-white h-screen w-full">
-        <div className="flex gap-x-2 items-center">
-          <div className="animate-spin rounded-full size-10 border-t-2 border-b-2 border-[#002f7a]" />
-          <p className="text-sm text-gray-500">Loading...</p>
-        </div>
-      </div>
-    );
-
-  console.log(productList);
+  if (isLoading) return <ProductsPageSkeleton />;
 
   return (
     <div
@@ -279,14 +271,18 @@ const ProductsPage = () => {
                 router.push("/vendor/dashboard/products/create-product");
               }}
             >
-              <p className="whitespace-nowrap cursor-pointer md:hidden xl:block">Add Product</p>
+              <p className="whitespace-nowrap cursor-pointer md:hidden xl:block">
+                Add Product
+              </p>
               <Plus size={18} />
             </button>
             <button
               className="bg-green-600 text-white px-4 lg:px-6 py-2 md:p-2 lg:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-green-700 transition-colors flex-1 md:flex-none justify-center"
               onClick={() => setShowProductImport(true)}
             >
-              <p className="whitespace-nowrap cursor-pointer md:hidden xl:block">Import</p>
+              <p className="whitespace-nowrap cursor-pointer md:hidden xl:block">
+                Import
+              </p>
               <Upload size={18} />
             </button>
           </div>
@@ -515,19 +511,28 @@ const ProductsPage = () => {
 
                         <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
                           {(() => {
-                            const hasVariants = product.variants && product.variants.length > 0;
-                            
+                            const hasVariants =
+                              product.variants && product.variants.length > 0;
+
                             if (hasVariants) {
-                              const allOptions = product.variants.flatMap((v: any) => v.options);
-                              const totalQuantity = allOptions.reduce((sum: number, o: any) => sum + (o.quantity || 0), 0);
+                              const allOptions = product.variants.flatMap(
+                                (v: any) => v.options
+                              );
+                              const totalQuantity = allOptions.reduce(
+                                (sum: number, o: any) =>
+                                  sum + (o.quantity || 0),
+                                0
+                              );
                               return totalQuantity;
                             }
-                            
+
                             // Fallback to base quantity
                             return product.inventory.listing.type === "instant"
-                              ? product.inventory.listing.instant?.quantity ?? "N/A"
-                              : product.inventory.listing.auction?.quantity ?? "N/A";
-                          })()} 
+                              ? product.inventory.listing.instant?.quantity ??
+                                  "N/A"
+                              : product.inventory.listing.auction?.quantity ??
+                                  "N/A";
+                          })()}
                         </td>
 
                         <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
@@ -583,7 +588,9 @@ const ProductsPage = () => {
                                 <li
                                   className="p-2 hover:bg-gray-100 cursor-pointer flex gap-x-1 items-center"
                                   onClick={() =>
-                                    router.push(`products/${product.slug}`)
+                                    router.push(
+                                      `/vendor/dashboard/products/${product.slug}`
+                                    )
                                   }
                                 >
                                   <Eye size={14} />
@@ -613,7 +620,7 @@ const ProductsPage = () => {
                 {displayedProducts.map((product) => (
                   <div
                     key={product._id}
-                    className="bg-white border rounded-lg p-4 shadow-sm"
+                    className="bg-white border border-gray-300 rounded-lg p-4 shadow-md"
                   >
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium">{product.name}</span>
@@ -626,85 +633,128 @@ const ProductsPage = () => {
                           product.status.slice(1)}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500 mb-1">
-                      <span className="font-medium">Date:</span>{" "}
-                      {product?.createdAt
-                        ? new Date(product.createdAt).toLocaleDateString(
-                            "en-GB",
-                            {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
+                    <div className="divide-y divide-gray-200 rounded-md overflow-hidden">
+                      {[
+                        {
+                          label: "Date",
+                          value: product?.createdAt
+                            ? new Date(product.createdAt).toLocaleDateString(
+                                "en-GB",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                }
+                              )
+                            : "N/A",
+                        },
+                        {
+                          label: "Category",
+                          value:
+                            Array.isArray(product?.category?.sub) &&
+                            product.category.sub.length > 0
+                              ? typeof product.category.sub[
+                                  product.category.sub.length - 1
+                                ] !== "string"
+                                ? (
+                                    product.category.sub[
+                                      product.category.sub.length - 1
+                                    ] as {
+                                      name: string;
+                                    }
+                                  )?.name
+                                : ""
+                              : typeof product.category.main !== "string"
+                              ? (product.category.main as { name: string })
+                                  ?.name
+                              : "",
+                        },
+                        {
+                          label: "Price",
+                          value: (() => {
+                            const hasVariants =
+                              product.variants && product.variants.length > 0;
+
+                            if (hasVariants) {
+                              const allOptions = product.variants.flatMap(
+                                (v: any) => v.options
+                              );
+                              const prices = allOptions
+                                .map((o: any) => o.price)
+                                .filter((p) => p > 0);
+
+                              if (prices.length === 0) return "N/A";
+
+                              const minPrice = Math.min(...prices);
+                              const maxPrice = Math.max(...prices);
+                              const currency =
+                                typeof product.country !== "string"
+                                  ? product.country.currency
+                                  : "";
+
+                              return `${currency} ${
+                                minPrice === maxPrice
+                                  ? minPrice
+                                  : `${minPrice} - ${maxPrice}`
+                              }`;
                             }
-                          )
-                        : "N/A"}
-                    </div>
-                    <div className="text-xs text-gray-500 mb-1">
-                      <span className="font-medium">Category:</span>{" "}
-                      {Array.isArray(product?.category?.sub) &&
-                      product.category.sub.length > 0
-                        ? typeof product.category.sub[
-                            product.category.sub.length - 1
-                          ] !== "string"
-                          ? (
-                              product.category.sub[
-                                product.category.sub.length - 1
-                              ] as { name: string }
-                            )?.name
-                          : ""
-                        : typeof product.category.main !== "string"
-                        ? (product.category.main as { name: string })?.name
-                        : ""}
-                    </div>
-                    <div className="text-xs text-gray-500 mb-1">
-                      <span className="font-medium">Price:</span>{" "}
-                      {(() => {
-                        const hasVariants = product.variants && product.variants.length > 0;
-                        
-                        if (hasVariants) {
-                          const allOptions = product.variants.flatMap((v: any) => v.options);
-                          const prices = allOptions.map((o: any) => o.price).filter(p => p > 0);
-                          
-                          if (prices.length === 0) return "N/A";
-                          
-                          const minPrice = Math.min(...prices);
-                          const maxPrice = Math.max(...prices);
-                          const currency = typeof product.country !== "string" ? product.country.currency : "";
-                          
-                          return `${currency} ${minPrice === maxPrice ? minPrice : `${minPrice} - ${maxPrice}`}`;
-                        }
-                        
-                        // Fallback to base pricing
-                        if (product.inventory.listing.type === "instant") {
-                          const currency = typeof product.country !== "string" ? product.country.currency : "";
-                          return `${currency} ${product.inventory.listing.instant?.price ?? "N/A"}`;
-                        }
-                        
-                        return "N/A";
-                      })()} 
-                    </div>
-                    <div className="text-xs text-gray-500 mb-1">
-                      <span className="font-medium">Stock:</span>{" "}
-                      {(() => {
-                        const hasVariants = product.variants && product.variants.length > 0;
-                        
-                        if (hasVariants) {
-                          const allOptions = product.variants.flatMap((v: any) => v.options);
-                          return allOptions.reduce((sum: number, o: any) => sum + (o.quantity || 0), 0);
-                        }
-                        
-                        // Fallback to base quantity
-                        return product.inventory.listing.type === "instant"
-                          ? product.inventory.listing.instant?.quantity ?? "N/A"
-                          : product.inventory.listing.auction?.quantity ?? "N/A";
-                      })()} 
-                    </div>
-                    <div className="flex justify-between items-center">
-                      {product.inventory.listing.type === "instant" && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">
-                            Accept Offer:
+
+                            if (product.inventory.listing.type === "instant") {
+                              const currency =
+                                typeof product.country !== "string"
+                                  ? product.country.currency
+                                  : "";
+                              return `${currency} ${
+                                product.inventory.listing.instant?.price ??
+                                "N/A"
+                              }`;
+                            }
+
+                            return "N/A";
+                          })(),
+                        },
+                        {
+                          label: "Stock",
+                          value: (() => {
+                            const hasVariants =
+                              product.variants && product.variants.length > 0;
+
+                            if (hasVariants) {
+                              const allOptions = product.variants.flatMap(
+                                (v: any) => v.options
+                              );
+                              return allOptions.reduce(
+                                (sum: number, o: any) =>
+                                  sum + (o.quantity || 0),
+                                0
+                              );
+                            }
+
+                            return product.inventory.listing.type === "instant"
+                              ? product.inventory.listing.instant?.quantity ??
+                                  "N/A"
+                              : product.inventory.listing.auction?.quantity ??
+                                  "N/A";
+                          })(),
+                        },
+                      ].map((item, index) => (
+                        <div
+                          key={item.label}
+                          className={`flex justify-between items-center px-2 py-2 text-xs ${
+                            index % 2 === 0 ? "bg-gray-50" : "bg-white"
+                          } text-gray-500`}
+                        >
+                          <span className="font-medium">{item.label}:</span>
+                          <span className="text-right text-gray-700">
+                            {item.value}
                           </span>
+                        </div>
+                      ))}
+
+                      {/* Accept Offer Toggle */}
+                      {product.inventory.listing.type === "instant" && (
+                        <div className="flex justify-between items-center px-2 py-2 text-xs bg-white text-gray-500">
+                          <span className="font-medium">Accept Offer:</span>
                           <div
                             className={`w-8 h-4 rounded-full flex items-center cursor-pointer ${
                               product.inventory.listing.instant?.acceptOffer
@@ -719,7 +769,14 @@ const ProductsPage = () => {
                       )}
                     </div>
                     <div className="mt-2">
-                      <button className="bg-primary text-white px-3 py-2 rounded-md text-sm">
+                      <button
+                        className="bg-primary text-white px-3 py-2 rounded-md text-sm"
+                        onClick={() =>
+                          router.push(
+                            `/vendor/dashboard/products/${product.slug}`
+                          )
+                        }
+                      >
                         View Detail
                       </button>
                     </div>
@@ -884,9 +941,7 @@ const ProductsPage = () => {
                     className="bg-green-600 text-white px-4 md:px-6 py-2 md:py-3 rounded-md flex gap-x-2 items-center cursor-pointer hover:bg-green-700 transition-all duration-300 transform hover:scale-[1.03] flex-1 md:flex-none justify-center"
                     onClick={() => setShowProductImport(true)}
                   >
-                    <p className="whitespace-nowrap cursor-pointer">
-                      Import
-                    </p>
+                    <p className="whitespace-nowrap cursor-pointer">Import</p>
                     <Upload size={18} />
                   </button>
                 </div>
@@ -900,7 +955,7 @@ const ProductsPage = () => {
             )}
           </>
         )}
-        
+
         {showProductImport && (
           <ProductImport onClose={() => setShowProductImport(false)} />
         )}

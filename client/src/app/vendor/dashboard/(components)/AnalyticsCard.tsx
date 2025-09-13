@@ -1,15 +1,22 @@
+import { getCurrencySymbol } from "@/utils/currency";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import React from "react";
 
 type Props = {
   title: string;
-  amount?: number;
   value?: number;
-  percentageIncrease: number;
+  amount?: number;
+  percentageIncrease?: {
+    changeAmount: number;
+    changePercent: number;
+    currency?: string;
+    previousAmount?: number;
+  };
+  currency?: string;
+  period?: string;
 };
 
 const AnalyticsCard = (props: Props) => {
-  const isIncrease = props.percentageIncrease > 0;
   return (
     <div className="bg-white p-8 md:p-6 rounded-lg shadow-sm w-full">
       <div className="flex justify-between items-center mb-4 md:mb-8">
@@ -33,54 +40,36 @@ const AnalyticsCard = (props: Props) => {
           />
         </svg>
       </div>
-      {props.title === "Sales Total" ? (
-        <div className="flex flex-col gap-y-2">
-          {props?.amount && (
-            <p className="font-[family-name:var(--font-alexandria)] text-[#211f1f] text-xl md:text-2xl lg:text-3xl truncate">
-              {props?.amount > 1000000
-                ? `£${(props?.amount / 1000000).toFixed(1)}M`
-                : props?.amount!.toLocaleString("en-US", {
-                    style: "currency",
-                    currency: "GBP",
-                  })}
-            </p>
-          )}
+      <div className="flex flex-col gap-y-2">
+        <p className="font-[family-name:var(--font-alexandria)] text-[#211f1f] text-3xl">
+          {props.currency && props.amount
+            ? `${getCurrencySymbol(props.currency)} ${props.amount}`
+            : props.value || 0}
+        </p>
+        {props.percentageIncrease && (
           <div className="flex gap-x-2 items-center">
-            <div
-              className={`font-[family-name:var(--font-poppins)] text-[#211f1f] px-2 py-1 rounded-full flex items-center ${
-                isIncrease ? "bg-[#a8ffdc]" : "bg-red-100"
-              }`}
-            >
-              {isIncrease ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-              <div className="text-xs ml-1">{props.percentageIncrease}%</div>
+          <div
+            className={`font-[family-name:var(--font-poppins)] text-[#211f1f] px-2 py-1 rounded-full flex items-center ${
+              (props.percentageIncrease?.changePercent || 0) >= 0
+                ? "bg-[#a8ffdc]"
+                : "bg-red-100"
+            }`}
+          >
+            {(props.percentageIncrease?.changePercent || 0) >= 0 ? (
+              <ArrowUp size={12} />
+            ) : (
+              <ArrowDown size={12} />
+            )}
+            <div className="text-xs ml-1">
+              {props.percentageIncrease?.changePercent || 0}%
             </div>
-            <p className="text-black text-xs font-[family-name:var(--font-poppins)]">
-              From this week
-            </p>
           </div>
+          <p className="text-black text-xs font-[family-name:var(--font-poppins)]">
+            {props.period ? `${props.period}` : "Since last month"}
+          </p>
         </div>
-      ) : (
-        <div className="flex flex-col gap-y-2">
-          {props.value && (
-            <p className="font-[family-name:var(--font-alexandria)] text-[#211f1f] text-3xl">
-              {props?.value}
-            </p>
-          )}
-          <div className="flex gap-x-2 items-center">
-            <div
-              className={`font-[family-name:var(--font-poppins)] text-[#211f1f] px-2 py-1 rounded-full flex items-center ${
-                isIncrease ? "bg-[#a8ffdc]" : "bg-red-100"
-              }`}
-            >
-              {isIncrease ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-              <div className="text-xs ml-1">{props.percentageIncrease}%</div>
-            </div>
-            <p className="text-black text-xs font-[family-name:var(--font-poppins)]">
-              From this week
-            </p>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

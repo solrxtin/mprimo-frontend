@@ -67,6 +67,11 @@ export const validateProductData = async (productData: any) => {
       if (endDate <= startDate) {
         throw new Error("Auction end time must be after start time");
       }
+
+      const minDurationMs = 24 * 60 * 60 * 1000; // 24 hours
+      if (endDate.getTime() - startDate.getTime() < minDurationMs) {
+        throw new Error("Auction duration must be at least 24 hours");
+      }
     } else {
       throw new Error("Invalid listing type");
     }
@@ -209,9 +214,7 @@ export const validateProductData = async (productData: any) => {
 
           // Validate required SKU
           if (!option.sku || option.sku.trim() === "") {
-            throw new Error(
-              `Option SKU is required for ${option.value}`
-            );
+            throw new Error(`Option SKU is required for ${option.value}`);
           }
         }
       }

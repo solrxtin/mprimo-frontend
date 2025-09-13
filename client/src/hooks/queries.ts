@@ -93,13 +93,31 @@ export const useFetchProductBySlug = (slug: string) => {
   });
 };
 
+const fetchProductById = async (productId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/${productId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch product');
+  }
+  const data = await response.json();
+  console.log("Product data:", data);
+  return data;
+};
+
+export const useFetchProductById = (productId: string) => {
+  return useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => fetchProductById(productId),
+    enabled: !!productId,
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
+};
+
 const fetchProductAnalytics = async (
-  entityType: string,
   entityId: string,
-  timeframe = "daily"
 ) => {
   const response = await fetchWithAuth(
-    `http://localhost:5800/api/v1/analytics/${entityType}/${entityId}?timeframe=${timeframe}`
+    `http://localhost:5800/api/v1/products/${entityId}/performance`
   );
   if (!response.ok) {
     throw new Error("Failed to fetch product analytics");
@@ -111,11 +129,10 @@ const fetchProductAnalytics = async (
 
 export const useFetchProductAnalytics = (
   entityId: string,
-  timeframe = "daily"
 ) => {
   return useQuery({
-    queryKey: ["product-analytics", entityId, timeframe],
-    queryFn: () => fetchProductAnalytics("product", entityId, timeframe),
+    queryKey: ["product-perfomance", entityId],
+    queryFn: () => fetchProductAnalytics(entityId),
     enabled: !!entityId,
     refetchOnWindowFocus: false,
     retry: 1,
@@ -129,7 +146,6 @@ const fetchVendorProducts = async (vendorId: string) => {
     throw new Error('Failed to fetch user subscriptions');
   }
   const data = await response.json();
-  console.log("Vendor products:", data);
   return data.products;
 };
 
@@ -149,14 +165,13 @@ const fetchVendorAnalytics= async (vendorId: string, range="7days") => {
     throw new Error('Failed to fetch user subscriptions');
   }
   const data = await response.json();
-  console.log("Vendor analytics:", data);
   return data;
 };
 
-export const useVendorAnalytics= (vendorId: string) => {
+export const useVendorAnalytics= (vendorId: string, range?: string) => {
   return useQuery({
-    queryKey: ['vendorAnalytics', vendorId],
-    queryFn: () => fetchVendorAnalytics(vendorId),
+    queryKey: ['vendorAnalytics', vendorId, range],
+    queryFn: () => fetchVendorAnalytics(vendorId, range),
     enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
     refetchOnWindowFocus: false,
     retry: 1,
@@ -198,6 +213,118 @@ export const useVendorOrders = (vendorId: string) => {
     retry: 1,
   });
 };
+
+const fetchOrderById = async (orderId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/orders/${orderId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch order');
+  }
+  const data = await response.json();
+  return data.order;
+};
+
+export const useOrderById = (orderId: string) => {
+  return useQuery({
+    queryKey: ['order', orderId],
+    queryFn: () => fetchOrderById(orderId),
+    enabled: !!orderId,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+// Chat queries
+const fetchChats = async () => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/messages/chats');
+  if (!response.ok) {
+    throw new Error('Failed to fetch chats');
+  }
+  return response.json();
+};
+
+export const useChats = () => {
+  return useQuery({
+    queryKey: ['chats'],
+    queryFn: fetchChats,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+const fetchMessages = async (chatId: string, page = 1, limit = 20) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/messages/chat/${chatId}/messages?page=${page}&limit=${limit}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch messages');
+  }
+  return response.json();
+};
+
+export const useMessages = (chatId: string, page = 1) => {
+  return useQuery({
+    queryKey: ['messages', chatId, page],
+    queryFn: () => fetchMessages(chatId, page),
+    enabled: !!chatId,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+// Review queries
+const fetchVendorReviewAnalytics = async (vendorId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/reviews/vendor/${vendorId}/analytics`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch vendor review analytics');
+  }
+  return response.json();
+};
+
+export const useVendorReviewAnalytics = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendorReviewAnalytics', vendorId],
+    queryFn: () => fetchVendorReviewAnalytics(vendorId),
+    enabled: !!vendorId,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+const fetchVendorReviews = async (vendorId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/reviews/vendor/${vendorId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch vendor reviews');
+  }
+  return response.json();
+};
+
+export const useVendorReviews = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendorReviews', vendorId],
+    queryFn: () => fetchVendorReviews(vendorId),
+    enabled: !!vendorId,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+const fetchVendorOrderMetrics = async (vendorId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/orders/${vendorId}/metrics`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch vendor reviews');
+  }
+  return response.json();
+};
+
+export const useFetchVendorOrderMetrics = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendorOrderMetrics', vendorId],
+    queryFn: () => fetchVendorOrderMetrics(vendorId),
+    enabled: !!vendorId,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+
 
 export const fetchAProducts = async (slug:string) => {
   const response = await fetchWithAuth(`${AProductBySlug}${slug}`);

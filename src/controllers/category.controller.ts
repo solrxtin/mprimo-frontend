@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { CategoryService } from "../services/category.service";
+import CategoryModel from "../models/category.model";
 /**
  * Validates category data before creation or update
  * @param data Category data to validate
@@ -281,31 +282,41 @@ export class CategoryController {
   }
 
   static async getAllCategories(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      // const page = parseInt(req.query.page as string) || 1;
-      // const limit = parseInt(req.query.limit as string) || 50;
-      // const filter = req.query.filter
-      //   ? JSON.parse(req.query.filter as string)
-      //   : {};
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const filter = req.query.filter
+      ? JSON.parse(req.query.filter as string)
+      : {};
 
-      const { categories } = await CategoryService.getAllCategories();
-      res.json({
-        categories,
-        // pagination: {
-        //   total,
-        //   totalPages,
-        //   currentPage: page,
-        //   limit,
-        // },
-      });
-    } catch (error) {
-      next(error);
-    }
+    const skip = (page - 1) * limit;
+
+    const [categories, total] = await Promise.all([
+      CategoryModel.find(filter).skip(skip).limit(limit),
+      CategoryModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      success: true,
+      message: "Categories fetched successfully",
+      categories,
+      pagination: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
+    });
+  } catch (error) {
+    next(error);
   }
+}
 
   static async getCombinedAttributes(
     req: Request,

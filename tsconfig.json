@@ -14,5 +14,5 @@
     ]
   },
   "include": ["src/**/*"],
-  "exclude": ["server/node_modules"]
+  "exclude": ["server/node_modules", "src/**/*.test.ts", "src/__tests__/**/*", "src/tests/**/*", "src/config/storage.config.ts", "src/routes/product-import.routes.ts", "src/routes/vendor-metrics.routes.ts", "src/types/file.type.ts"]
 }

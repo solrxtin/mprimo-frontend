@@ -14,7 +14,6 @@ export interface ICart {
   lastUpdated: Date;
 }
 
-
 export interface IUser extends Document {
   _id: Types.ObjectId;
   _doc: Document;
@@ -50,8 +49,14 @@ export interface IUser extends Document {
   preferences: {
     language?: string;
     currency?: string;
-    notifications?: {
-      email?: boolean;
+    notifications: {
+      email: {
+        stockAlert: boolean;
+        orderStatus: boolean;
+        pendingReviews: boolean;
+        paymentUpdates: boolean;
+        newsletter: boolean;
+      };
       push?: boolean;
       sms?: boolean;
     };
@@ -81,5 +86,42 @@ export interface IUser extends Document {
         used: boolean;
       }
     ];
+  };
+  adminRole?: string;
+  permissions?: string[];
+  paymentInformation?: {
+    defaultGateway?: "stripe" | "paystack" | "flutterwave";
+    cards?: Array<{
+      gateway: "stripe" | "paystack" | "flutterwave";
+      last4?: string;
+      brand?: string;
+      expMonth?: number;
+      expYear?: number;
+      cardHolderName?: string;
+      country?: string;
+      isDefault?: boolean;
+      addedAt?: Date;
+      metadata?: {
+        stripe?: {
+          customerId?: string;
+          cardId?: string;
+          fingerprint?: string;
+        };
+        paystack?: {
+          authorizationCode?: string;
+          bin?: string;
+          bank?: string;
+          cardType?: string;
+          reusable?: boolean;
+        };
+        flutterwave?: {
+          token?: string;
+          cardType?: string;
+          issuingBank?: string;
+          bin?: string;
+        };
+      };
+      billingAddressId?: Types.ObjectId;
+    }>;
   };
 }

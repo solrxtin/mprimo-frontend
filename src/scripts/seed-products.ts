@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import axios from "axios";
 import cloudinary from "cloudinary";
 import Product from "../models/product.model";
-import CategoryModel from "../models/category.model";
+import CategoryModel, { ICategory } from "../models/category.model";
 import Vendor from "../models/vendor.model";
 import Country from "../models/country.model";
 import { LoggerService } from "../services/logger.service";
@@ -465,43 +465,124 @@ async function seedProducts() {
           const template =
             templates[Math.floor(Math.random() * templates.length)];
 
-          // Find matching category
-          let category;
+          // Find matching category with proper parent-child relationship
+          let category: any = null;
+          let subCategories: any[] = [];
+          
           switch (categoryType) {
             case "electronics":
-              category = categories.find(
-                (c) =>
-                  c.name.includes("Electronics") ||
-                  c.name.includes("Cell Phones") ||
-                  c.name.includes("Computers")
-              );
+              // Find main Electronics category
+              const electronicsMain = categories.find(c => c.name === "Electronics" && !c.parent);
+              if (electronicsMain) {
+                // Find subcategories under Electronics
+                const electronicsSubcats = categories.filter(c => 
+                  c.parent && c.parent.toString() === electronicsMain._id.toString()
+                );
+                if (electronicsSubcats.length > 0) {
+                  category = electronicsSubcats[Math.floor(Math.random() * electronicsSubcats.length)];
+                  // Find deeper subcategories if available
+                  const deeperSubs = categories.filter(c => 
+                    c.parent && c.parent.toString() === category._id.toString()
+                  );
+                  if (deeperSubs.length > 0) {
+                    subCategories = [category._id];
+                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
+                  }
+                } else {
+                  category = electronicsMain;
+                }
+              }
               break;
             case "clothing":
-              category = categories.find(
-                (c) => c.name.includes("Clothing") || c.name.includes("Shoes")
-              );
+              const clothingMain = categories.find(c => c.name.includes("Clothing") && !c.parent);
+              if (clothingMain) {
+                const clothingSubcats = categories.filter(c => 
+                  c.parent && c.parent.toString() === clothingMain._id.toString()
+                );
+                if (clothingSubcats.length > 0) {
+                  category = clothingSubcats[Math.floor(Math.random() * clothingSubcats.length)];
+                  const deeperSubs = categories.filter(c => 
+                    c.parent && c.parent.toString() === category?._id.toString()
+                  );
+                  if (deeperSubs.length > 0) {
+                    subCategories = [category._id];
+                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
+                  }
+                } else {
+                  category = clothingMain;
+                }
+              }
               break;
             case "homeGarden":
-              category = categories.find(
-                (c) =>
-                  c.name.includes("Home") ||
-                  c.name.includes("Kitchen") ||
-                  c.name.includes("Furniture")
-              );
+              const homeMain = categories.find(c => c.name === "Home & Garden" && !c.parent);
+              if (homeMain) {
+                const homeSubcats = categories.filter(c => 
+                  c.parent && c.parent.toString() === homeMain._id.toString()
+                );
+                if (homeSubcats.length > 0) {
+                  category = homeSubcats[Math.floor(Math.random() * homeSubcats.length)];
+                  const deeperSubs = categories.filter(c => 
+                    c.parent && c.parent.toString() === category._id.toString()
+                  );
+                  if (deeperSubs.length > 0) {
+                    subCategories = [category._id];
+                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
+                  }
+                } else {
+                  category = homeMain;
+                }
+              }
               break;
             case "automotive":
-              category = categories.find((c) => c.name.includes("Automotive"));
+              const autoMain = categories.find(c => c.name === "Automotive" && !c.parent);
+              if (autoMain) {
+                const autoSubcats = categories.filter(c => 
+                  c.parent && c.parent.toString() === autoMain._id.toString()
+                );
+                if (autoSubcats.length > 0) {
+                  category = autoSubcats[Math.floor(Math.random() * autoSubcats.length)];
+                  const deeperSubs = categories.filter(c => 
+                    c.parent && c.parent.toString() === category._id.toString()
+                  );
+                  if (deeperSubs.length > 0) {
+                    subCategories = [category._id];
+                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
+                  }
+                } else {
+                  category = autoMain;
+                }
+              }
               break;
             case "collectibles":
-              category = categories.find((c) =>
-                c.name.includes("Collectibles")
-              );
+              const collectiblesMain = categories.find(c => c.name.includes("Collectibles") && !c.parent);
+              if (collectiblesMain) {
+                const collectiblesSubcats = categories.filter(c => 
+                  c.parent && c.parent.toString() === collectiblesMain._id.toString()
+                );
+                if (collectiblesSubcats.length > 0) {
+                  category = collectiblesSubcats[Math.floor(Math.random() * collectiblesSubcats.length)];
+                  const deeperSubs = categories.filter(c => 
+                    c.parent && c.parent.toString() === category._id.toString()
+                  );
+                  if (deeperSubs.length > 0) {
+                    subCategories = [category._id];
+                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
+                  }
+                } else {
+                  category = collectiblesMain;
+                }
+              }
               break;
           }
 
+          // Fallback to random category if no match found
           if (!category) {
-            category =
-              categories[Math.floor(Math.random() * categories.length)];
+            const mainCategories = categories.filter(c => !c.parent);
+            const mainCategory = mainCategories[Math.floor(Math.random() * mainCategories.length)];
+            const subCats = categories.filter(c => 
+              c.parent && c.parent.toString() === mainCategory._id.toString()
+            );
+            category = subCats.length > 0 ? subCats[Math.floor(Math.random() * subCats.length)] : mainCategory;
           }
 
           // Create more dynamic product names with better variation
@@ -633,8 +714,8 @@ async function seedProducts() {
                 ? "Gently used, excellent working condition"
                 : undefined,
             category: {
-              main: category._id,
-              sub: [],
+              main: category.parent || category._id,
+              sub: category.parent ? [category._id, ...subCategories] : subCategories,
               path: category.path || [category.name],
             },
             country: vendorCountry._id,
@@ -783,53 +864,6 @@ async function seedProducts() {
     }
 
     console.log(`✅ Successfully seeded ${productCount} products`);
-
-    // Add some reviews to random products
-    const products = await Product.find().limit(50);
-    const sampleReviews = [
-      {
-        rating: 5,
-        comment: "Excellent product! Exactly as described and fast shipping.",
-      },
-      { rating: 4, comment: "Good quality, would recommend to others." },
-      { rating: 5, comment: "Amazing! Better than expected." },
-      { rating: 3, comment: "Decent product, but could be better." },
-      { rating: 4, comment: "Good value for money." },
-      { rating: 5, comment: "Perfect! Will buy again." },
-    ];
-
-    for (const product of products) {
-      if (Math.random() > 0.6) {
-        // 40% chance of having reviews
-        const numReviews = Math.floor(Math.random() * 3) + 1;
-        const reviewerVendors = vendors.slice(0, numReviews);
-
-        for (let i = 0; i < numReviews; i++) {
-          const review =
-            sampleReviews[Math.floor(Math.random() * sampleReviews.length)];
-          product.reviews.push({
-            userId: reviewerVendors[i].userId,
-            rating: review.rating,
-            comment: review.comment,
-            createdAt: new Date(
-              Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
-            ), // Random date within last 30 days
-          });
-        }
-
-        // Calculate average rating
-        const totalRating = product.reviews.reduce(
-          (sum, review) => sum + review.rating,
-          0
-        );
-        product.rating =
-          Math.round((totalRating / product.reviews.length) * 10) / 10;
-
-        await product.save();
-      }
-    }
-
-    console.log("✅ Added reviews to products");
     process.exit(0);
   } catch (error) {
     console.error("Error seeding products:", error);

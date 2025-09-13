@@ -3,7 +3,7 @@ import helmet from "helmet";
 import { createServer } from "http";
 import cookieParser from "cookie-parser";
 import mongoSanitize from "express-mongo-sanitize";
-import xss from "xss-clean";
+// import xss from "xss-clean";
 import passport from "passport";
 import session from "express-session";
 
@@ -23,8 +23,22 @@ import auditLogRoutes from "./routes/audit-log.routes";
 import twoFactorRoutes from "./routes/two-factor.routes";
 import walletRoutes from "./routes/wallet.route";
 import adminRoutes from "./routes/admin.routes";
-import dashboardRoutes from "./routes/dashboard.routes"
+import dashboardRoutes from "./routes/dashboard.routes";
 import messageRoutes from "./routes/message.routes";
+import reviewsRoutes from "./routes/review.routes";
+import webhookRoutes from './routes/webhook.routes';
+import vendorRoutes from "./routes/vendor.routes";
+import userRoutes from "./routes/user.route";
+import paymentRoutes from "./routes/payment.routes";
+import subscriptionRoutes from "./routes/subscription.routes";
+import issueRoutes from "./routes/issue.routes";
+import refundRoutes from "./routes/refund.routes";
+import vendorPayoutRoutes from "./routes/vendor-payout.routes";
+import disputeChatRoutes from "./routes/dispute-chat.routes";
+import bannerRoutes from "./routes/banner.routes";
+import checkoutRoutes from "./routes/checkout.routes";
+
+
 import { requestLogger } from "./middlewares/request-logger.middleware";
 import { errorLogger } from "./middlewares/error-logger.middleware";
 import { LoggerService } from "./services/logger.service";
@@ -40,13 +54,38 @@ const app = express();
 const httpServer = createServer(app);
 
 const logger = LoggerService.getInstance();
-const swaggerDoc = require("./swagger-output.json");
+let swaggerDoc: any = {};
+try {
+  swaggerDoc = require("../swagger-output.json");
+  console.log("Swagger doc loaded, paths count:", Object.keys(swaggerDoc.paths || {}).length);
+  // Update host for production
+  if (swaggerDoc) {
+    swaggerDoc.host = "mprimo.up.railway.app";
+    swaggerDoc.schemes = ["https"];
+  }
+} catch (error) {
+  console.error("Swagger documentation not found:", error);
+  swaggerDoc = {
+    swagger: "2.0",
+    info: {
+      title: "Mprimo API",
+      version: "1.0.0",
+      description: "Mprimo e-commerce platform API"
+    },
+    host: "mprimo.up.railway.app",
+    basePath: "/api/v1",
+    schemes: ["https"],
+    paths: {}
+  };
+}
 
 // Initialize Socket.IO
 const socketService = new SocketService(httpServer);
 
 // Apply CORS middleware before other middleware
 app.use(corsMiddleware);
+// Webhooks must be before express.json middleware
+app.use('/api/v1/webhooks', webhookRoutes);
 app.use(helmet());
 // app.use(
 //   mongoSanitize({
@@ -56,7 +95,7 @@ app.use(helmet());
 //     replaceWith: "_", // Prevents modifying req.query directly
 //   })
 // );//Sanitize NoSQL Injection
-// app.use(xss()); //XSS protection
+// app.use(xss()); //XSS protection - package not installed
 // app.set('trust proxy', true); // tells Express to trust x-forwarded-for from your proxy (not the open internet)
 // Other middleware and routes
 app.use(express.json({ limit: "10mb" }));
@@ -105,6 +144,12 @@ export {tokenWatcher}
 
 app.use(setPreferencesMiddleware);
 
+// Add debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
 app.use("/api/v1/push", pushNotificationRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/categories", categoryRoutes);
@@ -118,8 +163,50 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/messages", messageRoutes);
+app.use("/api/v1/reviews", reviewsRoutes);
+app.use("/api/v1/vendor", vendorRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/payments", paymentRoutes);
+app.use("/api/v1/subscriptions", subscriptionRoutes);
+app.use("/api/v1/issues", issueRoutes);
+app.use("/api/v1/refunds", refundRoutes);
+app.use("/api/v1/vendor-payouts", vendorPayoutRoutes);
+app.use("/api/v1/dispute-chat", disputeChatRoutes);
+app.use("/api/v1/banners", bannerRoutes);
+app.use("/api/v1/checkout", checkoutRoutes);
+
 
 app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to see if it's up
+
+// Debug routes
+app.get("/api/v1/test", (req, res) => {res.json({message: "API v1 working"})});
+app.get("/api/v1/products/test", (req, res) => {res.json({message: "Products route working"})});
+
+// Debug swagger file existence
+app.get("/api/v1/debug/swagger", (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  const swaggerPath = path.join(__dirname, '../swagger-output.json');
+  const exists = fs.existsSync(swaggerPath);
+  
+  let fileContent = null;
+  if (exists) {
+    try {
+      fileContent = JSON.parse(fs.readFileSync(swaggerPath, 'utf8'));
+    } catch (error: any) {
+      fileContent = { error: error.message };
+    }
+  }
+  
+  res.json({
+    swaggerFileExists: exists,
+    swaggerPath,
+    currentDir: __dirname,
+    pathsCount: fileContent?.paths ? Object.keys(fileContent.paths).length : 0,
+    fileContent: exists ? 'File exists' : 'File not found'
+  });
+});
 
 // Serve Swagger UI
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));

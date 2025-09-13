@@ -18,6 +18,26 @@ const vendorSchema = new mongoose.Schema<IVendor>(
       enum: ["pending", "verified", "rejected"],
       default: "pending",
     },
+    verificationDocuments: [
+      {
+        name: { type: String, required: true },
+        type: {
+          type: String,
+          enum: ["ID", "Proof of Address", "Business Registration", "Tax Document"],
+          required: true,
+        },
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        verifiedAt: Date,
+        verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        status: {
+          type: String,
+          enum: ["pending", "verified", "rejected"],
+          default: "pending",
+        },
+        remarks: String,
+      },
+    ],
     businessInfo: {
       name: {
         type: String,
@@ -142,6 +162,75 @@ const vendorSchema = new mongoose.Schema<IVendor>(
           },
         },
       ],
+    },
+    subscription: {
+      currentPlan: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "SubscriptionPlan",
+      },
+      isTrial: { type: Boolean, default: true },
+      startDate: { type: Date, default: Date.now },
+      endDate: Date,
+      autoDowngradeAt: Date,
+      status: {
+        type: String,
+        enum: ["active", "expired", "cancelled"],
+        default: "active",
+      },
+    },
+    wallet: {
+      balance: { type: Number, default: 0 },
+      pending: { type: Number, default: 0 },
+      transactions: [
+        {
+          type: {
+            type: String,
+            enum: ["credit", "debit"],
+          },
+          isTopUp: {
+            type: Boolean,
+            default: false,
+          },
+          amount: Number,
+          description: String,
+          date: { type: Date, default: Date.now },
+          relatedOrder: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
+        },
+      ],
+    },
+    warnings: [
+      {
+        type: {
+          type: String,
+          enum: [
+            "Product Quality Issues",
+            "Late Shipping",
+            "Policy Violation",
+            "Customer Complaint",
+            "Others",
+          ],
+          required: true,
+        },
+        message: {
+          type: String,
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    suspension: {
+      type: {
+        reason: { type: String, required: true },
+        explanation: { type: String, required: true },
+        suspendedAt: { type: Date, default: Date.now },
+        resumesAt: { type: Date },
+        enforcedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      },
+      required: false,
+      default: undefined,
     },
   },
   {

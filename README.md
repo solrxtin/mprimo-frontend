@@ -52,12 +52,12 @@
  
 ## 5. Vendor Management
 - [ ✔ ] Create vendor registration and verification
-- [ ] Implement vendor dashboard APIs
+- [ ✔ ] Implement vendor dashboard APIs
 - [ ✔ ] Set up inventory management
 - [ ✔ ] Create vendor analytics
 - [ ✔ ] Implement vendor payment processing
 - [ ✔ ] Set up vendor rating system
-- [ ] Create vendor communication system
+- [ ✔ ] Create vendor communication system
 
 ## 6. Order Management
 - [ ] Implement order creation and processing
@@ -180,3 +180,12 @@
 
 <!-- Google Authorized Redirect URI - http://localhost:5173/auth/google/callback -->
 <!-- Used upstash, might have to pay for more usage -->
+
+
+Allowed documents and limits
+
+Images: JPEG, PNG, GIF (5MB limit)
+
+Videos: MP4, MOV, AVI (50MB limit)
+
+Documents: PDF, DOC, DOCX, XLS, XLSX, TXT (10MB limit)

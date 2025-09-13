@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import {IUser} from "../types/user.type"
+import { ROLE_PERMISSIONS } from "../constants/roles.config";
 
 const userSchema = new mongoose.Schema<IUser>(
   {
@@ -171,13 +172,78 @@ const userSchema = new mongoose.Schema<IUser>(
         default: "USD",
       },
       notifications: {
-        email: { type: Boolean, default: true },
+        email: {
+          stockAlert: {
+            type: Boolean,
+            default: true,
+          },
+          orderStatus: {
+            type: Boolean,
+            default: true
+          },
+          pendingReviews: {
+            type: Boolean,
+            default: true
+          },
+          paymentUpdates: {
+            type: Boolean,
+            default: true
+          },
+          newsletter: {
+            type: Boolean,
+            default: true
+          }
+        },
         push: { type: Boolean, default: true },
         sms: { type: Boolean, default: false },
       },
       marketing: { type: Boolean, default: false },
     },
-    
+    paymentInformation: {
+      defaultGateway: {
+        type: String,
+        enum: ['stripe', 'paystack', 'flutterwave'],
+        default: 'stripe'
+      },
+      cards: [{
+        gateway: {
+          type: String,
+          enum: ['stripe', 'paystack', 'flutterwave'],
+          default: 'stripe'
+        },
+        last4: String,
+        brand: String,
+        expMonth: Number,
+        expYear: Number,
+        cardHolderName: String,
+        country: String,
+        isDefault: Boolean,
+        addedAt: Date,
+        metadata: {
+          stripe: {
+            customerId: String,
+            cardId: String,
+            fingerprint: String
+          },
+          paystack: {
+            authorizationCode: String,
+            bin: String,
+            bank: String,
+            cardType: String,
+            reusable: Boolean
+          },
+          flutterwave: {
+            token: String,
+            cardType: String,
+            issuingBank: String,
+            bin: String
+          }
+        },
+        billingAddressId: {
+          type: mongoose.Schema.Types.ObjectId,
+        }
+      }]
+    },
     activity: {
       lastLogin: Date,
       lastPurchase: Date,
@@ -209,7 +275,15 @@ const userSchema = new mongoose.Schema<IUser>(
           default: false
         }
       }]
-    }
+    },
+    adminRole: {
+      type: String,
+      enum: Object.keys(ROLE_PERMISSIONS),
+    },
+    permissions: {
+      type: [String],
+      default: [], // Can override/extend base role
+    },
   },
   {
     timestamps: true,

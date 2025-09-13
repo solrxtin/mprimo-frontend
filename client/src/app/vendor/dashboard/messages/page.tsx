@@ -1,164 +1,18 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowLeft, Phone, Search } from "lucide-react";
 import ChatContainerHeader from "./(components)/ChatContainerHeader";
 import Messages from "./(components)/Messages";
 import SendMessage from "./(components)/SendMessage";
+import ProductModal from "./(components)/ProductModal";
+import ChatList from "./(components)/ChatList";
+import { useChats, useMessages } from "@/hooks/queries";
+import MessageListSkeleton from "./(components)/MessageListSkeleton";
 
-export interface Message {
-  id: string;
-  senderId: string; // Unique sender ID
-  senderName: string;
-  timestamp: Date;
-  onlineStatus: boolean;
-  isRead: boolean;
-  content: string;
-  unreadCount?: number;
+interface ProductModal {
+  isOpen: boolean;
+  product: any;
 }
-
-interface UserMessages {
-  userId: string;
-  messages: Message[];
-}
-
-// Sample data with messages grouped per user
-// Define the current user ID (vendor/admin)
-const currentUserId = "vendor1";
-
-// Sample data with messages grouped per user
-const userMessages: UserMessages[] = [
-  {
-    userId: "user1",
-    messages: [
-      {
-        id: "1",
-        senderId: "user1", // Message from user
-        senderName: "John Doe",
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        onlineStatus: true,
-        isRead: true,
-        content: "Hello, I have some questions about your product.",
-      },
-      {
-        id: "2",
-        senderId: currentUserId, // Message from vendor
-        senderName: "Vendor",
-        timestamp: new Date(Date.now() - 1.9 * 60 * 60 * 1000), // 1.9 hours ago
-        onlineStatus: true,
-        isRead: true,
-        content:
-          "Hi John! I'd be happy to answer your questions. What would you like to know?",
-      },
-      {
-        id: "3",
-        senderId: "user1", // Message from user
-        senderName: "John Doe",
-        timestamp: new Date(Date.now() - 1.8 * 60 * 60 * 1000), // 1.8 hours ago
-        onlineStatus: true,
-        isRead: false,
-        content:
-          "Thanks for the quick response! Does this product come with a warranty?",
-      },
-    ],
-  },
-  {
-    userId: "user2",
-    messages: [
-      {
-        id: "4",
-        senderId: "user2",
-        senderName: "Mike Johnson",
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        onlineStatus: true,
-        isRead: true,
-        content: "When will my order be shipped?",
-      },
-      {
-        id: "5",
-        senderId: currentUserId,
-        senderName: "Vendor",
-        timestamp: new Date(Date.now() - 1.9 * 24 * 60 * 60 * 1000), // 1.9 days ago
-        onlineStatus: true,
-        isRead: true,
-        content:
-          "Your order has been processed and will ship tomorrow. You'll receive a tracking number via email.",
-      },
-    ],
-  },
-  {
-    userId: "user3",
-    messages: [
-      {
-        id: "6",
-        senderId: "user3",
-        senderName: "Emma Thompson",
-        timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
-        onlineStatus: true,
-        isRead: false,
-        content: "I'd like to return my purchase. How do I proceed?",
-      },
-      // No response yet from vendor
-    ],
-  },
-  {
-    userId: "user4",
-    messages: [
-      {
-        id: "7",
-        senderId: "user4",
-        senderName: "David Wilson",
-        timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-        onlineStatus: false,
-        isRead: true,
-        content: "Do you offer international shipping?",
-      },
-      {
-        id: "8",
-        senderId: currentUserId,
-        senderName: "Vendor",
-        timestamp: new Date(Date.now() - 55 * 60 * 1000), // 55 minutes ago
-        onlineStatus: true,
-        isRead: false,
-        content:
-          "Yes, we do offer international shipping to most countries. Shipping costs vary by location. Where are you located?",
-      },
-    ],
-  },
-  {
-    userId: "user5",
-    messages: [
-      {
-        id: "9",
-        senderId: "user5",
-        senderName: "Olivia Martinez",
-        timestamp: new Date(Date.now() - 25 * 60 * 60 * 1000), // Yesterday
-        onlineStatus: true,
-        isRead: true,
-        content: "Can you provide more details about the warranty?",
-      },
-      {
-        id: "10",
-        senderId: currentUserId,
-        senderName: "Vendor",
-        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 hours ago
-        onlineStatus: true,
-        isRead: true,
-        content:
-          "Our products come with a 1-year standard warranty that covers manufacturing defects. Would you like me to send you the full warranty terms?",
-      },
-      {
-        id: "11",
-        senderId: "user5",
-        senderName: "Olivia Martinez",
-        timestamp: new Date(Date.now() - 23 * 60 * 60 * 1000), // 23 hours ago
-        onlineStatus: true,
-        isRead: false,
-        content:
-          "Yes, please send me the full warranty terms. Also, is the warranty international?",
-      },
-    ],
-  }
-];
 
 // Helper function to format dates for display
 export const formatMessageTime = (date: Date): string => {
@@ -177,61 +31,36 @@ export const formatMessageTime = (date: Date): string => {
   return date.toLocaleDateString();
 };
 
-// First, get the latest message timestamp for each user conversation
-const userChatsWithLatestTimestamp = userMessages.map((user) => {
-  // Find the latest message in the conversation (from any sender)
-  const latestMessageTimestamp = Math.max(
-    ...user.messages.map((msg) => msg.timestamp.getTime())
-  );
-
-  // Get the latest message from the user (not from vendor)
-  const userMessages = user.messages.filter(
-    (msg) => msg.senderId !== currentUserId
-  );
-  const latestUserMessage = userMessages.sort(
-    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-  )[0];
-
-  // Count unread messages from this user
-  const unreadCount = userMessages.filter((msg) => !msg.isRead).length;
-
-  return {
-    ...latestUserMessage,
-    unreadCount,
-    latestTimestamp: latestMessageTimestamp, // Used for sorting
-  };
-});
-
-// Sort conversations by the latest message timestamp (newest first)
-const latestUserMessages = userChatsWithLatestTimestamp.sort(
-  (a, b) => b.latestTimestamp - a.latestTimestamp
-);
-
 const Page = () => {
-  const [chatMessages, setChatMessages] =
-    useState<Message[]>(latestUserMessages);
-  const [selectedButton, setSelectedButton] = useState<"All" | "Unread">("All");
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const { data: chatsData, isLoading } = useChats();
+  const [selectedChat, setSelectedChat] = useState<any>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [participantName, setParticipantName] = useState<string>("");
+  const [selectedButton, setSelectedButton] = useState<"All" | "Unread">("All");
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [currentGroup, setCurrentGroup] = useState<any>(null);
+  const [productModal, setProductModal] = useState<ProductModal>({
+    isOpen: false,
+    product: null,
+  });
 
-  const handleButtonClicked = (button: "All" | "Unread") => {
-    setSelectedButton(button);
-    if (button === "All") {
-      setChatMessages(latestUserMessages);
-    } else if (button === "Unread") {
-      const filteredMessages = latestUserMessages.filter(
-        (message) => !message.isRead
-      );
-      setChatMessages(filteredMessages);
+  const groupedChats = chatsData?.groupedChats || [];
+
+  const handleChatSelect = (chat: any, product: any, group?: any) => {
+    console.log("Selected chat:", chat);
+    console.log("Selected product:", product);
+    setSelectedChat(chat);
+    setSelectedProduct(product);
+    if (group) {
+      setCurrentGroup(group);
+      setParticipantName(group.participantName);
     }
+    setIsChatOpen(true);
   };
 
-  const handleChatClicked = (message: Message) => {
-    setSelectedMessage(message);
-
-    if (window.innerWidth <= 850) {
-      setIsChatOpen(true);
-    }
+  const handleProductSwitch = (newChat: any, newProduct: any) => {
+    setSelectedChat(newChat);
+    setSelectedProduct(newProduct);
   };
 
   return (
@@ -253,14 +82,14 @@ const Page = () => {
             </div>
           </div>
         </div>
-        <div className={`flex gap-x-2  ${isChatOpen ? "h-0" : "h-[80vh]"}`}>
+        <div className="flex gap-x-2 h-[80vh]">
           <div
             className={`${
               isChatOpen ? "hidden lg:block" : "block"
             } mx-2 md:mx-0 lg:m-0 w-full lg:w-[45%] xl:w-[40%] border rounded-2xl lg:rounded-none border-blue-300 lg:p-2 bg-white`}
           >
-            <h1 className="hidden lg:block text-center font-semibold">
-              Messages
+            <h1 className="hidden lg:block text-center font-semibold mb-2">
+              Chats
             </h1>
             <div className="flex gap-x-2 items-center border rounded-sm border-gray-400 p-2 m-4 lg:m-2 md:hidden">
               <Search size={18} strokeWidth={4} className="text-gray-600" />
@@ -270,93 +99,92 @@ const Page = () => {
                 placeholder="Search Conversations"
               />
             </div>
-            <div className="flex gap-x-4 w-full justify-between items-center px-3 md:mt-3 lg:mt-0">
+            <div className="flex gap-x-4 w-full justify-between items-center px-3 md:mt-3 lg:mt-0 mb-4">
               <button
                 className={`${
-                  selectedButton === "All" ? "bg-[#f5f9ff]" : "bg-gray-50"
-                } p-2 rounded-md w-full`}
-                onClick={() => handleButtonClicked("All")}
+                  selectedButton === "All"
+                    ? "bg-[#f5f9ff] border-blue-200"
+                    : "bg-gray-50 hover:bg-gray-100 border-gray-300"
+                } p-2 rounded-md w-full border transition-colors cursor-pointer disabled:cursor-not-allowed`}
+                onClick={() => setSelectedButton("All")}
+                disabled={isLoading}
               >
                 All
               </button>
               <button
                 className={`${
-                  selectedButton === "Unread" ? "bg-[#f5f9ff]" : "bg-gray-50"
-                } p-2 rounded-md w-full`}
-                onClick={() => handleButtonClicked("Unread")}
+                  selectedButton === "Unread"
+                    ? "bg-[#f5f9ff] border-blue-200"
+                    : "bg-gray-50 hover:bg-gray-100 border-gray-300"
+                } p-2 rounded-md w-full border transition-colors cursor-pointer disabled:cursor-not-allowed`}
+                onClick={() => setSelectedButton("Unread")}
+                disabled={isLoading}
               >
                 Unread
               </button>
             </div>
             {/* Chat List */}
-            <div className="flex flex-col gap-y-2 w-full h-[calc(100%-80px)] overflow-y-auto mt-2 px-2">
-              {chatMessages.length === 0 ? (
-                <p className="text-center text-gray-500">
-                  No messages available.
-                </p>
-              ) : (
-                chatMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`grid grid-cols-12 items-center cursor-pointer rounded relative p-2 ${
-                      message.isRead
-                        ? "bg-white pl-3.5"
-                        : "border-l-6 border-blue-400 rounded-none"
-                    }`}
-                    onClick={() => handleChatClicked(message)}
-                  >
-                    <div className="col-span-2 md:col-span-1 lg:col-span-2 size-12 md:size-11 rounded-full bg-gray-300" />
-                    <div className="col-span-10 md:col-span-11 lg:col-span-10 flex flex-col gap-y-1">
-                      <h1 className="font-semibold text-sm">
-                        {message.senderName}
-                      </h1>
-                      <p className="text-xs truncate">{message.content}</p>
-                    </div>
-                    <div
-                      className={`absolute ${
-                        message.unreadCount! > 0 ? "right-6" : "right-2"
-                      } top-1`}
+            <div className="flex flex-col w-full h-[calc(100%-80px)] overflow-y-auto mt-2">
+              {isLoading ? (
+                <MessageListSkeleton />
+              ) : (<>
+              {groupedChats.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full p-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <svg
+                      className="w-8 h-8 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <p className="text-xs opacity-70 relative">
-                        {formatMessageTime(message.timestamp)}
-                      </p>
-                      {message.unreadCount! > 0 && (
-                        <div className="absolute right-[-18px] top-0 bg-[#8baff9] size-4 rounded-full flex items-center justify-center">
-                          <p className="text-xs text-white">
-                            {message.unreadCount}
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
                   </div>
-                ))
+                  <p className="text-gray-500 text-center">
+                    No conversations yet
+                  </p>
+                  <p className="text-gray-400 text-sm text-center mt-1">
+                    Your customer messages will appear here
+                  </p>
+                </div>
+              ) : (
+                <ChatList
+                  groupedChats={groupedChats}
+                  onChatSelect={handleChatSelect}
+                  formatMessageTime={formatMessageTime}
+                  filterType={selectedButton}
+                  setParticipantName={setParticipantName}
+                />
               )}
+              </>)}
             </div>
           </div>
           <div className="hidden lg:block lg:w-[55%] xl:w-[60%] border border-blue-300 bg-white">
-            {selectedMessage ? (
+            {selectedChat ? (
               <div className="w-full h-full flex flex-col">
                 <ChatContainerHeader
-                  message={selectedMessage}
+                  chat={selectedChat}
+                  product={selectedProduct}
                   closeChat={() => setIsChatOpen(false)}
+                  setProductModal={setProductModal}
+                  participantName={participantName}
+                  currentGroup={currentGroup}
+                  onProductSwitch={handleProductSwitch}
                 />
+                {/* Messages */}
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <div className="flex-1 overflow-y-auto">
-                    <Messages
-                      messages={
-                        userMessages.find(
-                          (u) => u.userId === selectedMessage.senderId
-                        )?.messages || []
-                      }
-                      currentUserId={currentUserId}
-                    />
+                    <Messages selectedChat={selectedChat} />
                   </div>
                   <SendMessage
-                    userId={selectedMessage.senderId}
+                    userId={selectedChat.senderId}
                     onSend={(message) => {
-                      console.log(
-                        `Sending message to ${selectedMessage.senderName}: ${message}`
-                      );
+                      console.log(`Sending message`);
                     }}
                   />
                 </div>
@@ -394,30 +222,28 @@ const Page = () => {
           <div className="lg:hidden h-[80vh] p-2">
             <div className="bg-white border rounded-2xl border-blue-300 w-full h-full flex flex-col">
               {/* Chat container header */}
-              {selectedMessage && (
+              {selectedChat && (
                 <ChatContainerHeader
-                  message={selectedMessage}
+                  chat={selectedChat}
+                  product={selectedProduct}
                   closeChat={() => setIsChatOpen(false)}
+                  setProductModal={setProductModal}
+                  participantName={participantName}
+                  currentGroup={currentGroup}
+                  onProductSwitch={handleProductSwitch}
                 />
               )}
               <div className="flex-1 overflow-hidden flex flex-col">
-                {selectedMessage ? (
+                {selectedChat ? (
                   <>
                     <div className="flex-1 overflow-y-auto">
-                      <Messages
-                        messages={
-                          userMessages.find(
-                            (u) => u.userId === selectedMessage.senderId
-                          )?.messages || []
-                        }
-                        currentUserId={currentUserId}
-                      />
+                      <Messages selectedChat={selectedChat} />
                     </div>
                     <SendMessage
-                      userId={selectedMessage.senderId}
+                      userId={selectedChat.senderId}
                       onSend={(message) => {
                         console.log(
-                          `Sending message to ${selectedMessage.senderName}: ${message}`
+                          `Sending message to ${selectedChat.senderName}: ${message}`
                         );
                       }}
                     />
@@ -431,6 +257,13 @@ const Page = () => {
             </div>
           </div>
         )}
+
+        {/* Product Modal */}
+        <ProductModal
+          isOpen={productModal.isOpen}
+          product={productModal.product}
+          onClose={() => setProductModal({ isOpen: false, product: null })}
+        />
       </div>
     </div>
   );

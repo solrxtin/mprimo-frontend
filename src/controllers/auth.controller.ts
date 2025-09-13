@@ -24,6 +24,8 @@ import Vendor from "../models/vendor.model";
 import { tokenWatcher } from "..";
 import { IVendor } from "../types/vendor.type";
 import AuditLogService from "../services/audit-log.service";
+import { SubscriptionService } from "../services/subscription.service";
+import Wallet from "../models/wallet.model";
 
 const logger = LoggerService.getInstance();
 const generateVerificationCode = () =>
@@ -115,6 +117,10 @@ console.log("body", req.body)
     // Save user to database
     const savedUser = await User.create(newUser);
     const wallet = await cryptoService.createWallet(savedUser._id)
+    const fiatWallet = await Wallet.create({
+      userId: savedUser._id,
+      currency: req.preferences.currency,
+    })
     tokenWatcher.addAddressToWatch(wallet.address)
     logger.debug("User created successfully", {
       userId: savedUser._id,
@@ -141,7 +147,8 @@ console.log("body", req.body)
         ...savedUser._doc,
         password: undefined,
       },
-      wallet
+      cryptoWallet: wallet,
+      fiatWallet
     });
   } catch (error) {
     console.error("Signup error:", error);
@@ -815,6 +822,22 @@ export const signupVendor = async (req: Request, res: Response) => {
       }
     })
 
+    await AuditLogService.log(
+      'SIGNUP',
+      'auth',
+      'info',
+      {
+        userId: savedUser._id,
+        email: savedUser.email,
+        role: savedUser.role,
+        country: req.headers['cf-ipcountry'] || 'unknown',
+        vendor: vendor._id
+      },
+      req,
+      savedUser._id.toString()
+    );
+    await SubscriptionService.initializeVendorSubscription(vendor._id.toString())
+
     return res.status(201).json({
       message: "Business created successfully. Please proceed with verification",
       user: {
@@ -829,3 +852,150 @@ export const signupVendor = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+// Apple Sign In
+// export const appleLogin = async (req: Request, res: Response) => {
+//   try {
+//     const { identityToken, user } = req.body;
+
+//     if (!identityToken) {
+//       return res.status(400).json({ message: 'Identity token is required' });
+//     }
+
+//     // Verify Apple identity token
+//     const applePublicKeys = await getApplePublicKeys();
+//     const decodedToken = await verifyAppleToken(identityToken, applePublicKeys);
+    
+//     if (!decodedToken) {
+//       return res.status(401).json({ message: 'Invalid Apple token' });
+//     }
+
+//     const appleUserId = decodedToken.sub;
+//     const email = decodedToken.email;
+
+//     // Check if user exists
+//     let existingUser = await User.findOne({
+//       $or: [
+//         { email: email },
+//         { 'socialLogins.provider': 'apple', 'socialLogins.providerId': appleUserId }
+//       ]
+//     });
+
+//     if (existingUser) {
+//       // Update social login info if not present
+//       if (!existingUser.socialLogins.some(login => login.provider === 'apple')) {
+//         existingUser.socialLogins.push({
+//           provider: 'apple',
+//           providerId: appleUserId,
+//           email: email
+//         });
+//         await existingUser.save();
+//       }
+//     } else {
+//       // Create new user
+//       const preferences = getCountryPreferences(req.headers['cf-ipcountry'] as string || 'US');
+      
+//       existingUser = await User.create({
+//         email: email,
+//         profile: {
+//           firstName: user?.name?.firstName || 'Apple',
+//           lastName: user?.name?.lastName || 'User',
+//           avatar: 'https://via.placeholder.com/150'
+//         },
+//         role: 'personal',
+//         status: 'active',
+//         isEmailVerified: true,
+//         socialLogins: [{
+//           provider: 'apple',
+//           providerId: appleUserId,
+//           email: email
+//         }],
+//         preferences: {
+//           language: preferences.language,
+//           currency: preferences.currency,
+//           notifications: {
+//             email: true,
+//             push: true,
+//             sms: false
+//           },
+//           marketing: false
+//         },
+//         activity: {
+//           lastLogin: new Date(),
+//           totalOrders: 0,
+//           totalSpent: 0
+//         }
+//       });
+
+//       const wallet = await cryptoService.createWallet(existingUser._id);
+//       tokenWatcher.addAddressToWatch(wallet.address);
+//     }
+
+//     existingUser.activity.lastLogin = new Date();
+//     await existingUser.save();
+
+//     let vendor = null;
+//     if ((existingUser.role === 'personal' && existingUser.canMakeSales) || existingUser.role === 'business') {
+//       vendor = await Vendor.findOne({ userId: existingUser._id });
+//     }
+
+//     await generateTokensAndSetCookie(res, existingUser._id);
+
+//     await AuditLogService.log(
+//       'APPLE_LOGIN_SUCCESS',
+//       'auth',
+//       'info',
+//       { 
+//         userId: existingUser._id,
+//         email: existingUser.email,
+//         role: existingUser.role
+//       },
+//       req,
+//       existingUser._id.toString()
+//     );
+
+//     res.json({
+//       success: true,
+//       message: 'Apple login successful',
+//       user: {
+//         ...existingUser._doc,
+//         password: undefined
+//       },
+//       vendor,
+//       has2faEnabled: existingUser.twoFactorAuth?.enabled || false
+//     });
+
+//   } catch (error) {
+//     console.error('Apple login error:', error);
+//     logger.error('Apple login error:', { error });
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// };
+
+// // Helper functions
+// async function getApplePublicKeys() {
+//   const response = await axios.get('https://appleid.apple.com/auth/keys');
+//   return response.data.keys;
+// }
+
+async function verifyAppleToken(token: string, publicKeys: any[]) {
+  try {
+    const decodedHeader = jwt.decode(token, { complete: true });
+    if (!decodedHeader) return null;
+
+    const kid = decodedHeader.header.kid;
+    const publicKey = publicKeys.find(key => key.kid === kid);
+    if (!publicKey) return null;
+
+    const jwkToPem = require('jwk-to-pem');
+    const pem = jwkToPem(publicKey);
+
+    return jwt.verify(token, pem, {
+      algorithms: ['RS256'],
+      audience: process.env.APPLE_CLIENT_ID,
+      issuer: 'https://appleid.apple.com'
+    });
+  } catch (error) {
+    return null;
+  }
+}

@@ -11,35 +11,19 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useVendorAnalytics } from "@/hooks/queries";
+import { getCurrencySymbol } from "@/utils/currency";
 
 type Props = {
-  currentData: {
-    totalRevenue: number;
-    totalSales: number;
-    averageRating: number;
-    productCount: number;
-  };
-  dailySales: any[];
+  vendorId: string;
 };
 
-const data = [
-  { name: "Mon", sales: 4000 },
-  { name: "Tue", sales: 3000 },
-  { name: "Wed", sales: 5000 },
-  { name: "Thu", sales: 2780 },
-  { name: "Fri", sales: 1890 },
-  { name: "Sat", sales: 6390 },
-  { name: "Sun", sales: 3490 },
-];
-
 const SalesOverview = (props: Props) => {
-  const [timeRange, setTimeRange] = useState("7");
-  const [analytics, setAnalytics] = useState({
-    totalRevenue: props.currentData.totalRevenue || 0,
-    totalSales: props.currentData.totalRevenue || 0,
-    averageRating: props.currentData.totalRevenue || 0,
-    productCount: props.currentData.totalRevenue || 0,
-  });
+  const [timeRange, setTimeRange] = useState("7days");
+  const { data, isLoading } = useVendorAnalytics(
+    props.vendorId,
+    `${timeRange}`
+  );
 
   return (
     <div className="bg-white px-4 md:px-6 py-4 rounded-lg shadow-sm">
@@ -48,67 +32,84 @@ const SalesOverview = (props: Props) => {
           Sales Overview
         </h1>
         <select
-          className="border rounded-full px-3 py-1 text-sm bg-gray-100 text-gray-600 outline-none w-full sm:w-auto cursor-pointer"
+          className="border rounded-full px-3 py-1 text-sm bg-gray-100 text-gray-600 outline-none w-full sm:w-auto cursor-pointer disabled:opacity-50"
           value={timeRange}
           onChange={(e) => setTimeRange(e.target.value)}
+          disabled={isLoading}
         >
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 1 month</option>
-          <option value="180">Last 6 months</option>
+          <option value="7days">Last 7 days</option>
+          <option value="1month">Last 1 month</option>
+          <option value="6months">Last 6 months</option>
         </select>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 border-b border-b-gray-100 pb-4">
+        {isLoading && (
+          <div className="col-span-full text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          </div>
+        )}
         <div className="bg-blue-50 p-4 rounded-lg">
           <p className="text-sm text-gray-500">Total Sales</p>
-          <p className="text-xl md:text-2xl font-bold">
-            ${analytics.totalRevenue.toFixed(2)}
-          </p>
+          {data?.analytics && (
+            <p className="text-xl md:text-2xl font-bold">
+              {getCurrencySymbol(data?.analytics?.currency)}
+              {data?.analytics?.totalSales?.toFixed(2) || "0.00"}
+            </p>
+          )}
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
           <p className="text-sm text-gray-500">Orders</p>
           <p className="text-xl md:text-2xl font-bold">
-            {analytics.productCount}
+            {data?.analytics?.totalOrders || 0}
           </p>
         </div>
         <div className="bg-purple-50 p-4 rounded-lg">
           <p className="text-sm text-gray-500">Avg. Order Value</p>
           <p className="text-xl md:text-2xl font-bold">
-            {analytics.totalSales !== 0 && analytics.totalRevenue !== 0
-              ? `${(analytics.totalRevenue / analytics.totalSales).toFixed(2)}`
-              : "0.00"}
+            {data?.analytics?.averageOrdersPerDay}
           </p>
         </div>
       </div>
 
-      {props.dailySales && props.dailySales.length > 0 ? (
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={props.dailySales}
-              margin={{
-                top: 5,
-                right: 30,
-                left: 20,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="totalSales" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
+      {data?.salesOverview ? (
+        <div className="h-64 sm:h-80 w-full overflow-x-auto">
+          <div className="min-w-[500px] h-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={data?.salesOverview}
+                margin={{
+                  top: 5,
+                  right: 10,
+                  left: 10,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="day" 
+                  tick={{ fontSize: 12 }}
+                  interval={0}
+                />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="orders" fill="#2563eb" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       ) : (
         <div className="text-center py-10 px-4 animate-fade-in">
-          <p className="text-lg font-semibold text-gray-700 mb-1">
-            No sales made yet
-          </p>
-          <p className="text-sm text-gray-500">
-            Keep an eye out—we’ll notify you when things get moving!
-          </p>
+          {!isLoading && (
+            <>
+              <p className="text-lg font-semibold text-gray-700 mb-1">
+                No sales made yet
+              </p>
+              <p className="text-sm text-gray-500">
+                Keep an eye out—we’ll notify you when things get moving!
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>

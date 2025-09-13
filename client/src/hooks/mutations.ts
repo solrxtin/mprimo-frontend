@@ -1,6 +1,6 @@
 import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { User } from "@/types/user.type";
+import { IUser } from "@/types/user.type";
 import { toastConfigError } from "@/app/config/toast.config";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Vendor from "@/types/vendor.type";
@@ -25,12 +25,12 @@ interface verificationData {
 
 interface SignUpResponse {
   message: string;
-  user: User;
+  user: IUser;
 }
 
 const signUpUser = async (
   data: SignUpData
-): Promise<{ message: string; user: User }> => {
+): Promise<{ message: string; user: IUser }> => {
   const response = await fetch("http://localhost:5800/api/v1/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -54,7 +54,7 @@ export const useSignUp = () => {
 
 const verifyData = async (
   data: verificationData
-): Promise<{ message: string; user: User }> => {
+): Promise<{ message: string; user: IUser }> => {
   const response = await fetch("http://localhost:5800/api/v1/auth/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -107,7 +107,7 @@ const loginUser = async (
   data: LoginData
 ): Promise<{
   message: string;
-  user: User;
+  user: IUser;
   vendor: Vendor;
   has2faEnabled: boolean;
 }> => {
@@ -335,5 +335,56 @@ export const useDeleteDraft = (): UseMutationResult<
     onSettled: () => {
       console.log("Delete draft mutation settled");
     }
+  });
+};
+
+// Toggle helpful mutation
+const toggleHelpful = async ({ productId, reviewId }: { productId: string; reviewId: string }) => {
+  const response = await fetchWithAuth(
+    `http://localhost:5800/api/v1/product/${productId}/review/${reviewId}/helpful`,
+    { method: 'PATCH' }
+  );
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message);
+  }
+  return response.json();
+};
+
+export const useToggleHelpful = () => {
+  return useMutation({
+    mutationFn: toggleHelpful,
+  });
+};
+
+// Add vendor response mutation
+const addVendorResponse = async ({ 
+  productId, 
+  reviewId, 
+  vendorId ,
+  response
+}: { 
+  productId: string; 
+  reviewId: string; 
+  vendorId: string;
+  response: string; 
+}) => {
+  const res = await fetchWithAuth(
+    `http://localhost:5800/api/v1/product/${productId}/review/${reviewId}/response`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ response, vendorId }),
+    }
+  );
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.message);
+  }
+  return res.json();
+};
+
+export const useAddVendorResponse = () => {
+  return useMutation({
+    mutationFn: addVendorResponse,
   });
 };
