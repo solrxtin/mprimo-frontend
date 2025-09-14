@@ -47,7 +47,23 @@ const messageSchema = new mongoose.Schema<IMessage>({
   },
   text: {
     type: String,
-    required: true
+    required: function() { return !this.attachments || this.attachments.length === 0; }
+  },
+  attachments: [{
+    fileName: String,
+    fileUrl: String,
+    fileType: { type: String, enum: ['image', 'document', 'video', 'audio'] },
+    fileSize: Number,
+    mimeType: String,
+    scanResult: {
+      safe: { type: Boolean, default: true },
+      threats: [String]
+    }
+  }],
+  messageType: {
+    type: String,
+    enum: ['text', 'file'],
+    default: 'text'
   },
   isFlagged: {
     type: Boolean,

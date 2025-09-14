@@ -1,6 +1,7 @@
 // src/controllers/product.controller.ts
 import { Request, Response, NextFunction } from "express";
 import { ProductService } from "../services/product.service";
+import { SearchService } from "../services/search.service";
 import redisService from "../services/redis.service";
 import User from "../models/user.model";
 import Vendor from "../models/vendor.model";
@@ -626,46 +627,96 @@ export class ProductController {
 
   static async searchProducts(req: Request, res: Response, next: NextFunction) {
     try {
-      const {
+      const { q, page = 1, limit = 10, ...filters } = req.query;
+
+      if (!q || typeof q !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Search query is required",
+        });
+      }
+
+      const result = await SearchService.searchProducts(
         q,
-        category,
-        status,
-        priceRange,
-        page = 1,
-        limit = 10,
-      } = req.query;
+        filters,
+        Number(page),
+        Number(limit)
+      );
 
-      let filters = {
-        ...(category && { "category.main": category }),
-        ...(status && { status }),
-        ...(priceRange &&
-          typeof priceRange === "string" && {
-            "price.amount": {
-              $gte: Number(priceRange.split("-")[0]),
-              $lte: Number(priceRange.split("-")[1]),
-            },
-          }),
-      };
+      res.json({ success: true, ...result });
+    } catch (error) {
+      next(error);
+    }
+  }
 
-      // Run suggestions and search in parallel to optimize response time
-      const [suggestions, results] = await Promise.all([
-        q && typeof q === "string" && q.length < 10
-          ? redisService.getSuggestions(q.toLowerCase())
-          : Promise.resolve([]), // If no suggestions needed, return empty array
-        ProductService.searchProducts(
-          String(q),
-          filters,
-          Number(page),
-          Number(limit)
-        ),
-      ]);
+  static async getSearchSuggestions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { q, limit = 5 } = req.query;
+      
+      if (!q || typeof q !== "string") {
+        return res.json({ success: true, suggestions: [] });
+      }
 
-      console.log("Suggestions: ", suggestions);
+      const suggestions = await SearchService.getSearchSuggestions(q, Number(limit));
+      res.json({ success: true, suggestions });
+    } catch (error) {
+      next(error);
+    }
+  }
 
-      return res.json({
-        ...results,
-        suggestions,
-      });
+  static async advancedSearch(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await SearchService.searchWithFilters(req.query as any);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getInventoryHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { productId } = req.params;
+      const { variantSku, page = 1, limit = 20 } = req.query;
+      
+      const result = await ProductService.getInventoryHistory(
+        productId,
+        variantSku as string,
+        Number(page),
+        Number(limit)
+      );
+      
+      res.json({ success: true, ...result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getReorderAlerts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const vendor = await Vendor.findOne({ userId: req.userId });
+      if (!vendor) {
+        return res.status(404).json({ success: false, message: "Vendor not found" });
+      }
+      
+      const alerts = await ProductService.getReorderAlerts(vendor._id);
+      res.json({ success: true, alerts });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async bulkUpdateVariants(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { productId } = req.params;
+      const { variants } = req.body;
+      const vendor = await Vendor.findOne({ userId: req.userId });
+      
+      if (!vendor) {
+        return res.status(404).json({ success: false, message: "Vendor not found" });
+      }
+      
+      const product = await ProductService.bulkUpdateVariants(productId, vendor._id, variants);
+      res.json({ success: true, product });
     } catch (error) {
       next(error);
     }
