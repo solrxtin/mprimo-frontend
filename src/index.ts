@@ -166,14 +166,14 @@ app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/reviews", reviewsRoutes);
 app.use("/api/v1/vendor", vendorRoutes);
 app.use("/api/v1/users", userRoutes);
-app.use("/api/v1/payments", paymentRoutes);
+// app.use("/api/v1/payments", paymentRoutes);
 app.use("/api/v1/subscriptions", subscriptionRoutes);
 app.use("/api/v1/issues", issueRoutes);
 app.use("/api/v1/refunds", refundRoutes);
 app.use("/api/v1/vendor-payouts", vendorPayoutRoutes);
 app.use("/api/v1/dispute-chat", disputeChatRoutes);
 app.use("/api/v1/banners", bannerRoutes);
-app.use("/api/v1/checkout", checkoutRoutes);
+// app.use("/api/v1/checkout", checkoutRoutes);
 
 
 app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to see if it's up
@@ -181,6 +181,7 @@ app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to 
 // Debug routes
 app.get("/api/v1/test", (req, res) => {res.json({message: "API v1 working"})});
 app.get("/api/v1/products/test", (req, res) => {res.json({message: "Products route working"})});
+
 
 // Debug swagger file existence
 app.get("/api/v1/debug/swagger", (req, res) => {

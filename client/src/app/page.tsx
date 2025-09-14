@@ -7,11 +7,9 @@ import { toast } from "react-toastify";
 import { toastConfigError } from "./config/toast.config";
 import { useProductStore } from "@/stores/useProductStore";
 import { useSocket } from "@/hooks/useSocket";
-import { useEffect } from "react";
 
 import Homepage from "./home/layout";
 import { useEffect } from "react";
-import { Router } from "express";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -20,12 +18,13 @@ export default function Home() {
   const socket = useSocket();
 
   useEffect(() => {
-    if (socket && user) if (socket) socket.emit("authenticate", {userId: user._id})
-  }, [socket, user])
-  const router = useRouter()
-  useEffect(()=> {
-    router.push("/home")
-  }, [])
+    if (socket && user)
+      if (socket) socket.emit("authenticate", { userId: user._id });
+  }, [socket, user]);
+  const router = useRouter();
+  useEffect(() => {
+    router.push("/home");
+  }, []);
 
   const handleLogoutClicked = () => {
     logoutUser(undefined, {

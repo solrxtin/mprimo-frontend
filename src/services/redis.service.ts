@@ -26,11 +26,18 @@ class RedisService {
   private isConnected = false;
 
   constructor() {
+    if (!process.env.UPSTASH_REDIS_REST_URL) {
+      logger.warn("Redis URL not configured, running without Redis");
+      this.redisClient = null as any;
+      return;
+    }
+
     this.redisClient = new Redis(process.env.UPSTASH_REDIS_REST_URL!);
 
     this.redisClient.on("error", (err) => {
       logger.error("Redis Client Error", err);
       console.error("Redis Client Error", err);
+      this.isConnected = false;
     });
 
     this.redisClient.on("connect", () => {
@@ -44,6 +51,8 @@ class RedisService {
   }
 
   private async subscribeToChannels() {
+    if (!this.redisClient || !process.env.UPSTASH_REDIS_REST_URL) return;
+    
     try {
       // For Upstash Redis, we need a separate client for pub/sub
       const subscriber = new Redis(process.env.UPSTASH_REDIS_REST_URL!);

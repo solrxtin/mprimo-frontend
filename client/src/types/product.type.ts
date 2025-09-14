@@ -48,9 +48,8 @@ type VariantOptionType = {
   value: string;
   price: number;
   quantity: number;
-  isDefault: boolean;
-  id: string,
-  _id: string
+
+  _id: string;
 };
 
 type VariantType = {
@@ -58,8 +57,8 @@ type VariantType = {
   isDefault: boolean;
   name: string;
   options: VariantOptionType[];
-  id: string,
-  _id: string
+
+  _id: string;
 };
 
 type ReviewType = {

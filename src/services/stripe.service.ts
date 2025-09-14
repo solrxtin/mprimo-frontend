@@ -2,7 +2,7 @@ import Stripe from "stripe";
 import { LoggerService } from "./logger.service";
 
 const logger = LoggerService.getInstance();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY! || "2233", {
   apiVersion: "2025-06-30.basil",
 });
 
