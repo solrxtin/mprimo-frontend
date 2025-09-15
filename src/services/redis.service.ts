@@ -38,6 +38,7 @@ class RedisService {
       logger.error("Redis Client Error", err);
       console.error("Redis Client Error", err);
       this.isConnected = false;
+      
     });
 
     this.redisClient.on("connect", () => {
@@ -231,7 +232,7 @@ class RedisService {
     const rawViews = await this.redisClient.lrange(userViewKey, 0, limit - 1);
 
     return rawViews
-      .map((view) => {
+      .map((view: string) => {
         try {
           return JSON.parse(view);
         } catch {
@@ -239,7 +240,7 @@ class RedisService {
         }
       })
       .filter(
-        (entry): entry is { entityId: string; timestamp: number } => !!entry
+        (entry: any): entry is { entityId: string; timestamp: number } => !!entry
       );
   }
 
@@ -335,7 +336,7 @@ class RedisService {
       const cartKey = `cart:${userId}`;
       const cartItems = await this.redisClient.hgetall(cartKey);
       return Object.values(cartItems)
-        .map((item) => JSON.parse(item))
+        .map((item: string) => JSON.parse(item))
         .sort(
           (a, b) =>
             new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
@@ -564,7 +565,8 @@ class RedisService {
       const filteredSuggestions = [];
       for (let i = 0; i < allSuggestions.length; i += 2) {
         const word = allSuggestions[i];
-        const score = parseInt(allSuggestions[i + 1]);
+        const scoreValue = allSuggestions[i + 1];
+        const score = typeof scoreValue === 'string' ? parseInt(scoreValue) : 0;
 
         if (
           typeof word === "string" &&
@@ -691,7 +693,7 @@ class RedisService {
 
     for (const id of viewedIds) {
       const related = await this.getRelatedProducts(id, 5);
-      related.forEach((relId) => {
+      related.forEach((relId: string) => {
         if (!viewedIds.includes(relId)) recommendedSet.add(relId);
       });
 
@@ -705,7 +707,7 @@ class RedisService {
         0,
         count - 1
       );
-      popular.forEach((id) => recommendedSet.add(id));
+      popular.forEach((id: string) => recommendedSet.add(id));
     }
 
     return Array.from(recommendedSet).slice(0, count);
