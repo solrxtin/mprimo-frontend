@@ -1,12 +1,24 @@
 import mongoose, { Types, Document } from "mongoose";
 import { IPayment } from "./payment.type";
+import { ProductType } from "./product.type";
 
 export interface ItemType {
-  productId: Types.ObjectId;
+  productId: Types.ObjectId | ProductType;
   variantId: string;
   quantity: number;
   price: number;
 }
+
+interface ItemTypePopulated extends ItemType {
+  productId: ProductType; // Replace with your actual Product type
+}
+
+
+export interface IOrderPopulated extends IOrder {
+  paymentId: IPayment; 
+  items: ItemTypePopulated[];
+}
+
 
 export interface IConfirmationEntry {
   role: "buyer" | "courier";

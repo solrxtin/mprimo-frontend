@@ -1,134 +1,170 @@
 import request from 'supertest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
+import express from 'express';
+import {
+  getAllOrders,
+  getOrder,
+  getVendorOrders,
+  makeOrder,
+  changeShippingAddress,
+  cancelOrder,
+  refundOrder,
+  getRefunds,
+  getOrderStats,
+  OrderController,
+  getVendorOrderMetrics
+} from "../../controllers/order.controller";
 import Order from '../../models/order.model';
-import User from '../../models/user.model';
-import Product from '../../models/product.model';
-import jwt from 'jsonwebtoken';
+import ProductModel from '../../models/product.model';
+
+const app = express();
+app.use(express.json());
+app.use((req, res, next) => {
+  req.user = { id: 'mock-user-id', role: 'user' };
+  next();
+});
+
+app.post('/orders', makeOrder);
+app.get('/orders', getAllOrders);
+app.get('/orders/:id', getOrder);
+app.patch('/orders/:id/status', OrderController.updateOrderStatus);
+app.post('/orders/:id/cancel', cancelOrder);
 
 describe('Order Controller', () => {
-  let mongoServer: MongoMemoryServer;
-  let app: any;
-  let userToken: string;
-  let userId: string;
   let productId: string;
-
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    await mongoose.connect(mongoServer.getUri());
-    app = require('../../index').default;
-
-    const user = await User.create({
-      email: 'user@example.com',
-      password: 'password123',
-      role: 'personal',
-      profile: { firstName: 'Test', lastName: 'User' }
-    });
-
-    const product = await Product.create({
-      vendorId: new mongoose.Types.ObjectId(),
-      name: 'Test Product',
-      description: 'Test Description',
-      brand: 'Test Brand',
-      condition: 'new',
-      variants: [{
-        name: 'Color',
-        options: [{
-          value: 'Red',
-          sku: 'TEST-RED-001',
-          price: 99.99,
-          quantity: 10
-        }]
-      }],
-      images: ['https://example.com/image.jpg'],
-      shipping: {
-        weight: 1,
-        unit: 'kg',
-        dimensions: { length: 10, width: 10, height: 10 }
-      }
-    });
-
-    userId = user._id.toString();
-    productId = product._id.toString();
-    userToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET!);
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
+  let orderId: string;
 
   beforeEach(async () => {
-    await Order.deleteMany({});
+    const product = await ProductModel.create({
+      name: 'Test Product',
+      slug: 'test-product',
+      description: 'Test description',
+      price: { amount: 100, currency: 'USD' },
+      vendor: 'mock-vendor-id',
+      inventory: { quantity: 10 },
+      status: 'active'
+    });
+    productId = product._id.toString();
+
+    const order = await Order.create({
+      userId: 'mock-user-id',
+      items: [{
+        productId,
+        quantity: 2,
+        price: 100,
+        total: 200
+      }],
+      totalAmount: 200,
+      currency: 'USD',
+      status: 'pending',
+      shippingAddress: {
+        street: '123 Main St',
+        city: 'Test City',
+        state: 'Test State',
+        zipCode: '12345',
+        country: 'Test Country'
+      }
+    });
+    orderId = order._id.toString();
   });
 
-  describe('POST /api/orders', () => {
-    test('should create a new order', async () => {
+  describe('POST /orders', () => {
+    it('should create a new order', async () => {
       const orderData = {
         items: [{
           productId,
           quantity: 1,
-          price: 99.99
+          price: 100
         }],
-        shipping: {
-          address: {
-            street: '123 Test St',
-            city: 'Test City',
-            state: 'Test State',
-            country: 'Test Country',
-            postalCode: '12345'
-          },
-          method: 'standard'
+        shippingAddress: {
+          street: '456 Oak St',
+          city: 'Test City',
+          state: 'Test State',
+          zipCode: '12345',
+          country: 'Test Country'
         },
-        payment: {
-          method: 'card',
-          amount: 99.99
-        }
+        paymentMethod: 'stripe'
       };
 
       const response = await request(app)
-        .post('/api/orders')
-        .set('Authorization', `Bearer ${userToken}`)
+        .post('/orders')
         .send(orderData)
         .expect(201);
 
-      expect(response.body.message).toBe('Order created successfully');
-      expect(response.body.order.items).toHaveLength(1);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe('pending');
+    });
+
+    it('should return error for invalid order data', async () => {
+      const response = await request(app)
+        .post('/orders')
+        .send({ items: [] })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
     });
   });
 
-  describe('GET /api/orders/user', () => {
-    test('should get user orders', async () => {
-      await Order.create({
-        userId,
-        items: [{
-          productId,
-          quantity: 1,
-          price: 99.99
-        }],
-        shipping: {
-          address: {
-            street: '123 Test St',
-            city: 'Test City',
-            state: 'Test State',
-            country: 'Test Country',
-            postalCode: '12345'
-          },
-          method: 'standard'
-        },
-        payment: {
-          method: 'card',
-          amount: 99.99
-        }
-      });
-
+  describe('GET /orders', () => {
+    it('should get user orders', async () => {
       const response = await request(app)
-        .get('/api/orders/user')
-        .set('Authorization', `Bearer ${userToken}`)
+        .get('/orders')
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.orders).toHaveLength(1);
+      expect(response.body.data.orders).toHaveLength(1);
+    });
+
+    it('should filter orders by status', async () => {
+      const response = await request(app)
+        .get('/orders')
+        .query({ status: 'pending' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.orders).toHaveLength(1);
+    });
+  });
+
+  describe('GET /orders/:id', () => {
+    it('should get order by id', async () => {
+      const response = await request(app)
+        .get(`/orders/${orderId}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.totalAmount).toBe(200);
+    });
+
+    it('should return 404 for non-existent order', async () => {
+      const response = await request(app)
+        .get('/orders/507f1f77bcf86cd799439011')
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('PATCH /orders/:id/status', () => {
+    it('should update order status', async () => {
+      const response = await request(app)
+        .patch(`/orders/${orderId}/status`)
+        .send({ status: 'confirmed' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe('confirmed');
+    });
+  });
+
+  describe('POST /orders/:id/cancel', () => {
+    it('should cancel order', async () => {
+      const response = await request(app)
+        .post(`/orders/${orderId}/cancel`)
+        .send({ reason: 'Changed mind' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.status).toBe('cancelled');
     });
   });
 });

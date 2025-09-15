@@ -11,6 +11,8 @@ import Cart, { WishList } from '../models/cart.model';
 import { Chat, Message } from '../models/chat.model';
 import redisService from '../services/redis.service';
 import { generateTrackingNumber } from '../utils/generateTrackingNumber';
+import { IPayment } from '../types/payment.type';
+import { IOrderPopulated } from '../types/order.type';
 
 describe('E2E Integration Tests', () => {
   let mongoServer: MongoMemoryServer;
@@ -110,7 +112,7 @@ describe('E2E Integration Tests', () => {
       });
 
       expect(businessUser.role).toBe('business');
-      expect(vendor.businessInfo.businessName).toBe('Test Store');
+      expect(vendor?.businessInfo?.name).toBe('Test Store');
       console.log('✅ Business user and vendor created successfully');
     });
   });
@@ -142,9 +144,10 @@ describe('E2E Integration Tests', () => {
 
       const vendor = await Vendor.create({
         userId: businessUser._id,
+        accountType: 'business',
+        kycStatus: 'verified',
         businessInfo: {
-          businessName: 'Test Store',
-          businessType: 'retail',
+          name: 'Test Store',
           address: {
             street: '456 Vendor Ave',
             city: 'Vendor City',
@@ -229,7 +232,7 @@ describe('E2E Integration Tests', () => {
           status: 'pending'
         },
         shipping: {
-          address: customer.addresses[0],
+          address: customer!.addresses![0],
           carrier: 'fedex',
           trackingNumber: generateTrackingNumber(),
           status: 'pending',
@@ -275,7 +278,7 @@ describe('E2E Integration Tests', () => {
         await redisService.trackEvent(
           product._id.toString(),
           'purchase',
-          customer._id.toString(),
+          customer._id,
           199.98
         );
       } catch (error) {
@@ -284,7 +287,8 @@ describe('E2E Integration Tests', () => {
 
       expect(order.userId.toString()).toBe(customer._id.toString());
       expect(order.items).toHaveLength(1);
-      expect(order.payment.amount).toBe(199.98);
+      const populatedOrder = await Order.findById(order._id).populate('paymentId') as IOrderPopulated;
+      expect(populatedOrder.paymentId.amount).toBe(199.98);
 
       const customerNotifications = await Notification.find({ userId: customer._id });
       const vendorNotifications = await Notification.find({ userId: businessUser._id });
@@ -409,7 +413,7 @@ describe('E2E Integration Tests', () => {
 
       // Customer views product
       try {
-        await redisService.trackEvent(product._id.toString(), 'view', customer._id.toString());
+        await redisService.trackEvent(product._id.toString(), 'view', customer._id);
       } catch (error) {
         console.log('Redis tracking skipped in test environment');
       }
@@ -428,7 +432,7 @@ describe('E2E Integration Tests', () => {
       });
 
       try {
-        await redisService.trackEvent(product._id.toString(), 'addToCart', customer._id.toString());
+        await redisService.trackEvent(product._id.toString(), 'addToCart', customer._id);
       } catch (error) {
         console.log('Redis tracking skipped in test environment');
       }
@@ -450,7 +454,7 @@ describe('E2E Integration Tests', () => {
           transactionId: 'e2e-txn-12345'
         },
         shipping: {
-          address: customer.addresses[0],
+          address: customer!.addresses![0],
           carrier: 'fedex',
           trackingNumber: generateTrackingNumber(),
           status: 'processing',
@@ -490,7 +494,7 @@ describe('E2E Integration Tests', () => {
 
       // Track purchase
       try {
-        await redisService.trackEvent(product._id.toString(), 'purchase', customer._id.toString(), 299.99);
+        await redisService.trackEvent(product._id.toString(), 'purchase', customer._id, 299.99);
       } catch (error) {
         console.log('Redis tracking skipped in test environment');
       }
@@ -521,22 +525,22 @@ describe('E2E Integration Tests', () => {
       ]);
 
       // Verify all components
-      const finalOrder = await Order.findById(order._id).populate('items.productId');
+      const finalOrder = await Order.findById(order._id).populate('items.productId paymentId') as IOrderPopulated;
       const notifications = await Notification.find({
         $or: [{ userId: customer._id }, { userId: businessUser._id }]
       });
       const messages = await Message.find({ chatId: chat._id });
 
       expect(finalOrder).toBeTruthy();
-      expect(finalOrder.items).toHaveLength(1);
-      expect(finalOrder.payment.amount).toBe(299.99);
+      expect(finalOrder?.items).toHaveLength(1);
+      expect(finalOrder.paymentId.amount).toBe(299.99);
       expect(notifications).toHaveLength(2);
       expect(messages).toHaveLength(2);
 
       console.log('✅ Full E2E workflow completed successfully!');
       console.log(`   - Order ID: ${order._id}`);
       console.log(`   - Product: ${product.name}`);
-      console.log(`   - Total: $${order.payment.amount}`);
+      console.log(`   - Total: $${finalOrder.paymentId.amount}`);
       console.log(`   - Notifications: ${notifications.length}`);
       console.log(`   - Messages: ${messages.length}`);
     });

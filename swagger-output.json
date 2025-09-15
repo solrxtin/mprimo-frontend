@@ -3,7 +3,7 @@
   "info": {
     "title": "Mprimo API Documentation",
     "version": "1.0.0",
-    "description": "Complete API documentation for Mprimo e-commerce platform"
+    "description": "Complete API documentation for Mprimo e-commerce platform with Chat & Support System, Shipping, and Subscription Management"
   },
   "host": "localhost:5800",
   "basePath": "/api/v1",
@@ -61,7 +61,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/register-vendor": {
@@ -120,7 +123,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/verify": {
@@ -169,7 +175,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/resend-verification": {
@@ -199,7 +208,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/login": {
@@ -245,7 +257,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/logout": {
@@ -279,7 +294,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/forgot-password": {
@@ -319,7 +337,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/verify-password-reset-token": {
@@ -349,7 +370,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/resend-password-reset-token": {
@@ -379,7 +403,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/reset-password": {
@@ -422,7 +449,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/refresh": {
@@ -438,7 +468,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/google": {
@@ -448,7 +481,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/google/callback": {
@@ -458,7 +494,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/countries": {
@@ -487,7 +526,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "post": {
         "description": "",
@@ -541,7 +583,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/countries/stats": {
@@ -570,7 +615,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/countries/{id}": {
@@ -605,7 +653,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "put": {
         "description": "",
@@ -668,7 +719,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "delete": {
         "description": "",
@@ -701,7 +755,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/countries/{id}/delist": {
@@ -736,7 +793,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/countries/{id}/payment-options": {
@@ -786,7 +846,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/payment-options": {
@@ -815,7 +878,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "post": {
         "description": "",
@@ -857,7 +923,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/payment-options/{id}": {
@@ -904,7 +973,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "delete": {
         "description": "",
@@ -937,7 +1009,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/categories": {
@@ -981,7 +1056,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       },
       "post": {
         "description": "",
@@ -1011,7 +1089,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/categories/stats": {
@@ -1040,7 +1121,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/categories/{id}": {
@@ -1078,7 +1162,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       },
       "put": {
         "description": "",
@@ -1114,7 +1201,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       },
       "delete": {
         "description": "",
@@ -1147,7 +1237,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/categories/{categoryId}/status": {
@@ -1197,7 +1290,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/plans": {
@@ -1219,7 +1315,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "post": {
         "description": "",
@@ -1288,7 +1387,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/plans/{vendorId}": {
@@ -1323,7 +1425,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "put": {
         "description": "",
@@ -1383,7 +1488,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "delete": {
         "description": "",
@@ -1416,7 +1524,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors": {
@@ -1455,7 +1566,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/stats": {
@@ -1484,7 +1598,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/suspended": {
@@ -1538,7 +1655,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}": {
@@ -1576,7 +1696,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/products": {
@@ -1621,7 +1744,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/orders": {
@@ -1659,7 +1785,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/top-products": {
@@ -1699,7 +1828,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/warning": {
@@ -1752,7 +1884,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/suspend": {
@@ -1808,7 +1943,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/unsuspend": {
@@ -1846,7 +1984,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/orders": {
@@ -1890,7 +2031,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/orders/stats": {
@@ -1919,7 +2063,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/orders/{orderId}/receive": {
@@ -1975,7 +2122,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/orders/vendors/{vendorId}/reject": {
@@ -2037,7 +2187,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/admins": {
@@ -2072,7 +2225,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "get": {
         "description": "",
@@ -2119,7 +2275,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/admins/{adminId}/suspend": {
@@ -2157,7 +2316,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/admins/{adminId}/unsuspend": {
@@ -2195,7 +2357,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/admins/{adminId}/role": {
@@ -2233,7 +2398,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/admins/{adminId}/logs": {
@@ -2298,7 +2466,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/users": {
@@ -2327,7 +2498,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/users/stats": {
@@ -2396,7 +2570,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/logistics": {
@@ -2455,7 +2632,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/logistics/shipping-stats": {
@@ -2484,7 +2664,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/logistics/orders/{orderId}/shipping": {
@@ -2540,7 +2723,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/listings": {
@@ -2604,7 +2790,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/documents": {
@@ -2639,7 +2828,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/accept": {
@@ -2674,7 +2866,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/vendors/{vendorId}/reject": {
@@ -2727,7 +2922,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/issues": {
@@ -2781,7 +2979,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/issues/stats": {
@@ -2810,7 +3011,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/issues/{issueId}/status": {
@@ -2866,7 +3070,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/refunds/{issueId}/process": {
@@ -2919,7 +3126,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/refunds/{issueId}/eligibility": {
@@ -2954,7 +3164,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/{vendorId}/payouts": {
@@ -3004,7 +3217,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{vendorId}/payouts/{payoutId}/approve": {
@@ -3045,7 +3261,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{vendorId}/payouts/{payoutId}/reject": {
@@ -3098,7 +3317,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/finance/stats": {
@@ -3127,7 +3349,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/finance/analytics": {
@@ -3156,7 +3381,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/finance/transactions": {
@@ -3200,7 +3428,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/finance/withdrawals": {
@@ -3244,7 +3475,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/finance/withdrawals/{withdrawalId}/approve": {
@@ -3282,7 +3516,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/finance/withdrawals/{withdrawalId}/reject": {
@@ -3332,7 +3569,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/banners": {
@@ -3394,7 +3634,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "get": {
         "description": "",
@@ -3441,7 +3684,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/banners/analytics": {
@@ -3470,7 +3716,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/banners/{bannerId}": {
@@ -3505,7 +3754,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "delete": {
         "description": "",
@@ -3538,7 +3790,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/policies": {
@@ -3588,7 +3843,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "get": {
         "description": "",
@@ -3635,7 +3893,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/policies/{policyId}": {
@@ -3670,7 +3931,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "delete": {
         "description": "",
@@ -3703,7 +3967,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/policies/{policyId}/publish": {
@@ -3738,7 +4005,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/faqs": {
@@ -3788,7 +4058,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "get": {
         "description": "",
@@ -3840,7 +4113,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/faqs/{faqId}": {
@@ -3875,7 +4151,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "delete": {
         "description": "",
@@ -3908,7 +4187,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/faqs/stats": {
@@ -3937,7 +4219,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/notifications": {
@@ -3990,7 +4275,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/notifications/{notificationId}/send": {
@@ -4025,7 +4313,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/advertisements": {
@@ -4069,7 +4360,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "post": {
         "description": "",
@@ -4123,7 +4417,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/advertisements/{adId}/approve": {
@@ -4158,7 +4455,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/advertisements/{adId}/reject": {
@@ -4205,7 +4505,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/promotions": {
@@ -4258,7 +4561,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "get": {
         "description": "",
@@ -4300,7 +4606,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/promotions/{promotionId}": {
@@ -4335,7 +4644,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       },
       "delete": {
         "description": "",
@@ -4368,7 +4680,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/reports/orders": {
@@ -4432,7 +4747,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/upload-document": {
@@ -4479,7 +4797,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "File Upload"
+        ]
       }
     },
     "/upload": {
@@ -4492,7 +4813,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "File Upload"
+        ]
       }
     },
     "/": {
@@ -4561,7 +4885,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       },
       "post": {
         "description": "",
@@ -4612,7 +4939,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/search": {
@@ -4637,7 +4967,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/category/{categoryId}": {
@@ -4665,7 +4998,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/topProducts": {
@@ -4682,7 +5018,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/categories/{categoryId}/specifications": {
@@ -4700,7 +5039,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/{id}/related": {
@@ -4723,7 +5065,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{id}/reviews": {
@@ -4741,7 +5086,10 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       },
       "post": {
         "description": "",
@@ -4792,7 +5140,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{id}/track": {
@@ -4813,7 +5164,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{productId}/performance": {
@@ -4851,7 +5205,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/drafts": {
@@ -4880,7 +5237,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       },
       "get": {
         "description": "",
@@ -4907,7 +5267,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/drafts/{id}": {
@@ -4942,7 +5305,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       },
       "delete": {
         "description": "",
@@ -4975,7 +5341,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/{id}": {
@@ -5013,7 +5382,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       },
       "get": {
         "description": "",
@@ -5035,7 +5407,10 @@
           "404": {
             "description": "Not Found"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       },
       "delete": {
         "description": "",
@@ -5068,7 +5443,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/vendor/{vendorId}": {
@@ -5103,7 +5481,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/slug/{slug}": {
@@ -5127,7 +5508,10 @@
           "404": {
             "description": "Not Found"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/{id}/inventory": {
@@ -5183,7 +5567,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{id}/variants": {
@@ -5230,7 +5617,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/cart": {
@@ -5283,7 +5673,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       },
       "get": {
         "description": "",
@@ -5313,7 +5706,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       },
       "delete": {
         "description": "",
@@ -5364,7 +5760,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/cart/merge": {
@@ -5408,7 +5807,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/cart/{productId}": {
@@ -5467,7 +5869,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/wishlist/{productId}": {
@@ -5526,7 +5931,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       },
       "delete": {
         "description": "",
@@ -5583,7 +5991,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/wishlist": {
@@ -5615,7 +6026,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       },
       "delete": {
         "description": "",
@@ -5666,7 +6080,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/offer/{productId}": {
@@ -5716,7 +6133,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/offer/{productId}/counter": {
@@ -5772,7 +6192,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/offer/{vendorId}/accept": {
@@ -5825,7 +6248,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/offer/{vendorId}/accept-counter-offer": {
@@ -5878,7 +6304,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/offer/{vendorId}/reject": {
@@ -5931,7 +6360,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/offer/{vendorId}/reject-counter-offer": {
@@ -5969,7 +6401,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/bid/{productId}": {
@@ -6022,7 +6457,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/import/csv": {
@@ -6048,7 +6486,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/import/json": {
@@ -6074,7 +6515,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/import/shopify": {
@@ -6100,7 +6544,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/import/woocommerce": {
@@ -6126,7 +6573,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/{orderId}": {
@@ -6161,7 +6611,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{id}/shipping": {
@@ -6208,7 +6661,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Shipping"
+        ]
       }
     },
     "/{orderId}/cancel": {
@@ -6255,7 +6711,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{orderId}/refund": {
@@ -6305,7 +6764,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/refunds/all": {
@@ -6334,7 +6796,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/stats/all": {
@@ -6388,7 +6853,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/{vendorId}/metrics": {
@@ -6428,7 +6896,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{orderId}/status": {
@@ -6484,7 +6955,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/wallet/create": {
@@ -6513,7 +6987,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/balance": {
@@ -6557,7 +7034,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/wallet": {
@@ -6586,7 +7066,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/address/{orderId}": {
@@ -6621,7 +7104,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/stripe/intent": {
@@ -6674,7 +7160,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/stripe/process": {
@@ -6718,7 +7207,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/stripe/webhook": {
@@ -6738,7 +7230,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/apple-pay/process": {
@@ -6791,7 +7286,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/apple-pay/session": {
@@ -6821,7 +7319,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/crypto/create-wallet": {
@@ -6850,7 +7351,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/crypto/get-balance": {
@@ -6863,7 +7367,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/crypto/get-wallet": {
@@ -6892,7 +7399,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/attributes": {
@@ -6917,7 +7427,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/tree": {
@@ -6937,7 +7450,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/{id}/path": {
@@ -6958,7 +7474,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{id}/attributes": {
@@ -6993,7 +7512,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{id}/attributes/{attributeName}": {
@@ -7034,7 +7556,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/click/{bannerId}": {
@@ -7058,7 +7583,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Analytics"
+        ]
       }
     },
     "/impression/{bannerId}": {
@@ -7079,7 +7607,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Analytics"
+        ]
       }
     },
     "/stats/{bannerId}": {
@@ -7103,7 +7634,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/{issueId}/process": {
@@ -7156,7 +7690,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{issueId}/eligibility": {
@@ -7191,7 +7728,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{vendorId}/request": {
@@ -7247,7 +7787,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{vendorId}/eligible-orders": {
@@ -7282,7 +7825,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{issueId}": {
@@ -7317,7 +7863,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{issueId}/messages": {
@@ -7364,7 +7913,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{issueId}/media/image": {
@@ -7414,7 +7966,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{issueId}/media/video": {
@@ -7464,7 +8019,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{issueId}/media/document": {
@@ -7514,7 +8072,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{issueId}/read": {
@@ -7549,7 +8110,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/dashboard": {
@@ -7591,7 +8155,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Analytics"
+        ]
       }
     },
     "/{entityType}/{entityId}": {
@@ -7650,7 +8217,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/track/{entityType}/{entityId}/{eventType}": {
@@ -7715,7 +8285,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Analytics"
+        ]
       }
     },
     "/stats": {
@@ -7744,7 +8317,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/validate": {
@@ -7788,7 +8364,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/payment-intent": {
@@ -7838,7 +8417,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/vendors/{vendorId}/analytics": {
@@ -7878,7 +8460,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Admin"
+        ]
       }
     },
     "/chat/open": {
@@ -7925,7 +8510,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Chat"
+        ]
       }
     },
     "/chats": {
@@ -7954,7 +8542,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Chat"
+        ]
       }
     },
     "/chat/{chatId}/messages": {
@@ -7999,7 +8590,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Chat"
+        ]
       }
     },
     "/message": {
@@ -8046,7 +8640,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Chat"
+        ]
       }
     },
     "/chat/{chatId}/archive": {
@@ -8081,7 +8678,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Chat"
+        ]
       }
     },
     "/chat/{chatId}/read": {
@@ -8116,7 +8716,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Chat"
+        ]
       }
     },
     "/user": {
@@ -8142,7 +8745,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/subscribe": {
@@ -8168,7 +8774,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/unsubscribe/{deviceId}": {
@@ -8200,7 +8809,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/notify": {
@@ -8210,7 +8822,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Support"
+        ]
       }
     },
     "/product/{productId}/review/{reviewId}/helpful": {
@@ -8251,7 +8866,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/product/{productId}/analytics": {
@@ -8291,7 +8909,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/vendor/{vendorId}/analytics": {
@@ -8331,7 +8952,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/product/{productId}/review/{reviewId}/response": {
@@ -8387,7 +9011,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/vendor/{vendorId}/upgrade": {
@@ -8434,7 +9061,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/vendor/{vendorId}/limits": {
@@ -8479,7 +9109,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/vendor/{vendorId}/wallet": {
@@ -8514,7 +9147,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/vendor/{vendorId}/payout": {
@@ -8567,7 +9203,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/vendor/{vendorId}/payouts": {
@@ -8612,7 +9251,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/setup": {
@@ -8641,7 +9283,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/enable": {
@@ -8690,7 +9335,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/disable": {
@@ -8739,7 +9387,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/verify-backup": {
@@ -8788,7 +9439,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Authentication"
+        ]
       }
     },
     "/webhooks/kyc-result": {
@@ -8798,7 +9452,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/webhooks/aml-result": {
@@ -8808,7 +9465,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/apply": {
@@ -8834,7 +9494,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Verification"
+        ]
       }
     },
     "/{verificationId}/documents": {
@@ -8866,7 +9529,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/{verificationId}/status": {
@@ -8898,7 +9564,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/upgrade": {
@@ -8924,7 +9593,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "Vendors"
+        ]
       }
     },
     "/{verificationId}/review": {
@@ -8956,7 +9628,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/stripe": {
@@ -8976,7 +9651,10 @@
           "400": {
             "description": "Bad Request"
           }
-        }
+        },
+        "tags": [
+          "Payments"
+        ]
       }
     },
     "/csv": {
@@ -9002,7 +9680,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/json": {
@@ -9028,7 +9709,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/shopify": {
@@ -9054,7 +9738,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/woocommerce": {
@@ -9080,7 +9767,10 @@
           "500": {
             "description": "Internal Server Error"
           }
-        }
+        },
+        "tags": [
+          "General"
+        ]
       }
     },
     "/template": {
@@ -9105,6 +9795,355 @@
           },
           "500": {
             "description": "Internal Server Error"
+          }
+        },
+        "tags": [
+          "General"
+        ]
+      }
+    },
+    "/dispute-chat/{issueId}": {
+      "get": {
+        "tags": [
+          "Dispute Chat"
+        ],
+        "summary": "Get dispute chat messages",
+        "description": "Retrieve all messages for a specific dispute",
+        "parameters": [
+          {
+            "name": "issueId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "ID of the dispute issue"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "type": "string",
+            "description": "Bearer token"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dispute chat messages retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Dispute not found"
+          }
+        }
+      }
+    },
+    "/dispute-chat/{issueId}/messages": {
+      "post": {
+        "tags": [
+          "Dispute Chat"
+        ],
+        "summary": "Send dispute message",
+        "description": "Send a text message in a dispute chat",
+        "parameters": [
+          {
+            "name": "issueId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "text"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "maxLength": 1000
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message sent successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/dispute-chat/{issueId}/media/image": {
+      "post": {
+        "tags": [
+          "Dispute Chat"
+        ],
+        "summary": "Send dispute image",
+        "description": "Upload and send an image in dispute chat",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "parameters": [
+          {
+            "name": "issueId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "image",
+            "in": "formData",
+            "type": "file",
+            "required": true,
+            "description": "Image file (max 5MB)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image uploaded successfully"
+          },
+          "400": {
+            "description": "Invalid file format or size"
+          }
+        }
+      }
+    },
+    "/dispute-chat/{issueId}/read": {
+      "patch": {
+        "tags": [
+          "Dispute Chat"
+        ],
+        "summary": "Mark messages as read",
+        "description": "Mark all messages in a dispute as read",
+        "parameters": [
+          {
+            "name": "issueId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Messages marked as read"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Dispute not found"
+          }
+        }
+      }
+    },
+    "/shipping/price": {
+      "post": {
+        "tags": [
+          "Shipping"
+        ],
+        "summary": "Get shipping price",
+        "description": "Calculate shipping cost for a package",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "origin",
+                "destination",
+                "weight"
+              ],
+              "properties": {
+                "origin": {
+                  "type": "string"
+                },
+                "destination": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "number"
+                },
+                "serviceType": {
+                  "type": "string",
+                  "enum": [
+                    "standard",
+                    "express",
+                    "overnight"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shipping price calculated"
+          },
+          "400": {
+            "description": "Invalid shipping parameters"
+          }
+        }
+      }
+    },
+    "/shipping/track/{waybill}": {
+      "get": {
+        "tags": [
+          "Shipping"
+        ],
+        "summary": "Track shipment",
+        "description": "Track a shipment by waybill number",
+        "parameters": [
+          {
+            "name": "waybill",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "description": "Waybill tracking number"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shipment tracking information"
+          },
+          "404": {
+            "description": "Shipment not found"
+          }
+        }
+      }
+    },
+    "/subscription/plans": {
+      "get": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "Get subscription plans",
+        "description": "Retrieve all available subscription plans",
+        "responses": {
+          "200": {
+            "description": "Subscription plans retrieved"
+          }
+        }
+      }
+    },
+    "/subscription/vendor/{vendorId}": {
+      "get": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "Get vendor subscription",
+        "description": "Get current subscription details for a vendor",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vendor subscription retrieved"
+          },
+          "404": {
+            "description": "Vendor not found"
+          }
+        }
+      }
+    },
+    "/subscription/vendor/{vendorId}/upgrade": {
+      "post": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "Upgrade subscription",
+        "description": "Upgrade vendor subscription to a higher plan",
+        "parameters": [
+          {
+            "name": "vendorId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "planName"
+              ],
+              "properties": {
+                "planName": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription upgraded successfully"
+          },
+          "400": {
+            "description": "Invalid plan or upgrade not allowed"
+          },
+          "404": {
+            "description": "Vendor not found"
           }
         }
       }
@@ -9949,6 +10988,282 @@
           }
         }
       }
+    },
+    "SupportTicket": {
+      "type": "object",
+      "required": [
+        "orderId",
+        "reason",
+        "description"
+      ],
+      "properties": {
+        "orderId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "product_issue",
+            "shipping_delay",
+            "payment_issue",
+            "refund_request",
+            "other"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "urgent"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "in_progress",
+            "resolved",
+            "closed"
+          ]
+        }
+      }
+    },
+    "Chat": {
+      "type": "object",
+      "required": [
+        "participants",
+        "productId"
+      ],
+      "properties": {
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "productId": {
+          "type": "string"
+        },
+        "archivedBy": {
+          "type": "object"
+        },
+        "lastMessageTime": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Message": {
+      "type": "object",
+      "required": [
+        "chatId",
+        "senderId",
+        "receiverId"
+      ],
+      "properties": {
+        "chatId": {
+          "type": "string"
+        },
+        "senderId": {
+          "type": "string"
+        },
+        "receiverId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "messageType": {
+          "type": "string",
+          "enum": [
+            "text",
+            "file"
+          ]
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fileName": {
+                "type": "string"
+              },
+              "fileUrl": {
+                "type": "string"
+              },
+              "fileType": {
+                "type": "string",
+                "enum": [
+                  "image",
+                  "document",
+                  "video",
+                  "audio"
+                ]
+              },
+              "fileSize": {
+                "type": "number"
+              },
+              "mimeType": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "read": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "Shipment": {
+      "type": "object",
+      "required": [
+        "origin",
+        "destination",
+        "weight"
+      ],
+      "properties": {
+        "origin": {
+          "type": "string"
+        },
+        "destination": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "number"
+        },
+        "serviceType": {
+          "type": "string",
+          "enum": [
+            "standard",
+            "express",
+            "overnight"
+          ]
+        },
+        "waybill": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "in_transit",
+            "delivered",
+            "failed"
+          ]
+        }
+      }
+    },
+    "Subscription": {
+      "type": "object",
+      "required": [
+        "vendorId",
+        "planName"
+      ],
+      "properties": {
+        "vendorId": {
+          "type": "string"
+        },
+        "planName": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "inactive",
+            "expired"
+          ]
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and authorization"
+    },
+    {
+      "name": "Products",
+      "description": "Product management and catalog"
+    },
+    {
+      "name": "Orders",
+      "description": "Order processing and management"
+    },
+    {
+      "name": "Users",
+      "description": "User account management"
+    },
+    {
+      "name": "Vendors",
+      "description": "Vendor management and operations"
+    },
+    {
+      "name": "Admin",
+      "description": "Administrative functions"
+    },
+    {
+      "name": "Chat",
+      "description": "Real-time messaging system"
+    },
+    {
+      "name": "Dispute Chat",
+      "description": "Dispute resolution messaging"
+    },
+    {
+      "name": "Shipping",
+      "description": "Shipping and logistics management"
+    },
+    {
+      "name": "Subscription",
+      "description": "Vendor subscription management"
+    },
+    {
+      "name": "Payments",
+      "description": "Payment processing and transactions"
+    },
+    {
+      "name": "Analytics",
+      "description": "Analytics and reporting"
+    },
+    {
+      "name": "Support",
+      "description": "Customer support and notifications"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Webhook endpoints"
+    },
+    {
+      "name": "Verification",
+      "description": "Identity verification"
+    },
+    {
+      "name": "File Upload",
+      "description": "File upload and management"
+    },
+    {
+      "name": "Audit Logs",
+      "description": "System audit and logging"
+    },
+    {
+      "name": "General",
+      "description": "General purpose endpoints"
+    }
+  ]
 }
