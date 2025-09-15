@@ -16,6 +16,26 @@ const doc = {
       in: "header"
     }
   },
+  tags: [
+    { name: 'Authentication', description: 'User authentication and authorization' },
+    { name: 'Products', description: 'Product management and catalog' },
+    { name: 'Orders', description: 'Order processing and management' },
+    { name: 'Users', description: 'User account management' },
+    { name: 'Vendors', description: 'Vendor management and operations' },
+    { name: 'Admin', description: 'Administrative functions' },
+    { name: 'Chat', description: 'Real-time messaging system' },
+    { name: 'Dispute Chat', description: 'Dispute resolution messaging' },
+    { name: 'Shipping', description: 'Shipping and logistics management' },
+    { name: 'Subscription', description: 'Vendor subscription management' },
+    { name: 'Payments', description: 'Payment processing and transactions' },
+    { name: 'Analytics', description: 'Analytics and reporting' },
+    { name: 'Support', description: 'Customer support and notifications' },
+    { name: 'Webhooks', description: 'Webhook endpoints' },
+    { name: 'Verification', description: 'Identity verification' },
+    { name: 'File Upload', description: 'File upload and management' },
+    { name: 'Audit Logs', description: 'System audit and logging' },
+    { name: 'General', description: 'General purpose endpoints' }
+  ],
   definitions: {
     User: {
       type: "object",

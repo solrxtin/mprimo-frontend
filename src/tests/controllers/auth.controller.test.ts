@@ -1,104 +1,88 @@
 import request from 'supertest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
+import express from 'express';
+import { login, signup, verifyController, requestPasswordChange, changePassword } from '../../controllers/auth.controller';
 import User from '../../models/user.model';
-import bcrypt from 'bcrypt';
+
+const app = express();
+app.use(express.json());
+app.post('/register', signup);
+app.post('/login', login);
+app.post('/verify-email', verifyController);
+app.post('/forgot-password', requestPasswordChange);
+app.post('/reset-password', changePassword);
 
 describe('Auth Controller', () => {
-  let mongoServer: MongoMemoryServer;
-  let app: any;
-
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    await mongoose.connect(mongoServer.getUri());
-    app = require('../../index').default;
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
-  beforeEach(async () => {
-    await User.deleteMany({});
-  });
-
-  describe('POST /api/auth/register', () => {
-    test('should register a new user', async () => {
+  describe('POST /register', () => {
+    it('should register a new user', async () => {
       const userData = {
+        name: 'Test User',
         email: 'test@example.com',
         password: 'password123',
-        role: 'personal',
-        profile: {
-          firstName: 'John',
-          lastName: 'Doe'
-        }
+        role: 'user'
       };
 
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/register')
         .send(userData)
         .expect(201);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.user.email).toBe(userData.email);
-      expect(response.body.token).toBeDefined();
+      expect(response.body.message).toContain('registered successfully');
     });
 
-    test('should not register user with existing email', async () => {
+    it('should return error for duplicate email', async () => {
       const userData = {
+        name: 'Test User',
         email: 'test@example.com',
         password: 'password123',
-        role: 'personal',
-        profile: { firstName: 'John', lastName: 'Doe' }
+        role: 'user'
       };
 
-      await User.create({
-        ...userData,
-        password: await bcrypt.hash(userData.password, 10)
-      });
+      await User.create(userData);
 
-      await request(app)
-        .post('/api/auth/register')
+      const response = await request(app)
+        .post('/register')
         .send(userData)
         .expect(400);
+
+      expect(response.body.success).toBe(false);
     });
   });
 
-  describe('POST /api/auth/login', () => {
-    test('should login with valid credentials', async () => {
-      const userData = {
-        email: 'test@example.com',
-        password: 'password123',
-        role: 'personal',
-        profile: { firstName: 'John', lastName: 'Doe' }
-      };
-
+  describe('POST /login', () => {
+    beforeEach(async () => {
       await User.create({
-        ...userData,
-        password: await bcrypt.hash(userData.password, 10)
+        name: 'Test User',
+        email: 'test@example.com',
+        password: 'hashed-password',
+        role: 'user',
+        isEmailVerified: true
       });
+    });
 
+    it('should login with valid credentials', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/login')
         .send({
-          email: userData.email,
-          password: userData.password
+          email: 'test@example.com',
+          password: 'password123'
         })
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.token).toBeDefined();
+      expect(response.body.data.token).toBeDefined();
     });
 
-    test('should not login with invalid credentials', async () => {
-      await request(app)
-        .post('/api/auth/login')
+    it('should return error for invalid credentials', async () => {
+      const response = await request(app)
+        .post('/login')
         .send({
-          email: 'nonexistent@example.com',
+          email: 'test@example.com',
           password: 'wrongpassword'
         })
         .expect(401);
+
+      expect(response.body.success).toBe(false);
     });
   });
 });

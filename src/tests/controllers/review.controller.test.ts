@@ -54,7 +54,9 @@ describe('Review Controller', () => {
     });
 
     productId = product._id.toString();
-    reviewId = product.reviews[0]._id.toString();
+    // Fetch the saved product to get the generated review ID
+    const savedProduct = await Product.findById(productId);
+    reviewId = (savedProduct?.reviews[0] as any)?._id?.toString() || '';
     userToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET!);
   });
 

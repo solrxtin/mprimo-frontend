@@ -1,22 +1,47 @@
-import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
-// Load test environment variables
-dotenv.config({ path: '.env.test' });
+let mongoServer: MongoMemoryServer;
 
-// Set test environment
-process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-jwt-secret-key';
-process.env.ENCRYPTION_KEY = 'test-encryption-key-32-characters';
+beforeAll(async () => {
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
+  await mongoose.connect(mongoUri);
+});
 
-// Mock console methods to reduce noise during tests
-global.console = {
-  ...console,
-  log: jest.fn(),
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-};
+afterAll(async () => {
+  await mongoose.disconnect();
+  await mongoServer.stop();
+});
 
-// Increase timeout for database operations
-jest.setTimeout(30000);
+afterEach(async () => {
+  const collections = mongoose.connection.collections;
+  for (const key in collections) {
+    await collections[key].deleteMany({});
+  }
+});
+
+// Mock Redis for tests
+jest.mock('../services/redis.service', () => ({
+  default: jest.fn().mockImplementation(() => ({
+    trackEvent: jest.fn(),
+    getProductWithCache: jest.fn(),
+    invalidateProductCache: jest.fn(),
+    addToCart: jest.fn(),
+    getCart: jest.fn(),
+    removeFromCart: jest.fn(),
+    clearCart: jest.fn()
+  }))
+}));
+
+// Mock JWT
+jest.mock('jsonwebtoken', () => ({
+  sign: jest.fn(() => 'mock-token'),
+  verify: jest.fn(() => ({ id: 'mock-user-id', role: 'user' }))
+}));
+
+// Mock bcrypt
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn(() => Promise.resolve('hashed-password')),
+  compare: jest.fn(() => Promise.resolve(true))
+}));

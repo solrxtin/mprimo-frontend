@@ -9,7 +9,8 @@
     "dev": "nodemon src/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:integration": "jest --testPathPattern=integration",
+    "test:coverage": "jest --coverage",
+    "test:controllers": "jest --testPathPattern=controllers",
     "seed:users": "ts-node src/scripts/seed-users.ts",
     "seed:products": "ts-node src/scripts/seed-products.ts",
     "seed:interactions": "ts-node src/scripts/seed-interactions.ts",
@@ -63,7 +64,6 @@
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
     "@types/express-session": "^1.18.2",
-    "@types/jest": "^29.5.14",
     "@types/joi": "^17.2.2",
     "@types/jsonwebtoken": "^9.0.2",
     "@types/mongodb": "^4.0.6",
@@ -79,27 +79,33 @@
     "@types/speakeasy": "^2.0.10",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/web-push": "^3.6.4",
-    "jest": "^29.7.0",
-    "mongodb-memory-server": "^9.5.0",
+     "@types/jest": "^29.5.0",
+    "@types/supertest": "^2.0.12",
+    "jest": "^29.5.0",
+    "mongodb-memory-server": "^8.12.0",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.0",
     "nodemon": "^3.0.1",
     "speakeasy": "^2.0.0",
     "swagger-autogen": "^2.23.7",
     "swagger-ui-express": "^5.0.1",
-    "ts-jest": "^29.4.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.6"
   },
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "testMatch": [
-      "**/__tests__/**/*.ts",
-      "**/?(*.)+(spec|test).ts"
-    ],
+    "setupFilesAfterEnv": ["<rootDir>/src/tests/setup.ts"],
+    "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
     "collectCoverageFrom": [
-      "src/**/*.ts",
-      "!src/**/*.d.ts",
-      "!src/tests/**"
-    ]
+      "src/controllers/**/*.ts",
+      "src/services/**/*.ts",
+      "!src/**/*.d.ts"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"]
   }
 }
+
+
+

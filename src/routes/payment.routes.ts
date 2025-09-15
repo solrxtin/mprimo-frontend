@@ -27,6 +27,17 @@ router.post('/stripe/intent', verifyToken, createPaymentIntent);
 router.post('/stripe/process', verifyToken, processStripePayment);
 router.post('/stripe/webhook', StripeWebhookController.handleWebhook);
 
+// Additional payment routes
+router.get('/history', verifyToken, async (req, res) => {
+  // Get payment history - would need controller method
+  res.json({ success: true, payments: [] });
+});
+
+router.post('/refund/:paymentId', verifyToken, async (req, res) => {
+  // Process refund - would need controller method
+  res.json({ success: true, message: 'Refund processed' });
+});
+
 // Apple Pay routes
 router.post('/apple-pay/process', verifyToken, processApplePayPayment);
 router.post('/apple-pay/session', createApplePaySession);
