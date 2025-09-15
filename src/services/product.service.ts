@@ -11,6 +11,7 @@ import { IVendor } from "../types/vendor.type";
 import Notification from "../models/notification.model";
 import { socketService } from "..";
 import Vendor from "../models/vendor.model";
+import InventoryLog from "../models/inventory-log.model";
 
 function isMongoError(error: any): error is MongoError {
   return error.code !== undefined && typeof error.code === "number";
@@ -209,7 +210,9 @@ export class ProductService {
     vendor: IVendor,
     variantId: string, // SKU
     quantity: number,
-    operation: "add" | "subtract"
+    operation: "add" | "subtract",
+    reason?: string,
+    orderId?: Types.ObjectId
   ): Promise<ProductType> {
     const lock = await redisService.acquireLock(
       id,
@@ -238,11 +241,27 @@ export class ProductService {
 
     // Find and update the specific variant option
     let updated = false;
+    let quantityBefore = 0;
     for (const variant of product.variants) {
       for (const option of variant.options) {
         if (option.sku === variantId) {
+          quantityBefore = option.quantity;
           const change = operation === "add" ? quantity : -quantity;
           option.quantity = Math.max(0, option.quantity + change);
+          
+          // Log inventory change
+          await InventoryLog.create({
+            productId: product._id,
+            variantSku: variantId,
+            changeType: operation === "add" ? "restock" : "sale",
+            quantityBefore,
+            quantityAfter: option.quantity,
+            quantityChanged: Math.abs(change),
+            reason,
+            orderId,
+            userId: vendor.userId
+          });
+          
           updated = true;
           break;
         }
@@ -556,6 +575,51 @@ export class ProductService {
     return brands.filter(Boolean).sort();
   }
 
+  static async bulkUpdateVariants(
+    productId: string,
+    vendorId: Types.ObjectId,
+    variants: ProductType["variants"]
+  ): Promise<ProductType> {
+    const product = await ProductModel.findOneAndUpdate(
+      { _id: productId, vendorId },
+      { variants },
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
+      throw createError(404, "Product not found");
+    }
+
+    return product;
+  }
+
+  static async getInventoryHistory(
+    productId: string,
+    variantSku?: string,
+    page = 1,
+    limit = 20
+  ) {
+    const query: any = { productId };
+    if (variantSku) query.variantSku = variantSku;
+
+    const skip = (page - 1) * limit;
+    const [logs, total] = await Promise.all([
+      InventoryLog.find(query)
+        .populate('userId', 'profile.firstName profile.lastName email')
+        .populate('orderId', '_id')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      InventoryLog.countDocuments(query)
+    ]);
+
+    return {
+      logs,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+    };
+  }
+
   static async getCategoryTree(filters: {
     category?: string;
     subCategory1?: string;
@@ -601,5 +665,34 @@ export class ProductService {
     }
 
     return tree;
+  }
+
+  static async getReorderAlerts(vendorId: Types.ObjectId) {
+    const products = await ProductModel.find({ vendorId, status: 'active' })
+      .select('name variants inventory.lowStockAlert')
+      .lean();
+
+    const alerts = [];
+    for (const product of products) {
+      if (product.variants) {
+        for (const variant of product.variants) {
+          for (const option of variant.options) {
+            const threshold = product.inventory?.lowStockAlert || 5;
+            if (option.quantity <= threshold) {
+              alerts.push({
+                productId: product._id,
+                productName: product.name,
+                variantSku: option.sku,
+                variantValue: option.value,
+                currentQuantity: option.quantity,
+                threshold
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return alerts;
   }
 }

@@ -1726,24 +1726,125 @@ export class VenodrManagenentController {
   }
 
   // /**********************User Management */
+  static async getUserById(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const user = await User.findById(userId)
+        .select("-password -resetPasswordToken -verificationToken")
+        .populate("country", "name currency");
+      
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      const [orders, wallet] = await Promise.all([
+        Order.countDocuments({ userId }),
+        Wallet.findOne({ userId })
+      ]);
+
+      res.status(200).json({
+        success: true,
+        message: "User details fetched successfully",
+        data: { ...user.toObject(), totalOrders: orders, walletBalance: wallet?.balance || 0 }
+      });
+    } catch (error: any) {
+      console.error("GetUserById Error:", error.message);
+      res.status(500).json({ success: false, message: "Server error while fetching user" });
+    }
+  }
+
+  static async updateUser(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const updates = req.body;
+      const adminId = req.userId;
+
+      const user = await User.findByIdAndUpdate(userId, updates, { new: true })
+        .select("-password -resetPasswordToken -verificationToken");
+      
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      await AuditLogService.log("USER_UPDATED", "user", "info", 
+        { userId, updatedBy: adminId, changes: updates }, req, userId);
+
+      res.status(200).json({
+        success: true,
+        message: "User updated successfully",
+        data: user
+      });
+    } catch (error: any) {
+      console.error("UpdateUser Error:", error.message);
+      res.status(500).json({ success: false, message: "Server error while updating user" });
+    }
+  }
+
+  static async deleteUser(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const { reason } = req.body;
+      const adminId = req.userId;
+
+      const user = await User.findByIdAndUpdate(userId, 
+        { status: "inactive", deletedAt: new Date(), deletionReason: reason },
+        { new: true }
+      );
+      
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      await AuditLogService.log("USER_DELETED", "user", "warning", 
+        { userId, deletedBy: adminId, reason }, req, userId);
+
+      res.status(200).json({
+        success: true,
+        message: "User account deactivated successfully"
+      });
+    } catch (error: any) {
+      console.error("DeleteUser Error:", error.message);
+      res.status(500).json({ success: false, message: "Server error while deleting user" });
+    }
+  }
+
   static async getAllUsers(req: Request, res: Response) {
     try {
-      const users = await User.find({}).select(
-        "profile email addresses status createdAt updatedAt"
-      );
-      if (!users) {
-        return res.status(404).json({
-          success: false,
-          message: "No users found",
-        });
+      const { page = 1, limit = 10, status, role, search } = req.query;
+      const query: any = {};
+      if (status) query.status = status;
+      if (role) query.role = role;
+      if (search) {
+        query.$or = [
+          { email: { $regex: search, $options: "i" } },
+          { "profile.firstName": { $regex: search, $options: "i" } },
+          { "profile.lastName": { $regex: search, $options: "i" } },
+          { businessName: { $regex: search, $options: "i" } }
+        ];
       }
-      const activeUserCount = await User.countDocuments({ status: "active" });
+
+      const [users, total, activeUserCount] = await Promise.all([
+        User.find(query)
+          .select("profile email addresses status role createdAt updatedAt businessName")
+          .sort({ createdAt: -1 })
+          .skip((Number(page) - 1) * Number(limit))
+          .limit(Number(limit)),
+        User.countDocuments(query),
+        User.countDocuments({ status: "active" })
+      ]);
+
       res.status(200).json({
         success: true,
         message: "Users fetched successfully",
         data: {
           users,
           activeUserCount,
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            pages: Math.ceil(total / Number(limit))
+          }
         },
       });
     } catch (error: any) {

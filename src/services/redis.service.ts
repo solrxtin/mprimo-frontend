@@ -34,7 +34,7 @@ class RedisService {
 
     this.redisClient = new Redis(process.env.UPSTASH_REDIS_REST_URL!);
 
-    this.redisClient.on("error", (err) => {
+    this.redisClient.on("error", (err: any) => {
       logger.error("Redis Client Error", err);
       console.error("Redis Client Error", err);
       this.isConnected = false;

@@ -72,6 +72,9 @@ router.get("/admins/:adminId/logs", verifyToken, requirePermission([PERMISSIONS.
 // User Management Routes
 router.get("/users", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.getAllUsers);
 router.get("/users/stats", verifyToken, requirePermission([PERMISSIONS.VIEW_REPORTS]), VenodrManagenentController.getUserStats);
+router.get("/users/:userId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.getUserById);
+router.put("/users/:userId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.updateUser);
+router.delete("/users/:userId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.deleteUser);
 
 // Logistics Management Routes
 router.get("/logistics", verifyToken, requirePermission([PERMISSIONS.TRACK_SHIPMENTS]), VenodrManagenentController.getLogistics);

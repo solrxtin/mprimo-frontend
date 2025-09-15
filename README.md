@@ -1,12 +1,13 @@
 # Mprimo Global Market Place
 
-###  MPRIMO is a global e-commerce platform designed to allow users to purchase products from anywhere in the world, eliminating barriers related to foreign exchange and providing efficient delivery solutions directly to users’ doorsteps. This project will encompass three key components:
+## MPRIMO is a global e-commerce platform designed to allow users to purchase products from anywhere in the world, eliminating barriers related to foreign exchange and providing efficient delivery solutions directly to users’ doorsteps. This project will encompass three key components
 
-#### TODOs
+### TODOs
 
-# MPRIMO Server-Side Implementation To-Dos
+### MPRIMO Server-Side Implementation To-Dos
 
 ## 1. Initial Setup & Configuration
+
 - [ ✔ ] Set up Node.js/Express.js server
 - [ ✔ ] Configure MongoDB connection with Mongoose
 - [ ✔ ] Implement environment variables management
@@ -18,6 +19,7 @@
 - [ ✔ ] Configure security middleware (helmet, etc.)
 
 ## 2. Authentication & Authorization
+
 - [ ✔ ] Implement JWT authentication
 - [ ] Set up OAuth2.0 for social logins:
   - [ ✔ ] Google
@@ -31,7 +33,8 @@
 - [ ✔ ] Set up two-factor authentication (2FA)
 
 ## 3. User Management
-- [ ] Create users CRUD operations
+
+- [ ] Create user CRUD operations
 - [ ] Implement user profile management
 - [ ] Set up address management
 - [ ] Create user preferences handling
@@ -40,6 +43,7 @@
 - [ ] Create user analytics tracking
 
 ## 4. Product Management
+
 - [ ✔ ] Implement product CRUD operations
 - [ ✔ ] Set up category management
 - [ ] Create inventory tracking system
@@ -49,8 +53,9 @@
   - [ ✔ ] Sorting
 - [ ] Set up product variants management
 - [ ✔ ] Implement product reviews and ratings
- 
+
 ## 5. Vendor Management
+
 - [ ✔ ] Create vendor registration and verification
 - [ ✔ ] Implement vendor dashboard APIs
 - [ ✔ ] Set up inventory management
@@ -60,6 +65,7 @@
 - [ ✔ ] Create vendor communication system
 
 ## 6. Order Management
+
 - [ ] Implement order creation and processing
 - [ ] Create order tracking system
 - [ ] Set up order status updates
@@ -69,6 +75,7 @@
 - [ ] Implement order notifications
 
 ## 7. Payment Integration
+
 - [ ] Integrate multiple payment gateways:
   - [ ] Stripe
   - [ ] PayPal
@@ -80,6 +87,7 @@
 - [ ] Set up payment analytics
 
 ## 8. Shipping & Logistics --- Might want to make this a standalone
+
 - [ ] Integrate shipping providers
 - [ ] Implement shipping cost calculation
 - [ ] Create tracking system integration
@@ -88,6 +96,7 @@
 - [ ] Create shipping analytics
 
 ## 9. Notification System
+
 - [ ] Set up email notification system
 - [ ] Implement SMS notifications
 - [ ] Create push notifications
@@ -96,6 +105,7 @@
 - [ ] Create notification preferences
 
 ## 10. Chat & Support System
+
 - [ ] Implement real-time chat functionality
 - [ ] Set up support ticket system
 - [ ] Create automated responses
@@ -103,6 +113,7 @@
 - [ ] Set up chat history management
 
 ## 11. Analytics & Reporting
+
 - [ ] Create sales analytics
 - [ ] Implement user behavior tracking
 - [ ] Set up vendor performance metrics
@@ -111,6 +122,7 @@
 - [ ] Set up custom report generation
 
 ## 12. Content Management
+
 - [ ] Create CMS for static pages
 - [ ] Implement blog functionality
 - [ ] Set up media management
@@ -118,6 +130,7 @@
 - [ ] Implement content versioning
 
 ## 13. Promotion & Marketing
+
 - [ ] Implement coupon system
 - [ ] Create discount management
 - [ ] Set up loyalty program
@@ -126,6 +139,7 @@
 - [ ] Set up flash sales functionality
 
 ## 14. Security & Performance
+
 - [ ] Implement data encryption
 - [ ] Set up DDoS protection
 - [ ] Create backup system
@@ -134,6 +148,7 @@
 - [ ] Create security audit logs
 
 ## 15. API Documentation
+
 - [ ] Create API documentation
 - [ ] Set up Swagger/OpenAPI
 - [ ] Implement API versioning
@@ -141,6 +156,7 @@
 - [ ] Set up API monitoring
 
 ## 16. Testing
+
 - [ ] Create unit tests
 - [ ] Implement integration tests
 - [ ] Set up end-to-end tests
@@ -148,6 +164,7 @@
 - [ ] Implement security testing
 
 ## 17. Deployment & DevOps
+
 - [ ] Set up CI/CD pipeline
 - [ ] Create Docker configuration
 - [ ] Implement automated backups
@@ -156,6 +173,7 @@
 - [ ] Implement scaling strategy
 
 ## 18. Internationalization
+
 - [ ] Implement multi-language support
 - [ ] Set up currency conversion
 - [ ] Create timezone handling
@@ -163,6 +181,7 @@
 - [ ] Set up localization system
 
 ## 19. Compliance & Legal
+
 - [ ] Implement GDPR compliance
 - [ ] Create privacy policy handling
 - [ ] Set up terms of service
@@ -170,17 +189,15 @@
 - [ ] Create compliance reporting
 
 ## 20. Third-Party Integrations
+
 - [ ] Set up analytics integration
 - [ ] Implement social media integration
 - [ ] Create email marketing integration
 - [ ] Set up CRM integration
 - [ ] Implement inventory management integration
 
-
-
 <!-- Google Authorized Redirect URI - http://localhost:5173/auth/google/callback -->
 <!-- Used upstash, might have to pay for more usage -->
-
 
 Allowed documents and limits
 
