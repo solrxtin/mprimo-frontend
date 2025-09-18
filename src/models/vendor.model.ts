@@ -18,6 +18,15 @@ const vendorSchema = new mongoose.Schema<IVendor>(
       enum: ["pending", "verified", "rejected"],
       default: "pending",
     },
+    stripeAccountId: {
+      type: String,
+      sparse: true,
+    },
+    stripeVerificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: "pending",
+    },
     verificationDocuments: [
       {
         name: { type: String, required: true },

@@ -27,6 +27,8 @@ export interface IVendor {
   accountType: "personal" | "business";
   kycStatus: "pending" | "verified" | "rejected";
   verificationDocuments: VerificationDocument[];
+  stripeAccountId?: string;
+  stripeVerificationStatus: "pending" | "verified" | "rejected";
   businessInfo?: {
     name: string;
     registrationnumber: string;

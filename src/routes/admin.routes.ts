@@ -13,7 +13,7 @@ const router = Router();
 
 // Country Management Routes
 router.get("/countries", verifyToken, requirePermission([PERMISSIONS.MANAGE_SETTINGS]), countryController.getAllCountries);
-router.get("/countries/stats", verifyToken, requirePermission([PERMISSIONS.VIEW_REPORTS]), VenodrManagenentController.getCountryStats);
+router.get("/countries/stats", verifyToken, requirePermission([PERMISSIONS.VIEW_REPORTS]), countryController.getCountryStats);
 router.get("/countries/:id", verifyToken, requirePermission([PERMISSIONS.MANAGE_SETTINGS]), countryController.getCountryById);
 router.post("/countries", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), countryController.createCountry);
 router.put("/countries/:id", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), countryController.updateCountry);
@@ -38,10 +38,11 @@ router.delete("/categories/:id", verifyToken, requirePermission([PERMISSIONS.FUL
 
 // Subscription Plan Management Routes
 router.get("/plans", verifyToken, SubscriptionPlanController.getPlans);
-router.get("/plans/:vendorId", verifyToken, SubscriptionPlanController.getPlans);
+router.get("/plans/vendors/:vendorId", verifyToken, SubscriptionPlanController.getPlans);
+router.get("/plans/:planId", verifyToken, SubscriptionPlanController.getPlanById);
 router.post("/plans", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), SubscriptionPlanController.createPlan);
-router.put("/plans/:vendorId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), SubscriptionPlanController.updatePlan);
-router.delete("/plans/:vendorId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), SubscriptionPlanController.deletePlan);
+router.put("/plans/:planId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), SubscriptionPlanController.updatePlan);
+router.delete("/plans/:planId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), SubscriptionPlanController.deletePlan);
 
 // Vendor Management Routes
 router.get("/vendors", verifyToken, requirePermission([PERMISSIONS.MANAGE_VENDORS]), VenodrManagenentController.getAllVendors);

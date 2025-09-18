@@ -44,16 +44,16 @@ const CountrySchema = new mongoose.Schema<ICountry>(
     exchangeRate: { type: Number, required: true, default: 1 }, // Rate to USD
     lastExchangeUpdate: { type: Date, default: Date.now },
     delisted: { type: Boolean, default: false },
-    mprimoAccountDetails: {
-      name: { type: String, required: true },
-      bankName: { type: String, required: true },
-      accountNumber: { type: String, required: true },
-      routingNumber: { type: String, required: true },
-      sortCodeOrIban: { type: String, required: true },
-      currency: { type: String, required: true },
-      reference: { type: String, required: true },
-      note: { type: String, required: true },
-    },
+    // mprimoAccountDetails: {
+    //   name: { type: String, required: true },
+    //   bankName: { type: String, required: true },
+    //   accountNumber: { type: String, required: true },
+    //   routingNumber: { type: String, required: true },
+    //   sortCodeOrIban: { type: String, required: true },
+    //   currency: { type: String, required: true },
+    //   reference: { type: String, required: true },
+    //   note: { type: String, required: true },
+    // },
     localizedSubscritpionPlan: [
       {
         plan: {

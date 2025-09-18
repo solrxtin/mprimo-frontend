@@ -13,6 +13,7 @@
     "seed:users": "ts-node src/scripts/seed-users.ts",
     "seed:products": "ts-node src/scripts/seed-products.ts",
     "seed:interactions": "ts-node src/scripts/seed-interactions.ts",
+    "create-superadmin": "ts-node src/scripts/create-superadmin.ts",
     "swagger": "node swagger-docs.js",
     "swagger:serve": "swagger-ui-serve src/swagger-output.json",
     "seed:all": "npm run seed:users && npm run seed:products && npm run seed:interactions",

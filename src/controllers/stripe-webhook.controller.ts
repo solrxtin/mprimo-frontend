@@ -13,7 +13,15 @@ export class StripeWebhookController {
   static async handleWebhook(req: Request, res: Response) {
     try {
       const signature = req.headers["stripe-signature"] as string;
-      const event = StripeService.verifyWebhook(req.body, signature);
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: '2025-06-30.basil',
+      });
+      
+      const event = stripe.webhooks.constructEvent(
+        req.body,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET!
+      );
 
       switch (event.type) {
         case "payment_intent.succeeded":
@@ -53,18 +61,18 @@ export class StripeWebhookController {
 
   private static async handleAccountUpdate(account: any) {
     try {
-      // Update vendor verification status
+      const isVerified = account.details_submitted && account.charges_enabled;
+      const status = isVerified ? "verified" : "pending";
+      
       await Vendor.findOneAndUpdate(
-        { "stripeAccount.accountId": account.id },
+        { stripeAccountId: account.id },
         {
-          "stripeAccount.detailsSubmitted": account.details_submitted,
-          "stripeAccount.chargesEnabled": account.charges_enabled,
-          "stripeAccount.payoutsEnabled": account.payouts_enabled,
-          kycStatus: account.details_submitted ? "verified" : "pending",
+          stripeVerificationStatus: status,
+          kycStatus: status
         }
       );
 
-      logger.info(`Stripe account updated: ${account.id}`);
+      logger.info(`Stripe account updated: ${account.id} - Status: ${status}`);
     } catch (error) {
       logger.error("Error handling account update:", error);
     }
@@ -72,7 +80,6 @@ export class StripeWebhookController {
 
   private static async handleTransferCreated(transfer: any) {
     try {
-      // Log payout completion
       logger.info(
         `Payout completed: ${transfer.id} - ${transfer.amount / 100}`
       );
@@ -80,6 +87,7 @@ export class StripeWebhookController {
       logger.error("Error handling transfer:", error);
     }
   }
+
   private static async processWalletTopUp(intent: any) {
     const userId = intent.metadata?.userId;
     const amount = intent.amount_received / 100;
