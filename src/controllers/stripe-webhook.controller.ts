@@ -6,6 +6,8 @@ import { LoggerService } from "../services/logger.service";
 import Wallet from "../models/wallet.model";
 import Stripe from "stripe";
 import Order from "../models/order.model";
+import Notification from "../models/notification.model";
+import { SubscriptionService } from "../services/subscription.service";
 
 const logger = LoggerService.getInstance();
 
@@ -64,17 +66,49 @@ export class StripeWebhookController {
       const isVerified = account.details_submitted && account.charges_enabled;
       const status = isVerified ? "verified" : "pending";
       
-      await Vendor.findOneAndUpdate(
+      const vendor = await Vendor.findOneAndUpdate(
         { stripeAccountId: account.id },
         {
           stripeVerificationStatus: status,
           kycStatus: status
-        }
+        },
+        { new: true }
       );
+
+      // If vendor just got verified, add Elite subscription for 2 months
+      if (isVerified && vendor && vendor.stripeVerificationStatus !== "verified") {
+        await this.addEliteSubscriptionForVerifiedVendor(vendor._id.toString());
+      }
 
       logger.info(`Stripe account updated: ${account.id} - Status: ${status}`);
     } catch (error) {
       logger.error("Error handling account update:", error);
+    }
+  }
+
+  private static async addEliteSubscriptionForVerifiedVendor(vendorId: string) {
+    try {
+      await SubscriptionService.initializeVendorSubscription(vendorId);
+
+      const vendor = await Vendor.findById(vendorId).select('userId');
+      
+      if (vendor) {
+        await Notification.create({
+          userId: vendor.userId,
+          type: 'subscription_upgrade',
+          title: 'Congratulations! Elite Plan Activated',
+          message: 'Your account verification is complete! You\'ve been upgraded to Elite plan for 6 months. Enjoy premium features!',
+          data: {
+            redirectUrl: '/vendor/subscription',
+            entityType: 'subscription'
+          },
+          isRead: false
+        });
+      }
+
+      logger.info(`Added 6-month Elite subscription for verified vendor: ${vendorId}`);
+    } catch (error) {
+      logger.error('Failed to add Elite subscription for verified vendor:', error);
     }
   }
 

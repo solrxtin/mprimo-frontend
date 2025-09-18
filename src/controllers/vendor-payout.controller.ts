@@ -8,7 +8,42 @@ import AuditLogService from "../services/audit-log.service";
 export const requestPayout = async (req: Request, res: Response) => {
   try {
     const {vendorId} = req.params;
-    const { orderId, method, accountDetails } = req.body;
+    const { orderId, method, accountDetails, payoutType = 'weekly' } = req.body;
+
+    // Check subscription plan for payout options
+    const { SubscriptionService } = await import('../services/subscription.service');
+    const vendor = await Vendor.findById(vendorId).populate('subscription.currentPlan');
+    
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: "Vendor not found" });
+    }
+
+    // Check payout type permissions
+    if (payoutType === 'instant') {
+      const hasInstantPayout = await SubscriptionService.checkPlanLimits(
+        vendorId,
+        'instant_payout'
+      );
+      
+      if (!hasInstantPayout) {
+        return res.status(403).json({
+          success: false,
+          message: 'Instant payouts require Elite plan. Upgrade to access instant payouts.'
+        });
+      }
+    } else if (payoutType === 'bi-weekly') {
+      const hasBiWeeklyPayout = await SubscriptionService.checkPlanLimits(
+        vendorId,
+        'bi_weekly_payout'
+      );
+      
+      if (!hasBiWeeklyPayout) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bi-weekly payouts require Pro or Elite plan. Upgrade to access bi-weekly payouts.'
+        });
+      }
+    }
 
     const order = await Order.findById(orderId);
     if (!order) {
@@ -53,6 +88,12 @@ export const requestPayout = async (req: Request, res: Response) => {
       amount: payoutAmount,
       method,
       status: "pending"
+    });
+
+    // Update vendor analytics - track payout request
+    await Vendor.findByIdAndUpdate(vendorId, {
+      $inc: { 'analytics.payoutRequests': 1 },
+      $set: { 'analytics.lastPayoutRequest': new Date() }
     });
 
     // Notify admin for approval

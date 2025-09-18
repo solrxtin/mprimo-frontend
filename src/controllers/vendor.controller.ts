@@ -158,6 +158,12 @@ export const createAdvertisement = async (req: Request, res: Response, next: Nex
       status: 'pending'
     });
 
+    // Update vendor analytics - track advertisement creation
+    await Vendor.findByIdAndUpdate(vendor._id, {
+      $inc: { 'analytics.adsCreated': 1 },
+      $set: { 'analytics.lastAdCreated': new Date() }
+    });
+
     res.status(201).json({
       success: true,
       message: "Advertisement created successfully and submitted for review",
@@ -228,6 +234,37 @@ export const getVendorAdvertisements = async (req: Request, res: Response, next:
     });
   } catch (error) {
     console.error("Get vendor advertisements error:", error);
+    next(error);
+  }
+};
+
+export const getVendorUsage = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.userId;
+    
+    const vendor = await Vendor.findOne({ userId });
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    const { VendorUsageService } = await import('../services/vendor-usage.service');
+    const [usage, warnings] = await Promise.all([
+      VendorUsageService.getVendorUsage(vendor._id.toString()),
+      VendorUsageService.getUsageWarnings(vendor._id.toString())
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        usage,
+        warnings
+      }
+    });
+  } catch (error) {
+    console.error("Get vendor usage error:", error);
     next(error);
   }
 };

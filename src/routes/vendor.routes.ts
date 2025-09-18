@@ -26,4 +26,10 @@ router.get(
   vendorController.getVendorAdvertisements
 );
 
+router.get(
+  "/usage",
+  verifyToken,
+  vendorController.getVendorUsage
+);
+
 export default router

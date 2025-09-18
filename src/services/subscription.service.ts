@@ -42,25 +42,56 @@ export class SubscriptionService {
       if (!vendor?.subscription?.currentPlan) return false;
 
       const plan = vendor.subscription.currentPlan as any;
+      
+      // Use actual vendor analytics if currentUsage not provided
+      const actualProductCount = vendor.analytics?.productCount || 0;
+      const actualFeaturedCount = vendor.analytics?.featuredProducts || 0;
 
       switch (action) {
         case 'add_product':
-          if (currentUsage && currentUsage >= plan.productListingLimit) {
-            return false;
-          }
-          break;
+          const productUsage = currentUsage !== undefined ? currentUsage : actualProductCount;
+          return productUsage < plan.productListingLimit;
+        
         case 'feature_product':
-          // Check featured product slots
-          break;
+          const featuredUsage = currentUsage !== undefined ? currentUsage : actualFeaturedCount;
+          return featuredUsage < plan.featuredProductSlots;
+        
         case 'bulk_upload':
           return plan.bulkUpload;
+        
         case 'analytics_dashboard':
           return plan.analyticsDashboard;
+        
+        case 'custom_store_branding':
+          return plan.customStoreBranding !== 'none';
+        
+        case 'premium_branding':
+          return plan.customStoreBranding === 'premium';
+        
+        case 'full_messaging':
+          return plan.messagingTools === 'full' || plan.messagingTools === 'full_priority';
+        
+        case 'priority_messaging':
+          return plan.messagingTools === 'full_priority';
+        
+        case 'instant_payout':
+          return plan.payoutOptions.includes('instant');
+        
+        case 'bi_weekly_payout':
+          return plan.payoutOptions.includes('bi-weekly');
+        
+        case 'ad_credits':
+          return plan.adCreditMonthly > 0;
+        
+        case 'priority_support':
+          return plan.prioritySupport !== 'none';
+        
+        case 'premium_support':
+          return plan.prioritySupport === 'premium';
+        
         default:
           return true;
       }
-
-      return true;
     } catch (error) {
       logger.error('Failed to check plan limits:', error);
       return false;

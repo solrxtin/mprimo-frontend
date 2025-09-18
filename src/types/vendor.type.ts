@@ -59,6 +59,15 @@ export interface IVendor {
     totalRevenue: number;
     averageRating: number;
     productCount: number;
+    featuredProducts: number;
+    payoutRequests: number;
+    lastPayoutRequest?: Date;
+    adsCreated: number;
+    lastAdCreated?: Date;
+    bulkUploadsUsed: number;
+    lastBulkUpload?: Date;
+    analyticsViews: number;
+    lastAnalyticsView?: Date;
   };
   settings: {
     autoAcceptOrders: boolean;
