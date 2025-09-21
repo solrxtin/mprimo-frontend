@@ -8,7 +8,42 @@ import AuditLogService from "../services/audit-log.service";
 export const requestPayout = async (req: Request, res: Response) => {
   try {
     const {vendorId} = req.params;
-    const { orderId, method, accountDetails } = req.body;
+    const { orderId, method, accountDetails, payoutType = 'weekly' } = req.body;
+
+    // Check subscription plan for payout options
+    const { SubscriptionService } = await import('../services/subscription.service');
+    const vendor = await Vendor.findById(vendorId).populate('subscription.currentPlan');
+    
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: "Vendor not found" });
+    }
+
+    // Check payout type permissions
+    if (payoutType === 'instant') {
+      const hasInstantPayout = await SubscriptionService.checkPlanLimits(
+        vendorId,
+        'instant_payout'
+      );
+      
+      if (!hasInstantPayout) {
+        return res.status(403).json({
+          success: false,
+          message: 'Instant payouts require Elite plan. Upgrade to access instant payouts.'
+        });
+      }
+    } else if (payoutType === 'bi-weekly') {
+      const hasBiWeeklyPayout = await SubscriptionService.checkPlanLimits(
+        vendorId,
+        'bi_weekly_payout'
+      );
+      
+      if (!hasBiWeeklyPayout) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bi-weekly payouts require Pro or Elite plan. Upgrade to access bi-weekly payouts.'
+        });
+      }
+    }
 
     const order = await Order.findById(orderId);
     if (!order) {
@@ -53,6 +88,12 @@ export const requestPayout = async (req: Request, res: Response) => {
       amount: payoutAmount,
       method,
       status: "pending"
+    });
+
+    // Update vendor analytics - track payout request
+    await Vendor.findByIdAndUpdate(vendorId, {
+      $inc: { 'analytics.payoutRequests': 1 },
+      $set: { 'analytics.lastPayoutRequest': new Date() }
     });
 
     // Notify admin for approval
@@ -340,3 +381,123 @@ export const rejectPayout = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+
+// import { Request, Response } from 'express';
+// import Stripe from 'stripe';
+// import Vendor from '../models/vendor.model';
+// import { LoggerService } from '../services/logger.service';
+
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+//   apiVersion: '2024-06-20',
+// });
+
+// const logger = LoggerService.getInstance();
+
+// export const createVendorPayout = async (req: Request, res: Response) => {
+//   try {
+//     const { vendorId, amount, currency = 'usd', description } = req.body;
+//     const adminId = req.userId;
+
+//     if (!adminId) {
+//       return res.status(401).json({ success: false, message: 'Unauthorized' });
+//     }
+
+//     const vendor = await Vendor.findById(vendorId);
+//     if (!vendor?.stripeAccountId) {
+//       return res.status(404).json({ 
+//         success: false, 
+//         message: 'Vendor not found or not verified' 
+//       });
+//     }
+
+//     // Check if vendor is verified and eligible for payouts
+//     if (vendor.stripeVerificationStatus !== 'verified') {
+//       return res.status(400).json({ 
+//         success: false, 
+//         message: 'Vendor not verified for payouts' 
+//       });
+//     }
+
+//     // Create transfer to vendor's Stripe account
+//     const transfer = await stripe.transfers.create({
+//       amount: Math.round(amount * 100), // Convert to cents
+//       currency,
+//       destination: vendor.stripeAccountId,
+//       description: description || `Payout to vendor ${vendorId}`,
+//       metadata: {
+//         vendorId: vendorId.toString(),
+//         adminId: adminId.toString(),
+//         type: 'vendor_payout'
+//       }
+//     });
+
+//     // Update vendor wallet
+//     vendor.wallet.balance += amount;
+//     vendor.wallet.transactions.push({
+//       type: 'credit',
+//       amount,
+//       description: description || 'Admin payout',
+//       date: new Date()
+//     });
+//     await vendor.save();
+
+//     logger.info(`Payout created: ${transfer.id} for vendor ${vendorId}`);
+
+//     res.json({
+//       success: true,
+//       transferId: transfer.id,
+//       amount,
+//       currency,
+//       status: transfer.status
+//     });
+
+//   } catch (error: any) {
+//     logger.error('Payout creation failed:', error);
+//     res.status(500).json({ 
+//       success: false, 
+//       message: error.message 
+//     });
+//   }
+// };
+
+// export const getVendorPayoutHistory = async (req: Request, res: Response) => {
+//   try {
+//     const { vendorId } = req.params;
+//     const { limit = 10, starting_after } = req.query;
+
+//     const vendor = await Vendor.findById(vendorId);
+//     if (!vendor?.stripeAccountId) {
+//       return res.status(404).json({ 
+//         success: false, 
+//         message: 'Vendor not found' 
+//       });
+//     }
+
+//     const transfers = await stripe.transfers.list({
+//       destination: vendor.stripeAccountId,
+//       limit: Number(limit),
+//       ...(starting_after && { starting_after: starting_after as string })
+//     });
+
+//     res.json({
+//       success: true,
+//       payouts: transfers.data.map(transfer => ({
+//         id: transfer.id,
+//         amount: transfer.amount / 100,
+//         currency: transfer.currency,
+//         description: transfer.description,
+//         created: transfer.created,
+//         status: transfer.status,
+//         metadata: transfer.metadata
+//       })),
+//       has_more: transfers.has_more
+//     });
+
+//   } catch (error: any) {
+//     res.status(500).json({ 
+//       success: false, 
+//       message: error.message 
+//     });
+//   }
+// };

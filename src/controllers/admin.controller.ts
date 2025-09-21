@@ -265,6 +265,8 @@ export class SubscriptionPlanController {
         prioritySupport,
       ];
 
+      console.log(requiredFields)
+
       if (requiredFields.some((field) => field === undefined)) {
         return res.status(400).json({
           message: "Missing required fields",
@@ -304,6 +306,7 @@ export class SubscriptionPlanController {
       // 💡 ValvendorIdate payoutOptions array
       const valvendorIdPayoutArray =
         Array.isArray(payoutOptions) &&
+        payoutOptions.length > 0 &&
         payoutOptions.every((option: string) =>
           valvendorIdPayouts.includes(option)
         );
@@ -326,7 +329,7 @@ export class SubscriptionPlanController {
     try {
       const { vendorId } = req.params;
       const result = vendorId
-        ? await SubscriptionPlan.findById(vendorId)
+        ? await Vendor.findById(vendorId).populate('subscriptionPlan')
         : await SubscriptionPlan.find();
       if (!result)
         return res
@@ -339,9 +342,24 @@ export class SubscriptionPlanController {
     }
   }
 
+  static async getPlanById(req: Request, res: Response) {
+    try {
+      const { planId } = req.params;
+      const plan = await SubscriptionPlan.findById(planId);
+      if (!plan)
+        return res
+          .status(404)
+          .json({ success: false, message: "Plan not found" });
+      return res.status(200).json({ success: true, data: plan });
+    } catch (error: any) {
+      console.error("GetPlanById Error:", error.message);
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   static async updatePlan(req: Request, res: Response) {
     try {
-      const { vendorId } = req.params;
+      const { planId } = req.params;
       const updateFields = req.body;
 
       // ValvendorIdate allowed fields
@@ -394,6 +412,7 @@ export class SubscriptionPlanController {
       if ("payoutOptions" in updateFields) {
         const isValvendorIdPayoutArray =
           Array.isArray(updateFields.payoutOptions) &&
+          updateFields.payoutOptions.length > 0 &&
           updateFields.payoutOptions.every((opt: string) =>
             valvendorIdPayoutOptions.includes(opt)
           );
@@ -407,7 +426,7 @@ export class SubscriptionPlanController {
 
       // Perform update
       const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(
-        vendorId,
+        planId,
         updateFields,
         {
           new: true,
@@ -434,8 +453,8 @@ export class SubscriptionPlanController {
 
   static async deletePlan(req: Request, res: Response) {
     try {
-      const { vendorId } = req.params;
-      const deletedPlan = await SubscriptionPlan.findByIdAndDelete(vendorId);
+      const { planId } = req.params;
+      const deletedPlan = await SubscriptionPlan.findByIdAndDelete(planId);
       if (!deletedPlan) {
         return res
           .status(404)
@@ -2209,38 +2228,6 @@ export class VenodrManagenentController {
     }
   }
 
-  /**********************Country management */
-  // Country stats
-
-  static async getCountryStats(req: Request, res: Response) {
-    try {
-      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-      const [totalCountries, delistedCountries, recentCountries] =
-        await Promise.all([
-          Country.countDocuments(),
-          Country.countDocuments({ delisted: true }),
-          Country.countDocuments({ createdAt: { $gte: oneWeekAgo } }),
-        ]);
-
-      res.status(200).json({
-        success: true,
-        message: "Country stats fetched successfully",
-        data: {
-          totalCountries,
-          delistedCountries,
-          recentlyAddedCountries: recentCountries,
-          totalCurrencies: totalCountries,
-        },
-      });
-    } catch (error: any) {
-      console.error("getCountryStats Error:", error.message);
-      res.status(500).json({
-        success: false,
-        message: "Server error while fetching country stats",
-      });
-    }
-  }
 
   // Reports
   /****Order and Transaction Reports */

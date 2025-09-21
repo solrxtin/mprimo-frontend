@@ -14,10 +14,14 @@
     "seed:users": "ts-node src/scripts/seed-users.ts",
     "seed:products": "ts-node src/scripts/seed-products.ts",
     "seed:interactions": "ts-node src/scripts/seed-interactions.ts",
+    "create-superadmin": "ts-node src/scripts/create-superadmin.ts",
+    "seed-countries": "ts-node src/scripts/seed-countries.ts",
     "swagger": "node swagger-docs.js",
     "swagger:serve": "swagger-ui-serve src/swagger-output.json",
     "seed:all": "npm run seed:users && npm run seed:products && npm run seed:interactions",
-    "clear-analytics": "ts-node src/scripts/clear-analytics.ts"
+    "clear-analytics": "ts-node src/scripts/clear-analytics.ts",
+    "create-subscription-plans": "ts-node src/scripts/create-subscription-plans.ts",
+    "create-payment-options": "ts-node src/scripts/create-payment-options.ts"
   },
   "dependencies": {
     "@types/supertest": "^6.0.3",

@@ -27,6 +27,8 @@ export interface IVendor {
   accountType: "personal" | "business";
   kycStatus: "pending" | "verified" | "rejected";
   verificationDocuments: VerificationDocument[];
+  stripeAccountId?: string;
+  stripeVerificationStatus: "pending" | "verified" | "rejected";
   businessInfo?: {
     name: string;
     registrationnumber: string;
@@ -57,6 +59,15 @@ export interface IVendor {
     totalRevenue: number;
     averageRating: number;
     productCount: number;
+    featuredProducts: number;
+    payoutRequests: number;
+    lastPayoutRequest?: Date;
+    adsCreated: number;
+    lastAdCreated?: Date;
+    bulkUploadsUsed: number;
+    lastBulkUpload?: Date;
+    analyticsViews: number;
+    lastAnalyticsView?: Date;
   };
   settings: {
     autoAcceptOrders: boolean;

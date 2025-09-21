@@ -119,6 +119,25 @@ export const sendDisputeMedia = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "No file uploaded" });
     }
 
+    // Check subscription for file sharing in messaging
+    const { SubscriptionService } = await import('../services/subscription.service');
+    const Vendor = (await import('../models/vendor.model')).default;
+    
+    const vendor = await Vendor.findOne({ userId: senderId });
+    if (vendor) {
+      const hasFullMessaging = await SubscriptionService.checkPlanLimits(
+        vendor._id.toString(),
+        'full_messaging'
+      );
+      
+      if (!hasFullMessaging) {
+        return res.status(403).json({
+          success: false,
+          message: 'File sharing in messages requires Pro or Elite plan. Upgrade to send files.'
+        });
+      }
+    }
+
     const disputeChat = await DisputeChat.findOne({ issueId });
     if (!disputeChat) {
       return res.status(404).json({ success: false, message: "Dispute chat not found" });

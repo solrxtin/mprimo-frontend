@@ -127,4 +127,6 @@ export type ProductType = {
   bids: BidType[];
   createdAt?: Date;
   updatedAt?: Date;
+  isFeatured: boolean;
+  featuredExpiry?: Date;
 };

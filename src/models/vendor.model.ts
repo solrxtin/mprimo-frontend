@@ -18,6 +18,15 @@ const vendorSchema = new mongoose.Schema<IVendor>(
       enum: ["pending", "verified", "rejected"],
       default: "pending",
     },
+    stripeAccountId: {
+      type: String,
+      sparse: true,
+    },
+    stripeVerificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: "pending",
+    },
     verificationDocuments: [
       {
         name: { type: String, required: true },
@@ -125,20 +134,52 @@ const vendorSchema = new mongoose.Schema<IVendor>(
       default: "pending",
     },
     analytics: {
-      totalSales: { type: Number, min: [0, "Total sales cannot be negative."] },
+      totalSales: { type: Number, min: [0, "Total sales cannot be negative."], default: 0 },
       totalRevenue: {
         type: Number,
         min: [0, "Total revenue cannot be negative."],
+        default: 0
       },
       averageRating: {
         type: Number,
         min: [0, "Average rating cannot be negative."],
         max: [5, "Average rating cannot exceed 5."],
+        default: 0
       },
       productCount: {
         type: Number,
         min: [0, "Product count cannot be negative."],
+        default: 0
       },
+      featuredProducts: {
+        type: Number,
+        min: [0, "Featured products cannot be negative."],
+        default: 0
+      },
+      payoutRequests: {
+        type: Number,
+        min: [0, "Payout requests cannot be negative."],
+        default: 0
+      },
+      lastPayoutRequest: Date,
+      adsCreated: {
+        type: Number,
+        min: [0, "Ads created cannot be negative."],
+        default: 0
+      },
+      lastAdCreated: Date,
+      bulkUploadsUsed: {
+        type: Number,
+        min: [0, "Bulk uploads cannot be negative."],
+        default: 0
+      },
+      lastBulkUpload: Date,
+      analyticsViews: {
+        type: Number,
+        min: [0, "Analytics views cannot be negative."],
+        default: 0
+      },
+      lastAnalyticsView: Date
     },
     settings: {
       autoAcceptOrders: { type: Boolean, default: false },

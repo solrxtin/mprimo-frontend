@@ -20,6 +20,7 @@ import { CartService } from "../services/cart.service";
 import mongoose, { Types } from "mongoose";
 import { WishList } from "../models/cart.model";
 import Order from "../models/order.model";
+import { SubscriptionService } from "../services/subscription.service";
 
 export class ProductController {
   static async createProduct(req: Request, res: Response, next: NextFunction) {
@@ -42,6 +43,40 @@ export class ProductController {
           message: "Vendor not found",
         });
         return;
+      }
+
+      // Check subscription plan limits
+      const currentProductCount = supposedVendor.analytics?.productCount || 0;
+      const canAddProduct = await SubscriptionService.checkPlanLimits(
+        supposedVendor._id.toString(),
+        'add_product',
+        currentProductCount
+      );
+
+      if (!canAddProduct) {
+        res.status(403).json({
+          success: false,
+          message: "Product limit reached for your subscription plan. Upgrade to add more products.",
+        });
+        return;
+      }
+
+      // Check if product is being featured
+      if (req.body.featured || req.body.isFeatured) {
+        const currentFeaturedCount = supposedVendor.analytics?.featuredProducts || 0;
+        const canFeatureProduct = await SubscriptionService.checkPlanLimits(
+          supposedVendor._id.toString(),
+          'feature_product',
+          currentFeaturedCount
+        );
+
+        if (!canFeatureProduct) {
+          res.status(403).json({
+            success: false,
+            message: "Featured product limit reached for your subscription plan. Upgrade to feature more products.",
+          });
+          return;
+        }
       }
 
       // Ensure variants exist and have default flags
@@ -75,6 +110,14 @@ export class ProductController {
         Product.create(productData),
         redisService.indexProduct(productData), // Index while creating
       ]);
+
+      // Update vendor analytics - increment product count
+      await Vendor.findByIdAndUpdate(supposedVendor._id, {
+        $inc: { 
+          'analytics.productCount': 1,
+          ...(req.body.featured || req.body.isFeatured ? { 'analytics.featuredProducts': 1 } : {})
+        }
+      });
 
       // Fetch complete product details in parallel
       const product = await Product.findById(savedProduct._id)
@@ -459,6 +502,14 @@ export class ProductController {
         vendor._id
       );
 
+      // Update vendor analytics - decrement product count
+      await Vendor.findByIdAndUpdate(vendor._id, {
+        $inc: { 
+          'analytics.productCount': -1,
+          ...( product.isFeatured ? { 'analytics.featuredProducts': -1 } : {})
+        }
+      });
+
       // Invalidate cache after delete
       try {
         await redisService.invalidateProductCache({ id: req.params.id });
@@ -591,6 +642,28 @@ export class ProductController {
       const vendor = await Vendor.findOne({ userId: req.userId });
       if (!vendor) {
         throw new Error("Unauthorized");
+      }
+      
+      // Check if this is a bulk operation (multiple variants)
+      if (Array.isArray(req.body) && req.body.length > 1) {
+        const { SubscriptionService } = await import('../services/subscription.service');
+        const hasBulkUpload = await SubscriptionService.checkPlanLimits(
+          vendor._id.toString(),
+          'bulk_upload'
+        );
+        
+        if (!hasBulkUpload) {
+          return res.status(403).json({
+            success: false,
+            message: 'Bulk variant upload requires Pro or Elite plan. Upgrade to add multiple variants at once.'
+          });
+        }
+        
+        // Track bulk upload usage
+        await Vendor.findByIdAndUpdate(vendor._id, {
+          $inc: { 'analytics.bulkUploadsUsed': 1 },
+          $set: { 'analytics.lastBulkUpload': new Date() }
+        });
       }
       const product = await ProductService.addVariant(
         req.params.id,

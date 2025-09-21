@@ -1,6 +1,7 @@
 // src/controllers/analytics.controller.ts
 import { Request, Response, NextFunction } from 'express';
 import analyticsService from '../services/analytics.service';
+import Vendor from '../models/vendor.model';
 
 export class AnalyticsController {
   /**
@@ -54,6 +55,27 @@ export class AnalyticsController {
   static async getDashboardAnalytics(req: Request, res: Response, next: NextFunction) {
     try {
       const { entityType = 'product', limit = 5 } = req.query;
+      const userId = req.userId;
+      
+      // Check subscription plan for analytics access
+      if (userId) {
+        const { SubscriptionService } = await import('../services/subscription.service');
+        
+        const vendor = await Vendor.findOne({ userId });
+        if (vendor) {
+          const hasAnalyticsAccess = await SubscriptionService.checkPlanLimits(
+            vendor._id.toString(),
+            'analytics_dashboard'
+          );
+          
+          if (!hasAnalyticsAccess) {
+            return res.status(403).json({
+              success: false,
+              message: 'Analytics dashboard access requires Pro or Elite plan. Upgrade to view detailed analytics.'
+            });
+          }
+        }
+      }
       
       // Validate entity type
       if (!['product', 'vendor', 'category'].includes(entityType as string)) {
@@ -67,6 +89,18 @@ export class AnalyticsController {
         entityType as 'product' | 'vendor' | 'category',
         Number(limit)
       );
+      
+      // Track analytics view
+      if (userId) {
+        const Vendor = (await import('../models/vendor.model')).default;
+        const vendor = await Vendor.findOne({ userId });
+        if (vendor) {
+          await Vendor.findByIdAndUpdate(vendor._id, {
+            $inc: { 'analytics.analyticsViews': 1 },
+            $set: { 'analytics.lastAnalyticsView': new Date() }
+          });
+        }
+      }
       
       res.json({
         success: true,

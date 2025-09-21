@@ -473,6 +473,13 @@ const productSchema = new mongoose.Schema<ProductType>(
         },
       },
     ],
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    featuredExpiry: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
