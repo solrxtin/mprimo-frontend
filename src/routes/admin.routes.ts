@@ -84,15 +84,18 @@ router.patch("/logistics/orders/:orderId/shipping", verifyToken, requirePermissi
 // Listings Management Routes
 router.get("/listings", verifyToken, requirePermission([PERMISSIONS.APPROVE_PRODUCTS]), VenodrManagenentController.getListingStats);
 
+
 // Vendor Verification Routes
 router.get("/vendors/:vendorId/documents", verifyToken, requirePermission([PERMISSIONS.MANAGE_VENDORS]), VenodrManagenentController.getVendorVerificationDocuments);
 router.patch("/vendors/:vendorId/accept", verifyToken, requirePermission([PERMISSIONS.MANAGE_VENDORS]), VenodrManagenentController.acceptVendorApplication);
 router.patch("/vendors/:vendorId/reject", verifyToken, requirePermission([PERMISSIONS.MANAGE_VENDORS]), VenodrManagenentController.rejectVendorApplication);
 
+
 // Issue Management Routes
 router.get("/issues", verifyToken, requirePermission([PERMISSIONS.RESOLVE_DISPUTES]), VenodrManagenentController.getAllIssues);
 router.get("/issues/stats", verifyToken, requirePermission([PERMISSIONS.VIEW_REPORTS, PERMISSIONS.RESOLVE_DISPUTES]), VenodrManagenentController.getIssueStats);
 router.patch("/issues/:issueId/status", verifyToken, requirePermission([PERMISSIONS.RESOLVE_DISPUTES, PERMISSIONS.RESPOND_TICKETS, PERMISSIONS.ESCALATE_ISSUES]), VenodrManagenentController.updateIssueStatus);
+
 
 // Refund Management Routes
 router.post("/refunds/:issueId/process", verifyToken, requirePermission([PERMISSIONS.RESOLVE_DISPUTES]), refundController.processRefund);
@@ -111,7 +114,6 @@ router.get("/finance/withdrawals", verifyToken, requirePermission([PERMISSIONS.M
 router.patch("/finance/withdrawals/:withdrawalId/approve", verifyToken, requirePermission([PERMISSIONS.MANAGE_VENDORS]), VenodrManagenentController.approveWithdrawal);
 router.patch("/finance/withdrawals/:withdrawalId/reject", verifyToken, requirePermission([PERMISSIONS.MANAGE_VENDORS]), VenodrManagenentController.rejectWithdrawal);
 
-// Content Management Routes
 // Banner Management
 router.post("/banners", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.createBanner);
 router.get("/banners", verifyToken, requirePermission([PERMISSIONS.MANAGE_SETTINGS]), VenodrManagenentController.getBanners);

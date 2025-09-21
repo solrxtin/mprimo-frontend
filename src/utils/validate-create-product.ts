@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import Category from "../models/category.model";
 
 export const validateProductData = async (productData: any) => {
-  console.log("Product data is: ", productData);
   try {
     const {
       name,

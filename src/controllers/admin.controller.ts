@@ -72,6 +72,7 @@ export class CountryController {
         });
       }
 
+      
       // 📌 ValvendorIdate and map localized plans to actual SubscriptionPlan vendorIds
       const mappedPlans = await Promise.all(
         localizedPlans.map(async (entry: any) => {
@@ -2848,6 +2849,7 @@ export class VenodrManagenentController {
         page = 1,
         limit = 10,
       } = req.query;
+      console.log(req.query);
 
       const dateRange = VenodrManagenentController.getDateRange(
         timeframe as string

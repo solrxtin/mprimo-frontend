@@ -191,6 +191,7 @@ app.get("/api/v1/debug/swagger", (req, res) => {
   const swaggerPath = path.join(__dirname, '../swagger-output.json');
   const exists = fs.existsSync(swaggerPath);
   
+  
   let fileContent = null;
   if (exists) {
     try {
