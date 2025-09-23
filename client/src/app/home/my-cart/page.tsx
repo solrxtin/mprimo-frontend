@@ -11,15 +11,10 @@ import Header from "@/components/Home/Header";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
 import { BidModal } from "@/components/BidModal";
-import {
-  useCartItems,
-  useCartSummary,
-  useClearCart,
-  useRemoveFromCart,
-  useUpdateQuantity,
-} from "@/stores/cartHook";
+import { useCartStore } from "@/stores/cartStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
+import { useCartSync } from "@/hooks/useCartSync";
 
 interface CartItem {
   id: string;
@@ -34,15 +29,27 @@ interface CartItem {
 }
 
 export default function CartPage() {
-  const cartItem = useCartItems();
-  const { updateQuantity } = useUpdateQuantity();
-  const { removeFromCart } = useRemoveFromCart();
-  const { clearCart } = useClearCart();
-  const cartSummary = useCartSummary();
-  console.log("cartSummary", cartItem);
-
-  const { user } = useUserStore();
+  const { 
+    items: cartItem, 
+    summary: cartSummary, 
+    isLoading, 
+    error,
+    updateQuantity, 
+    removeFromCart, 
+    clearCart,
+    loadCart 
+  } = useCartStore();
+  
+  const { user, isLoggedIn } = useUserStore();
   const { openModal } = useAuthModalStore();
+  
+  useCartSync();
+  
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadCart();
+    }
+  }, [isLoggedIn, loadCart]);
 
   const [activeTab, setActiveTab] = useState(0);
   const [showBidModal, setShowBidModal] = useState(false);
@@ -58,28 +65,25 @@ export default function CartPage() {
       (item) => item?.product?.inventory?.listing?.type === "instant"
     ) || [];
 
-  // Remove all items in current tab
-  const removeAll = () => {
-    clearCart();
+  const removeAll = async () => {
+    await clearCart();
   };
 
-  // Remove a single item
-  const handleRemove = (item: any) => {
+  const handleRemove = async (item: any) => {
     const productId = item?.product?._id;
     const variantKey = item?.selectedVariant
       ? `${item.selectedVariant.variantId}-${item.selectedVariant.optionId}`
       : undefined;
-    removeFromCart(productId, variantKey);
+    await removeFromCart(productId, variantKey);
   };
 
-  // Update quantity for a cart item
-  const handleUpdateQuantity = (item: any, newQuantity: number) => {
+  const handleUpdateQuantity = async (item: any, newQuantity: number) => {
     if (newQuantity < 1) return;
     const productId = item?.product?._id;
     const variantKey = item?.selectedVariant
       ? `${item.selectedVariant.variantId}-${item.selectedVariant.optionId}`
       : undefined;
-    updateQuantity(productId, newQuantity, variantKey);
+    await updateQuantity(productId, newQuantity, variantKey);
   };
 
   const handleBidNow = (item: CartItem) => {

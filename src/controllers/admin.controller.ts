@@ -72,7 +72,7 @@ export class CountryController {
         });
       }
 
-      
+
       // 📌 ValvendorIdate and map localized plans to actual SubscriptionPlan vendorIds
       const mappedPlans = await Promise.all(
         localizedPlans.map(async (entry: any) => {
@@ -171,7 +171,6 @@ export class CountryController {
         transactionFeePercent,
       } = req.body;
 
-      // ValvendorIdate presence of required fields
       if (!currency && !currencySymbol && !exchangeRate && !plan) {
         return res.status(400).json({
           message: "At least one field is required",

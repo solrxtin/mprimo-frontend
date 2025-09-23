@@ -78,10 +78,8 @@ export default function CategoriesPage() {
     });
   
 
-  console.log(
-    "Category Data:",
-    useCategories?.data?.categories?.filter((item: any) => item.level === 1)
-  );
+
+
   const categories =
     useCategories?.data?.categories?.filter((item: any) => item.level === 1) ||
     [];

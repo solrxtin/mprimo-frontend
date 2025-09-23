@@ -7,10 +7,7 @@ import {
   Truck,
   Headphones,
   CreditCard,
-  Facebook,
-  Twitter,
-  Instagram,
-  Mail,
+
 } from "lucide-react";
 import { ProductType } from "@/types/product.type";
 type ProductInfoProps = {
@@ -80,29 +77,27 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
         </div>
       </div>
 
-      {/* Shipping Details Column */}
+      {/* Product Details Column */}
       <div className="lg:col-span-1 px-3">
         <h3 className="text-xl font-bold text-gray-900 mb-4">
-          Shipping Details
+          Product Details
         </h3>
         <div className="space-y-3 text-sm">
           <div className="flex gap-1">
-            <span className="text-gray-600">Courier:</span>
-            <span className="text-gray-900 font-medium">
-              2 - 4 days, free shipping
-            </span>
+            <span className="text-gray-600">Brand:</span>
+            <span className="text-gray-900 font-medium">{productData?.brand}</span>
           </div>
           <div className="flex gap-1">
-            <span className="text-gray-600">Local Shipping:</span>
-            <span className="text-gray-900 font-medium">up to one week</span>
+            <span className="text-gray-600">Condition:</span>
+            <span className="text-gray-900 font-medium capitalize">{productData?.condition}</span>
           </div>
           <div className="flex gap-1">
-            <span className="text-gray-600">UPS Ground Shipping:</span>
-            <span className="text-gray-900 font-medium">4 - 6 days</span>
+            <span className="text-gray-600">SKU:</span>
+            <span className="text-gray-900 font-medium">{productData?.inventory?.sku}</span>
           </div>
           <div className="flex gap-1">
-            <span className="text-gray-600">Unishop Global Export:</span>
-            <span className="text-gray-900 font-medium">3 - 4 days</span>
+            <span className="text-gray-600">Category:</span>
+            <span className="text-gray-900 font-medium">{productData?.category?.main?.name}</span>
           </div>
         </div>
       </div>
@@ -110,98 +105,37 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
   );
 
   const SpecificationsTab = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      {/* Key Features */}
-      <div className="lg:col-span-1 px-3">
-        <h3 className="text-xl font-medium text-gray-900 mb-4">Key Features</h3>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Product Specifications */}
+      <div className="px-3">
+        <h3 className="text-xl font-medium text-gray-900 mb-4">Product Specifications</h3>
         <div className="space-y-3">
-          <div>
-            <span className="font-medium text-gray-900">
-              Crystal UHD Display:
-            </span>
-            <span className="text-gray-600 ml-2">Enjoy lifelike colours</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">
-              Supersize Picture Enhancer:
-            </span>
-            <span className="text-gray-600 ml-2">Optimize picture quality</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">
-              Motion Xcelerator:
-            </span>
-            <span className="text-gray-600 ml-2">Smooth motion</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">Q-Symphony:</span>
-            <span className="text-gray-600 ml-2">Sound enhancement</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">Samsung Tizen OS:</span>
-            <span className="text-gray-600 ml-2">Access to Applications</span>
-          </div>
+          {productData?.specifications?.map((spec) => (
+            <div key={spec._id}>
+              <span className="font-medium text-gray-900">{spec.key}:</span>
+              <span className="text-gray-600 ml-2">{spec.value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Display and Audio */}
-      <div className="lg:col-span-1 px-3">
-        <h3 className="text-xl font-medium text-gray-900 mb-4">
-          Display and Audio
-        </h3>
+      {/* Shipping Information */}
+      <div className="px-3">
+        <h3 className="text-xl font-medium text-gray-900 mb-4">Shipping Information</h3>
         <div className="space-y-3">
           <div>
-            <span className="font-medium text-gray-900">Screen Size:</span>
-            <span className="text-gray-600 ml-2">98 inches</span>
+            <span className="font-medium text-gray-900">Weight:</span>
+            <span className="text-gray-600 ml-2">{productData?.shipping?.weight} {productData?.shipping?.unit}</span>
           </div>
           <div>
-            <span className="font-medium text-gray-900">Resolution:</span>
+            <span className="font-medium text-gray-900">Dimensions:</span>
             <span className="text-gray-600 ml-2">
-              4K Ultra HD (3840 * 2160)
+              {productData?.shipping?.dimensions?.length} x {productData?.shipping?.dimensions?.width} x {productData?.shipping?.dimensions?.height} cm
             </span>
           </div>
           <div>
-            <span className="font-medium text-gray-900">Refresh Rate:</span>
-            <span className="text-gray-600 ml-2">
-              120Hz (Motion Xcelerator)
-            </span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">Sound Output:</span>
-            <span className="text-gray-600 ml-2">20W (2 Channel)</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">Adaptive Sound</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Smart Features */}
-      <div className="lg:col-span-1 px-3">
-        <h3 className="text-xl font-medium text-gray-900 mb-4">Smart Features</h3>
-        <div className="space-y-3">
-          <div>
-            <span className="font-medium text-gray-900">
-              SmartThings Compatible:
-            </span>
-            <span className="text-gray-600 ml-2">Smart device control</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">
-              Built-in Voice Assistant:
-            </span>
-            <span className="text-gray-600 ml-2">Voice command</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">Multi-View:</span>
-            <span className="text-gray-600 ml-2">Two video watch</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">Apple Airplay:</span>
-            <span className="text-gray-600 ml-2">Good for streaming</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-900">Adaptive Sound</span>
+            <span className="font-medium text-gray-900">Restrictions:</span>
+            <span className="text-gray-600 ml-2">{productData?.shipping?.restrictions?.join(', ')}</span>
           </div>
         </div>
       </div>
@@ -210,71 +144,82 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
 
   const AdditionalInfoTab = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Business Information */}
+      {/* Product Analytics */}
       <div>
         <h3 className="text-xl font-medium text-gray-900 mb-4">
-          Business Information
+          Product Analytics
         </h3>
         <div className="space-y-3">
           <div>
-            <span className="font-medium text-gray-900">Business Name:</span>
-            <span className="text-gray-600 ml-2">Johnson Communication</span>
+            <span className="font-medium text-gray-900">Views:</span>
+            <span className="text-gray-600 ml-2">{productData?.analytics?.views?.toLocaleString()}</span>
           </div>
           <div>
-            <span className="font-medium text-gray-900">Business Address:</span>
-            <span className="text-gray-600 ml-2">
-              41 Brazil Road, Abuja, Nigeria
-            </span>
+            <span className="font-medium text-gray-900">Add to Cart:</span>
+            <span className="text-gray-600 ml-2">{productData?.analytics?.addToCart}</span>
           </div>
           <div>
-            <span className="font-medium text-gray-900">
-              Registration Number:
-            </span>
-            <span className="text-gray-600 ml-2">#233442</span>
+            <span className="font-medium text-gray-900">Purchases:</span>
+            <span className="text-gray-600 ml-2">{productData?.analytics?.purchases}</span>
+          </div>
+          <div>
+            <span className="font-medium text-gray-900">Conversion Rate:</span>
+            <span className="text-gray-600 ml-2">{productData?.analytics?.conversionRate}%</span>
           </div>
         </div>
       </div>
 
-      {/* Seller Information */}
+      {/* Listing Information */}
       <div>
         <h3 className="text-xl font-medium text-gray-900 mb-4">
-          Seller Information
+          Listing Information
         </h3>
         <div className="space-y-3">
           <div>
-            <span className="font-medium text-gray-900">Name:</span>
-            <span className="text-blue-600 ml-2 font-medium">
-              Mr Johnson Ebuka
-            </span>
+            <span className="font-medium text-gray-900">Listing Type:</span>
+            <span className="text-gray-600 ml-2 capitalize">{productData?.inventory?.listing?.type}</span>
+          </div>
+          <div>
+            <span className="font-medium text-gray-900">Status:</span>
+            <span className="text-gray-600 ml-2 capitalize">{productData?.status}</span>
+          </div>
+          <div>
+            <span className="font-medium text-gray-900">Featured:</span>
+            <span className="text-gray-600 ml-2">{productData?.isFeatured ? 'Yes' : 'No'}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-900">Rating:</span>
             <div className="flex items-center gap-1">
-              <div className="flex">{renderStars(4.7)}</div>
+              <div className="flex">{renderStars(productData?.rating || 0)}</div>
               <span className="text-sm text-gray-600 ml-1">
-                4.7 Seller Star Rating
+                {productData?.rating || 0} ({productData?.reviews?.length || 0} reviews)
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Contact Seller */}
+      {/* Variants Information */}
       <div>
-        <h3 className="text-xl font-medium text-gray-900 mb-4">Contact Seller</h3>
-        <div className="flex gap-3">
-          <button className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors">
-            <Facebook size={20} />
-          </button>
-          <button className="w-10 h-10 bg-blue-400 text-white rounded-lg flex items-center justify-center hover:bg-blue-500 transition-colors">
-            <Twitter size={20} />
-          </button>
-          <button className="w-10 h-10 bg-pink-600 text-white rounded-lg flex items-center justify-center hover:bg-pink-700 transition-colors">
-            <Instagram size={20} />
-          </button>
-          <button className="w-10 h-10 bg-gray-600 text-white rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors">
-            <Mail size={20} />
-          </button>
+        <h3 className="text-xl font-medium text-gray-900 mb-4">Available Variants</h3>
+        <div className="space-y-3">
+          {productData?.variants?.map((variant) => (
+            <div key={variant._id}>
+              <h4 className="font-medium text-gray-900 mb-2">{variant.name}</h4>
+              {variant.options?.map((option) => (
+                <div key={option._id} className="ml-4 text-sm space-y-1">
+                  <div>
+                    <span className="text-gray-600">{option.value}:</span>
+                    <span className="text-gray-900 ml-2">₦{option.price?.toLocaleString()}</span>
+                    {option.salePrice && (
+                      <span className="text-gray-500 line-through ml-2">₦{option.salePrice?.toLocaleString()}</span>
+                    )}
+                  </div>
+                  <div className="text-gray-600">Qty: {option.quantity}</div>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -3,15 +3,12 @@ import express from 'express';
 import {
   getAllOrders,
   getOrder,
-  getVendorOrders,
   makeOrder,
-  changeShippingAddress,
   cancelOrder,
   refundOrder,
   getRefunds,
   getOrderStats,
   OrderController,
-  getVendorOrderMetrics
 } from "../../controllers/order.controller";
 import Order from '../../models/order.model';
 import ProductModel from '../../models/product.model';

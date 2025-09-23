@@ -47,6 +47,7 @@ type VariantOptionType = {
   sku: string;
   value: string;
   price: number;
+  salePrice?: number;
   quantity: number;
 
   _id: string;
@@ -85,9 +86,12 @@ type AnalyticsType = {
   views: number;
   purchases: number;
   conversionRate: number;
+  addToCart: number;
+  wishlist: number;
 };
 
 type SpecificationType = {
+  _id: string;
   key: string;
   value: string;
 };
@@ -131,6 +135,7 @@ export type ProductType = {
   analytics: AnalyticsType;
   offers: OfferType[];
   bids: BidType[];
+  isFeatured?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };

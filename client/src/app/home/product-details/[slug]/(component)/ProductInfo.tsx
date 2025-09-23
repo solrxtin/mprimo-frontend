@@ -7,14 +7,18 @@ import { Star, Heart, MessageCircle, X } from "lucide-react";
 import { BidModal1 } from "@/components/BidModal";
 import { ProductType } from "@/types/product.type";
 import { NumericFormat } from "react-number-format";
-import { useAddToCart } from "@/stores/cartHook";
+import { useCartStore } from "@/stores/cartStore";
+import { useUserStore } from "@/stores/useUserStore";
+import { useAuthModalStore } from "@/stores/useAuthModalStore";
 
 type ProductInfoProps = {
   productData: ProductType;
 };
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
-  const { addToCart } = useAddToCart();
+  const { addToCart, isLoading } = useCartStore();
+  const { isLoggedIn } = useUserStore();
+  const { openModal } = useAuthModalStore();
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
@@ -72,7 +76,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
 
   const saleType = productData?.inventory?.listing?.type;
   const acceptOffer = productData?.inventory?.listing?.instant?.acceptOffer;
- const handleAddToCart = () => {
+ const handleAddToCart = async () => {
     if (!productData) return;
 
     // If there are variants, build the selectedVariant object for the first variant
@@ -94,7 +98,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
       }
     }
 
-    addToCart(productData, quantity, selectedVariantObj);
+    await addToCart(productData, quantity, selectedVariantObj);
   };
 
   const colors = [
@@ -349,9 +353,10 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
               </button>
               <button
                 onClick={handleAddToCart}
-                className="flex-1 bg-orange-400 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-500 transition-colors"
+                disabled={isLoading}
+                className="flex-1 bg-orange-400 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add To Cart
+                {isLoading ? 'Adding...' : 'Add To Cart'}
               </button>
             </div>
 
@@ -375,7 +380,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
           </div>
         </div>
       </div>
-      {/* <BidModal1 isBid={true} closeBid={()=>{}}/> */}
     </div>
   );
 };

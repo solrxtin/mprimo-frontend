@@ -50,7 +50,7 @@ cartrouter.put(
     }
 );
 cartrouter.delete(
-    "/:id",
+    "/clear",
     (req: Request, res: Response, next: NextFunction) => {
         verifyToken(req, res, next);
     },

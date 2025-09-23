@@ -5,6 +5,7 @@ import Header from '@/components/Home/Header'
 import React from 'react'
 import AuthenticationModal from '../(auth)/authenticationModal';
 import { useAuthModalStore } from '@/stores/useAuthModalStore';
+import { useCartSync } from '@/hooks/useCartSync';
 
 
 type HomepageProps = {
@@ -13,6 +14,9 @@ type HomepageProps = {
 
 const Homepage = ({ children }: HomepageProps) => {
   const { isOpen, closeModal } = useAuthModalStore();
+  
+  // Initialize cart synchronization
+  useCartSync();
 
   return (
     <div className="font-roboto" style={{ fontFamily: 'var(--font-roboto)' }}>
