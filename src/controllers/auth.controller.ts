@@ -37,7 +37,6 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
   try {
     //TODO: Make sure phone uses international format
     const { email, password, firstName, lastName,phoneNumber, role } = req.body;
-console.log("body", req.body)
     // Validate input
     if (!email || !password || !firstName || !lastName || !phoneNumber || !role) {
       return res.status(400).json({
@@ -46,6 +45,7 @@ console.log("body", req.body)
       });
     }
 
+    
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -65,14 +65,15 @@ console.log("body", req.body)
         .json({ message: "Password must be at least 8 characters long" });
     }
 
-    if (
-      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/.test(req.body.password)
-    ) {
-      return res.status(400).json({
-        message:
-          "Password must contain at least one uppercase letter, one lowercase letter, and one number, and be at least 8 characters long",
-      });
-    }
+ if (
+  !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(req.body.password)
+) {
+  return res.status(400).json({
+    message:
+      "Password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be at least 8 characters long",
+  });
+}
+
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);

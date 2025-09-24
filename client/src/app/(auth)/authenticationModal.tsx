@@ -1,4 +1,3 @@
-import FullButton from "@/components/FullButton";
 import Modal2 from "@/components/Modal2";
 import { X } from "lucide-react";
 import React, { useState } from "react";

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Home, Copy, Check } from "lucide-react";
+import {  Copy, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,9 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
-import { useCartItems, useCartSummary } from "@/stores/cartHook";
+import { useCartStore } from "@/stores/cartStore";
+import { useCreateOrder, useCreatePaymentIntent } from "@/hooks/useCheckout";
+import { toast } from "react-hot-toast";
 
 export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("bank-transfer");
@@ -35,21 +37,102 @@ export default function CheckoutPage() {
     homeAddress: "",
   });
 
-  const cartItems = useCartItems();
-  const cartSummary = useCartSummary();
-  
+  const { items: cartItems, summary: cartSummary, clearCart } = useCartStore();
+  const createOrderMutation = useCreateOrder();
+  const createPaymentIntentMutation = useCreatePaymentIntent();
+
   const subtotal = cartSummary.subtotal;
   const shipping = 50000;
   const discount = 5000;
   const tax = 5000;
   const total = subtotal + shipping - discount + tax;
 
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handlePlaceOrder = () => {
-    setShowSuccess(true);
+  const handlePlaceOrder = async () => {
+    // Validate form
+    if (
+      !formData.firstName ||
+      !formData.lastName ||
+      !formData.email ||
+      !formData.country ||
+      !formData.homeAddress
+    ) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // Prepare order data
+      const validatedItems = cartItems.map((item) => ({
+        productId: item.product._id!,
+        quantity: item.quantity,
+        price: item.selectedVariant?.price || item.product.price || 0,
+        variantId: item.selectedVariant?.optionId,
+      }));
+
+      const orderData = {
+        validatedItems,
+        pricing: {
+          subtotal,
+          shipping,
+          tax,
+          discount,
+          total,
+          currency: "NGN",
+        },
+        paymentData: {
+          type: paymentMethod as "stripe" | "crypto" | "bank-transfer",
+          amount: total,
+        },
+        address: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          country: formData.country,
+          state: formData.state,
+          postalCode: formData.postalCode,
+          homeAddress: formData.homeAddress,
+          isDefault: true,
+        },
+      };
+
+      // Handle different payment methods
+      if (paymentMethod === "stripe") {
+        // Create payment intent first
+        const paymentIntent = await createPaymentIntentMutation.mutateAsync({
+          amount: total,
+          currency: "ngn",
+        });
+        // orderData.paymentData.paymentIntentId = paymentIntent.data.id;
+      }
+
+      // Create order
+      const result = await createOrderMutation.mutateAsync(orderData);
+
+      if (result?.success) {
+        setOrderId(result.data._id);
+        await clearCart();
+        setShowSuccess(true);
+      }
+    } catch (error: any) {
+      console.error("Order creation failed:", error);
+      toast.error(error.message || "Failed to place order");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const router = useRouter();
@@ -79,7 +162,6 @@ export default function CheckoutPage() {
 
   return (
     <>
-
       <div className="min-h-screen font-roboto bg-gray-50 body-padding">
         <div className=" mx-auto pt-4">
           {/* Breadcrumb */}
@@ -256,7 +338,8 @@ export default function CheckoutPage() {
                     <div className="bg-gray-50 rounded-lg p-6">
                       <div className="text-center mb-4">
                         <p className="font-medium">
-                          Transfer ₦{total.toLocaleString()} to Vendor's Checkout
+                          Transfer ₦{total.toLocaleString()} to Vendor's
+                          Checkout
                         </p>
                       </div>
                       <div className="space-y-4">
@@ -330,7 +413,10 @@ export default function CheckoutPage() {
                   <div className="space-y-4 mb-6">
                     {cartItems.map((item) => (
                       <div
-                        key={item.product._id + (item.selectedVariant?.optionId || "")}
+                        key={
+                          item.product._id +
+                          (item.selectedVariant?.optionId || "")
+                        }
                         className="flex items-center space-x-3"
                       >
                         <Image
@@ -345,7 +431,8 @@ export default function CheckoutPage() {
                             {item.product.name}
                           </p>
                           <p className="text-xs text-blue-600">
-                            {item.quantity} x ₦ {item.selectedVariant?.price.toLocaleString()}
+                            {item.quantity} x ₦{" "}
+                            {item.selectedVariant?.price.toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -382,8 +469,16 @@ export default function CheckoutPage() {
                     <Button
                       className="w-full bg-blue-600 hover:bg-blue-700"
                       onClick={handlePlaceOrder}
+                      disabled={isProcessing || cartItems.length === 0}
                     >
-                      Place Order
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        "Place Order"
+                      )}
                     </Button>
                     <Button
                       variant="outline"
@@ -412,15 +507,21 @@ export default function CheckoutPage() {
                   check progress
                 </p>
                 <div className="space-y-3 w-full">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                    Track Order
-                  </Button>
-                  <Link href="/">
+                  <Link
+                    href={`/home/user/orders${
+                      orderId ? `?orderId=${orderId}` : ""
+                    }`}
+                  >
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                      Track Order
+                    </Button>
+                  </Link>
+                  <Link href="/home">
                     <Button
                       variant="outline"
                       className="w-full bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
                     >
-                      Home
+                      Continue Shopping
                     </Button>
                   </Link>
                 </div>

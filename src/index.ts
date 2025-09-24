@@ -37,6 +37,7 @@ import vendorPayoutRoutes from "./routes/vendor-payout.routes";
 import disputeChatRoutes from "./routes/dispute-chat.routes";
 import bannerRoutes from "./routes/banner.routes";
 import checkoutRoutes from "./routes/checkout.routes";
+// import cartRoutes from "./routes/cart.route";
 
 
 import { requestLogger } from "./middlewares/request-logger.middleware";
@@ -166,14 +167,15 @@ app.use("/api/v1/messages", messageRoutes);
 app.use("/api/v1/reviews", reviewsRoutes);
 app.use("/api/v1/vendor", vendorRoutes);
 app.use("/api/v1/users", userRoutes);
-// app.use("/api/v1/payments", paymentRoutes);
+app.use("/api/v1/payments", paymentRoutes);
+// app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/checkout", checkoutRoutes);
 app.use("/api/v1/subscriptions", subscriptionRoutes);
 app.use("/api/v1/issues", issueRoutes);
 app.use("/api/v1/refunds", refundRoutes);
 app.use("/api/v1/vendor-payouts", vendorPayoutRoutes);
 app.use("/api/v1/dispute-chat", disputeChatRoutes);
 app.use("/api/v1/banners", bannerRoutes);
-// app.use("/api/v1/checkout", checkoutRoutes);
 
 
 app.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to see if it's up

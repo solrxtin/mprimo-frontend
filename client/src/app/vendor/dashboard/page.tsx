@@ -11,7 +11,8 @@ import RecentOrders from "./(components)/RecentOrders";
 import RecentOrdersSkeleton from "./(components)/skeletons/RecentOrdersSkeleton";
 import { useProductStore } from "@/stores/useProductStore";
 import { useSocket } from "@/hooks/useSocket";
-import { useUserNotifications, useVendorAnalytics } from "@/hooks/queries";
+import { useUserNotifications } from "@/hooks/queries";
+import { useVendorAnalytics } from "@/hooks/useVendor";
 
 type Props = {};
 
@@ -46,24 +47,10 @@ const Page = (props: Props) => {
         </p>
 
         {/* Analytics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-          <AnalyticsCard
-            title="Sales Total"
-            percentageIncrease={12.8}
-            amount={20000000}
-          />
-          <AnalyticsCard
-            title="Total Orders"
-            percentageIncrease={6.4}
-            value={1340}
-          />
-          <AnalyticsCard
-            title="Total Products"
-            percentageIncrease={-12.8}
-            value={256}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
           {isLoading ? (
             <>
+              <AnalyticsCardSkeleton />
               <AnalyticsCardSkeleton />
               <AnalyticsCardSkeleton />
               <AnalyticsCardSkeleton />
@@ -72,18 +59,24 @@ const Page = (props: Props) => {
             <>
               <AnalyticsCard 
                 title="Sales Total" 
-                percentageIncrease={data?.dashboard?.salesTotal} 
-                amount={data?.dashboard?.salesTotal?.value}
-                currency={data?.dashboard?.salesTotal?.currency}
+                percentageIncrease={data?.data?.dashboard?.salesTotal?.percentageChange || 0} 
+                amount={data?.data?.dashboard?.salesTotal?.value || 0}
+                currency={data?.data?.dashboard?.salesTotal?.currency || 'NGN'}
               />
               <AnalyticsCard 
                 title="Total Orders" 
-                percentageIncrease={data?.dashboard?.totalOrders} 
-                value={data?.dashboard?.totalOrders?.value}
+                percentageIncrease={data?.data?.dashboard?.totalOrders?.percentageChange || 0} 
+                value={data?.data?.dashboard?.totalOrders?.value || 0}
               />
               <AnalyticsCard 
                 title="Total Products" 
-                value={data?.dashboard?.totalProducts?.value}
+                percentageIncrease={data?.data?.dashboard?.totalProducts?.percentageChange || 0}
+                value={data?.data?.dashboard?.totalProducts?.value || 0}
+              />
+              <AnalyticsCard 
+                title="Total Customers" 
+                percentageIncrease={data?.data?.dashboard?.totalCustomers?.percentageChange || 0}
+                value={data?.data?.dashboard?.totalCustomers?.value || 0}
               />
             </>
           )}
@@ -100,7 +93,7 @@ const Page = (props: Props) => {
         </div>
 
         {/* Recent Orders */}
-        <RecentOrders currency={vendorCurrency} />
+        {isLoading ? <RecentOrdersSkeleton /> : <RecentOrders currency={vendorCurrency} />}
       </div>
     </div>
   );

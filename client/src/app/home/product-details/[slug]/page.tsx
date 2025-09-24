@@ -2,14 +2,11 @@
 
 import type React from "react";
 
-import { useState, useCallback, useEffect } from "react";
-import { Star, Heart, MessageCircle } from "lucide-react";
 import ProductInfo from "./(component)/ProductInfo";
 import Header from "@/components/Home/Header";
 import ProductDetailsTabs from "./(component)/MoreDeatilsTab";
 import ReviewsPage from "./(component)/Review";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ProductType } from "@/types/product.type";
+import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAProducts } from "@/hooks/queries";
 

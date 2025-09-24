@@ -7,6 +7,7 @@ import Script from "next/script";
 import { TokenRefresher } from "@/components/TokenRefresher";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import SocketInitializer from "@/components/SocketInitializer";
+import ToastProvider from "@/components/providers/ToastProvider";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -57,6 +58,7 @@ export default function RootLayout({
             {children}
           </NotificationProvider>
           <ToastContainer transition={Slide} />
+          <ToastProvider />
         </TanstackProvider>
         {/* Script to remove Grammarly attributes that cause hydration errors */}
         <Script id="remove-grammarly-attrs" strategy="afterInteractive">

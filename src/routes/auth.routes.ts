@@ -1,6 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
 import passport from "../config/passport.config";
-
 import {
   logout,
   signup,
@@ -16,7 +15,7 @@ import {
 } from "../controllers/auth.controller";
 import { verifyToken } from "../middlewares/verify-token.middleware";
 import { generateTokensAndSetCookie } from "../utils/generate-token.util";
-import { strictRateLimit, moderateRateLimit } from "../middlewares/rate-limit.middleware";
+import { strictRateLimit } from "../middlewares/rate-limit.middleware";
 import User from "../models/user.model";
 import { IUser } from "../types/user.type";
 

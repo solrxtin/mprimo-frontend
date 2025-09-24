@@ -40,7 +40,8 @@ export default function CartPage() {
     loadCart 
   } = useCartStore();
   
-  const { user, isLoggedIn } = useUserStore();
+  const { user } = useUserStore();
+  const isLoggedIn = !!user;
   const { openModal } = useAuthModalStore();
   
   useCartSync();
@@ -51,7 +52,6 @@ export default function CartPage() {
     }
   }, [isLoggedIn, loadCart]);
 
-  const [activeTab, setActiveTab] = useState(0);
   const [showBidModal, setShowBidModal] = useState(false);
   const [selectedAuctionItem, setSelectedAuctionItem] = useState<any>(null);
 
@@ -86,10 +86,7 @@ export default function CartPage() {
     await updateQuantity(productId, newQuantity, variantKey);
   };
 
-  const handleBidNow = (item: CartItem) => {
-    setSelectedAuctionItem(item);
-    setShowBidModal(true);
-  };
+ 
 
   const tabs = [
     { id: 0, label: "Auction" },
@@ -108,24 +105,12 @@ export default function CartPage() {
     e: React.MouseEvent<HTMLAnchorElement>
   ): void => {
     e.preventDefault();
-    console.log("Breadcrumb clicked:", item);
     if (item.href) {
       router.push(item?.href);
     }
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 0:
-        return <Auction />;
-      case 1:
-        return <BuyNow />;
-      case 2:
-        return <Offer />;
-      default:
-        return <Auction />;
-    }
-  };
+ 
 
   const Auction = () => {
     return (
@@ -258,11 +243,7 @@ export default function CartPage() {
                         height={80}
                         className="rounded-lg object-cover"
                       />
-                      {/* {item.badge && (
-                        <Badge className="absolute -bottom-1 -right-1 text-xs px-2 py-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                          {item.badge}
-                        </Badge>
-                      )} */}
+                
                     </div>
                     <div>
                       <h3 className="font-medium"> {item?.product?.name}</h3>
@@ -316,15 +297,7 @@ export default function CartPage() {
                     </span>
                   </div>
                   <div className="col-span-1">
-                    {/* <span
-                      className={
-                        item.status === "Ongoing"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    >
-                      {item.status}
-                    </span> */}
+          
                   </div>
                   <div className="col-span-1">
                     <Button

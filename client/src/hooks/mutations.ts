@@ -11,6 +11,7 @@ interface SignUpData {
   lastName: string;
   email: string;
   password: string;
+  role: string
   phoneNumber: string;
 }
 

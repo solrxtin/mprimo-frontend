@@ -50,7 +50,7 @@ export const cartController = {
           items: [{ productId, priceWhenAdded }]
         });
       } else {
-        wishlist.items.push({ productId, priceWhenAdded, addedAt: new Date() });
+        wishlist.items.push({ productId, priceWhenAdded, currency: 'NGN', addedAt: new Date() });
         
       }
 
@@ -185,7 +185,7 @@ export const cartController = {
         if (existingItem) {
           existingItem.quantity += quantity;
         } else {
-          cart.items.push({ productId, quantity });
+          cart.items.push({ productId, quantity, variantId: null, price: 0, addedAt: new Date() });
         }
       }
 

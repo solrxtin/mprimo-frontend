@@ -138,6 +138,7 @@ export type ProductType = {
   isFeatured?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  price?: string;
 };
 
 export type ProductProps = {

@@ -14,12 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { categoriesConfig } from "@/lib/categories-config";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
@@ -52,7 +47,6 @@ export default function CategoriesPage() {
     e: React.MouseEvent<HTMLAnchorElement>
   ): void => {
     e.preventDefault();
-    console.log("Breadcrumb clicked:", item);
     if (item.href) {
       router.push(item?.href);
     }
@@ -65,7 +59,7 @@ export default function CategoriesPage() {
       throw new Error('Failed to fetch categories');
     }
     const data = await response.json();
-    return data; // Return the entire response object
+    return data; 
   };
   
   const useCategories = useQuery({
@@ -121,7 +115,7 @@ export default function CategoriesPage() {
             </div>
 
             {/* Active Filters */}
-            <div className="flex items-center space-x-2 text-xs">
+            {/* <div className="flex items-center space-x-2 text-xs">
               <span className="text-gray-600 whitespace-nowrap">
                 Active Filters:
               </span>
@@ -134,7 +128,7 @@ export default function CategoriesPage() {
               <Badge variant="secondary" className="bg-gray-200 text-gray-700">
                 Phones & Tablets ×
               </Badge>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -164,30 +158,7 @@ export default function CategoriesPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex justify-center items-center space-x-2 mb-12">
-          <Button variant="ghost" size="sm" disabled>
-            Prev
-          </Button>
-          <Button
-            size="sm"
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            1
-          </Button>
-          <Button variant="ghost" size="sm">
-            2
-          </Button>
-          <Button variant="ghost" size="sm">
-            3
-          </Button>
-          <span className="text-gray-500">...</span>
-          <Button variant="ghost" size="sm">
-            100
-          </Button>
-          <Button variant="ghost" size="sm">
-            Next
-          </Button>
-        </div>
+      
       </main>
     </div>
   );

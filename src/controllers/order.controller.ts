@@ -5,7 +5,6 @@ import Order, { Refund } from "../models/order.model";
 import Notification from "../models/notification.model";
 import Product from "../models/product.model";
 import { redisService, socketService } from "..";
-import { IOrder, ItemType } from "../types/order.type";
 import mongoose from "mongoose";
 import AuditLogService from "../services/audit-log.service";
 import { Types } from "mongoose";
@@ -14,7 +13,6 @@ import { strictRateLimit } from "../middlewares/enhanced-rate-limit.middleware";
 import { StripeService } from "../services/stripe.service";
 import { CryptoPaymentService } from "../services/crypto-payment.service";
 import Payment, { VendorPayment } from "../models/payment.model";
-import CryptoWallet from "../models/cryptoWallet.model";
 import { IPayment } from "../types/payment.type";
 
 const cryptoService = new CryptoPaymentService();

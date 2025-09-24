@@ -532,7 +532,7 @@ export default function PhonesTabletsPage() {
                   </Badge>
                 </div>
                 <div className="text-sm text-gray-600">
-                  <span className="font-bold">37,848</span> Results
+                  <span className="font-bold">{allProductData?.length}</span> Results
                 </div>
               </div>
 
