@@ -175,7 +175,6 @@ const products = [
 ];
 
 export default function PhonesTabletsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [sortBy, setSortBy] = useState("Most Popular");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
