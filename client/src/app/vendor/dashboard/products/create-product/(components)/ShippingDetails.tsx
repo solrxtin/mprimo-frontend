@@ -17,10 +17,10 @@ const ShippingDetails = (props: Props) => {
   const { updateProductDetails, productDetails } = useProductListing();
   const { data: countries, isLoading: isLoadingCountries } = useCountries();
 
-  const {data: categories} = useCategories()
+  const {data} = useCategories()
 
   useEffect(() => {
-    if (categories && categories.length > 0) {
+    if (data.categories && data.categories.length > 0) {
       const subcategoryNames = [
         productDetails.subCategory5,
         productDetails.subCategory4,
@@ -31,13 +31,12 @@ const ShippingDetails = (props: Props) => {
     
       // Get the category object for the deepest subcategory
       const deepestCategory = subcategoryNames
-        ? categories.find((cat: any) => cat.name === subcategoryNames)
-        : categories.find((cat: any) => cat.name === productDetails.category);
+        ? data.categories.find((cat: any) => cat.name === subcategoryNames)
+        : data.categories.find((cat: any) => cat.name === productDetails.category);
       
       setDeepest(deepestCategory)
     }
-  }, [categories])
-
+  }, [data.categories])
   
   const countryOptions = React.useMemo(() => {
     if (!countries || !Array.isArray(countries)) return [];
@@ -66,50 +65,79 @@ const ShippingDetails = (props: Props) => {
 
   const validateShippingDetails = () => {
     const newErrors: { [key: string]: string } = {};
-    if (
-      shippingDetails.productLocation === null ||
-      shippingDetails.productLocation === ""
-    ) {
+    console.log("Validating with local state:", shippingDetails);
+    
+    if (!shippingDetails.productLocation || shippingDetails.productLocation === "") {
       newErrors.productLocation = "Shipping location is required";
     }
-    if (shippingDetails.productWeight === "") {
+    if (deepest?.productWeightRequired && (!shippingDetails.productWeight || shippingDetails.productWeight === "")) {
       newErrors.productWeight = "Product weight is required";
     }
-    if (shippingDetails.weightUnit === "") {
+    if (deepest?.productWeightRequired && (!shippingDetails.weightUnit || shippingDetails.weightUnit === "")) {
       newErrors.weightUnit = "Weight unit is required";
     }
-    if ((shippingDetails.productDimensions.length || shippingDetails.productDimensions.width || shippingDetails.productDimensions.height) && 
-        (!shippingDetails.productDimensions.length || !shippingDetails.productDimensions.width || !shippingDetails.productDimensions.height) && deepest?.productDimensionsRequired) {
+    if ((shippingDetails.productDimensions?.length || shippingDetails.productDimensions?.width || shippingDetails.productDimensions?.height) && 
+        (!shippingDetails.productDimensions?.length || !shippingDetails.productDimensions?.width || !shippingDetails.productDimensions?.height) && deepest?.productDimensionsRequired) {
       newErrors.productDimensions = "Please enter the length, width, and height of the product"
     }
-    if (shippingDetails.warranty.status === "") {
+    if (!shippingDetails.warranty?.status || shippingDetails.warranty?.status === "") {
       newErrors.warrantyStatus = "Warranty status is required";
     }
     if (
-      shippingDetails.warranty.status === "warranty" &&
-      shippingDetails.warranty.period === ""
+      shippingDetails.warranty?.status === "warranty" &&
+      (!shippingDetails.warranty?.period || shippingDetails.warranty?.period === "")
     ) {
       newErrors.warrantyPeriod = "Warranty period is required";
     }
-    if (shippingDetails.warranty.returnPolicy === "") {
+    if (!shippingDetails.warranty?.returnPolicy || shippingDetails.warranty?.returnPolicy === "") {
       newErrors.returnPolicy = "Return policy is required";
     }
     setErrors(newErrors);
+    
+    // Update productDetails with current local state before validation completes
     if (Object.keys(newErrors).length === 0) {
-      Object.keys(shippingDetails).forEach((key) => {
-        updateProductDetails(
-          key as keyof typeof shippingDetails,
-          shippingDetails[key as keyof typeof shippingDetails]
-        );
-      });
+      updateProductDetails("shippingDetails", shippingDetails);
     }
+    
     return Object.keys(newErrors).length === 0;
   };
 
   React.useEffect(() => {
     const handleValidateEvent = () => {
-      const isValid = validateShippingDetails();
+      const newErrors: { [key: string]: string } = {};
+      console.log("Validating with current state:", shippingDetails);
+      
+      if (!shippingDetails.productLocation || shippingDetails.productLocation === "") {
+        newErrors.productLocation = "Shipping location is required";
+      }
+      if (deepest?.productWeightRequired && (!shippingDetails.productWeight || shippingDetails.productWeight === "")) {
+        newErrors.productWeight = "Product weight is required";
+      }
+      if (deepest?.productWeightRequired && (!shippingDetails.weightUnit || shippingDetails.weightUnit === "")) {
+        newErrors.weightUnit = "Weight unit is required";
+      }
+      if ((shippingDetails.productDimensions?.length || shippingDetails.productDimensions?.width || shippingDetails.productDimensions?.height) && 
+          (!shippingDetails.productDimensions?.length || !shippingDetails.productDimensions?.width || !shippingDetails.productDimensions?.height) && deepest?.productDimensionsRequired) {
+        newErrors.productDimensions = "Please enter the length, width, and height of the product"
+      }
+      if (!shippingDetails.warranty?.status || shippingDetails.warranty?.status === "") {
+        newErrors.warrantyStatus = "Warranty status is required";
+      }
+      if (
+        shippingDetails.warranty?.status === "warranty" &&
+        (!shippingDetails.warranty?.period || shippingDetails.warranty?.period === "")
+      ) {
+        newErrors.warrantyPeriod = "Warranty period is required";
+      }
+      if (!shippingDetails.warranty?.returnPolicy || shippingDetails.warranty?.returnPolicy === "") {
+        newErrors.returnPolicy = "Return policy is required";
+      }
+      
+      setErrors(newErrors);
+      const isValid = Object.keys(newErrors).length === 0;
+      
       if (isValid) {
+        updateProductDetails("shippingDetails", shippingDetails);
         document.dispatchEvent(
           new CustomEvent("shippingValidated", { detail: { isValid: true } })
         );
@@ -122,7 +150,6 @@ const ShippingDetails = (props: Props) => {
 
     document.addEventListener("validateShipping", handleValidateEvent);
 
-    // Clean up
     return () => {
       document.removeEventListener("validateShipping", handleValidateEvent);
     };
@@ -135,16 +162,15 @@ const ShippingDetails = (props: Props) => {
       <div className="flex flex-col gap-y-3">
         <Select
           label="Product Location"
+          className="z-80"
           value={shippingDetails.productLocation}
           onChange={(value) => {
-            setShippingDetails({
+            const updatedShipping = {
               ...shippingDetails,
               productLocation: value,
-            });
-            updateProductDetails("shippingDetails", {
-              ...shippingDetails,
-              productLocation: value,
-            });
+            };
+            setShippingDetails(updatedShipping);
+            updateProductDetails("shippingDetails", updatedShipping);
             setErrors((prev) => ({
               ...prev,
               productLocation: "",
@@ -175,16 +201,14 @@ const ShippingDetails = (props: Props) => {
                   productWeight: "",
                 }));
               }
-              updateProductDetails("shippingDetails", {
+              const updatedShipping = {
                 ...shippingDetails,
                 productWeight: e.target.value,
-              });
-              setShippingDetails({
-                ...shippingDetails,
-                productWeight: e.target.value,
-              });
+              };
+              setShippingDetails(updatedShipping);
+              updateProductDetails("shippingDetails", updatedShipping);
             }}
-            required={true}
+            required={deepest?.productWeightRequired}
             error={errors.productWeight}
             type="number"
             helperText="The weight of the product for shipping purposes."
@@ -193,22 +217,20 @@ const ShippingDetails = (props: Props) => {
             label="Weight Unit"
             value={shippingDetails.weightUnit || ""}
             onChange={(value) => {
-              updateProductDetails("shippingDetails", {
+              const updatedShipping = {
                 ...shippingDetails,
                 weightUnit: value,
-              });
-              setShippingDetails({
-                ...shippingDetails,
-                weightUnit: value,
-              });
+              };
+              setShippingDetails(updatedShipping);
+              updateProductDetails("shippingDetails", updatedShipping);
               setErrors((prev) => ({
                 ...prev,
                 weightUnit: "",
               }));
             }}
-            className="w-full"
+            className="w-full z-50"
             options={["lbs", "kg"]}
-            required={true}
+            required={deepest?.productWeightRequired}
             error={errors.weightUnit}
             placeholder="Select unit"
             helperText="The unit of weight for the product."

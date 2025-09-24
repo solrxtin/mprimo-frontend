@@ -1,19 +1,15 @@
-import Stripe from 'stripe';
-import dotenv from 'dotenv';
+import Stripe from "stripe";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
-
+const stripe = new Stripe(process.env.STRIPE_TEST_SECRET_KEY!);
 export class StripeVerificationService {
-  
   // Create Express Account for vendor verification
-  static async createExpressAccount(email: string, country: string = 'US') {
+  static async createExpressAccount(email: string, country: string = "US") {
     try {
       const account = await stripe.accounts.create({
-        type: 'express',
+        type: "express",
         country,
         email,
         capabilities: {
@@ -25,34 +21,38 @@ export class StripeVerificationService {
       return {
         success: true,
         accountId: account.id,
-        account
+        account,
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
   // Create account link for onboarding
-  static async createAccountLink(accountId: string, refreshUrl: string, returnUrl: string) {
+  static async createAccountLink(
+    accountId: string,
+    refreshUrl: string,
+    returnUrl: string
+  ) {
     try {
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
         refresh_url: refreshUrl,
         return_url: returnUrl,
-        type: 'account_onboarding',
+        type: "account_onboarding",
       });
 
       return {
         success: true,
-        url: accountLink.url
+        url: accountLink.url,
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -61,18 +61,23 @@ export class StripeVerificationService {
   static async getAccountStatus(accountId: string) {
     try {
       const account = await stripe.accounts.retrieve(accountId);
-      
+
       return {
         success: true,
         isVerified: account.details_submitted && account.charges_enabled,
-        requiresAction: account.requirements?.currently_due?.length > 0,
-        requirements: account.requirements,
-        account
+        requiresAction: (account.requirements?.currently_due?.length ?? 0) > 0,
+        requirements: {
+          currently_due: account.requirements?.currently_due || [],
+          pending_verification:
+            account.requirements?.pending_verification || [],
+          past_due: account.requirements?.past_due || [],
+        },
+        account,
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -81,14 +86,14 @@ export class StripeVerificationService {
   static async createCustomAccount(userData: {
     email: string;
     country: string;
-    businessType: 'individual' | 'company';
+    businessType: "individual" | "company";
     firstName?: string;
     lastName?: string;
     companyName?: string;
   }) {
     try {
       const accountData: any = {
-        type: 'custom',
+        type: "custom",
         country: userData.country,
         email: userData.email,
         capabilities: {
@@ -98,7 +103,7 @@ export class StripeVerificationService {
         business_type: userData.businessType,
       };
 
-      if (userData.businessType === 'individual') {
+      if (userData.businessType === "individual") {
         accountData.individual = {
           email: userData.email,
           first_name: userData.firstName,
@@ -115,12 +120,13 @@ export class StripeVerificationService {
       return {
         success: true,
         accountId: account.id,
-        account
+        account,
       };
     } catch (error: any) {
+      console.error("Error creating custom account:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

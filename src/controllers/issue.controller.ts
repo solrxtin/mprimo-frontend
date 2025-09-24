@@ -1,16 +1,27 @@
 import { Request, Response } from "express";
 import Issue from "../models/issue.model";
 import Order from "../models/order.model";
+import { uploadEvidenceToCloudinary } from "../config/multer.config";
+import { validateUserOrderAccess } from "../utils/user-role.util";
 
 export const raiseIssue = async (req: Request, res: Response) => {
   try {
-    const { orderId, reason, description } = req.body;
+    const { orderId, reason, description, evidenceUrls, returnOutcome } = req.body;
     const userId = req.userId;
 
     if (!orderId || !reason) {
       return res.status(400).json({
         success: false,
         message: "Order ID and reason are required",
+      });
+    }
+
+    const isBuyer = await validateUserOrderAccess(req.userId.toString(), orderId, 'buyer');
+
+    if (isBuyer && !returnOutcome) {
+      return res.status(400).json({
+        success: false,
+        message: "Return outcome is required when raising issue as a buyer",
       });
     }
 
@@ -45,6 +56,8 @@ export const raiseIssue = async (req: Request, res: Response) => {
       userId,
       reason,
       description,
+      evidenceUrls: evidenceUrls || [],
+      returnOutcome: isBuyer ? returnOutcome : undefined,
     });
 
     await issue.save();
@@ -103,6 +116,52 @@ export const getUserIssues = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Server error while fetching issues",
+    });
+  }
+};
+
+
+export const uploadEvidence = async (req: Request, res: Response) => {
+  try {
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    if (!files || ((!files.images || files.images.length === 0) && (!files.videos || files.videos.length === 0))) {
+      return res.status(400).json({
+        success: false,
+        message: 'No files uploaded',
+      });
+    }
+
+    const uploadPromises: Promise<{ url: string; public_id: string }>[] = [];
+
+    // Upload images
+    if (files.images) {
+      files.images.forEach(file => {
+        uploadPromises.push(uploadEvidenceToCloudinary(file.path, 'image'));
+      });
+    }
+
+    // Upload videos
+    if (files.videos) {
+      files.videos.forEach(file => {
+        uploadPromises.push(uploadEvidenceToCloudinary(file.path, 'video'));
+      });
+    }
+
+    const uploadResults = await Promise.all(uploadPromises);
+    const evidenceUrls = uploadResults.map(result => result.url);
+
+    res.json({
+      success: true,
+      data: {
+        uploadedUrls: evidenceUrls,
+      },
+      message: 'Evidence uploaded successfully',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

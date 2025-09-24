@@ -19,6 +19,7 @@ import { generateTokensAndSetCookie } from "../utils/generate-token.util";
 import { strictRateLimit, moderateRateLimit } from "../middlewares/rate-limit.middleware";
 import User from "../models/user.model";
 import { IUser } from "../types/user.type";
+import { setPreferencesMiddleware } from "../middlewares/country-prefrences.middleware";
 
 
 const router = Router();
@@ -27,6 +28,7 @@ const router = Router();
 router.post(
   "/register",
   strictRateLimit,
+  setPreferencesMiddleware,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await signup(req, res);

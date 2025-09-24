@@ -3,6 +3,8 @@ import { StripeService } from "../services/stripe.service";
 import { CryptoPaymentService } from "../services/crypto-payment.service";
 import User from "../models/user.model";
 import Product from "../models/product.model";
+import { CartService } from "../services/cart.service";
+import Country from "../models/country.model";
 
 const cryptoService = new CryptoPaymentService();
 
@@ -10,13 +12,13 @@ export class CheckoutController {
   // Validate cart and prepare checkout
   static async validateCart(req: Request, res: Response, next: NextFunction) {
     try {
-      const { items } = req.body;
       const userId = req.userId;
+      const cart = await CartService.getCart(userId.toString());
 
-      if (!items || !Array.isArray(items) || items.length === 0) {
+      if (cart.length === 0) {
         return res.status(400).json({
           success: false,
-          message: "Items are required",
+          message: "Cart is empty for this user",
         });
       }
 
@@ -28,11 +30,18 @@ export class CheckoutController {
       const validatedItems = [];
       const unavailableItems = [];
 
-      for (const item of items) {
+      for (const item of cart) {
         if (!item.productId || !item.variantId || !item.quantity) {
           return res.status(400).json({
             success: false,
             message: "Each item must have productId, variantId, and quantity",
+          });
+        }
+
+        if (item.variantId && !item.optionId) {
+          return res.status(400).json({
+            success: false,
+            message: "Each item must have optionId when variantId is provided",
           });
         }
 
@@ -44,11 +53,11 @@ export class CheckoutController {
         }
 
         // Find variant and check stock
-        const variant = product.variants.find((v) =>
-          v.options.some((opt) => opt.sku === item.variantId)
+        const variant = product.variants.find(
+          (v: any) => v._id.toString() === item.variantId
         );
         const option = variant?.options.find(
-          (opt) => opt.sku === item.variantId
+          (opt: any) => opt._id.toString() === item.optionId
         );
 
         if (!option) {
@@ -86,7 +95,11 @@ export class CheckoutController {
       const total = subtotal + tax + shipping;
 
       // Get available payment methods
-      const paymentMethods = ["stripe", "crypto"];
+      const paymentMethods = await Country.find({
+        currency: { $regex: new RegExp(`^${currency}$`, "i") },
+      }).select("paymentOptions")
+        .populate("paymentOptions")
+        .lean();
 
       // Check crypto balance if user has wallet
       let cryptoBalance = null;
@@ -105,7 +118,7 @@ export class CheckoutController {
         }
       } catch (error) {
         // Crypto balance check failed, continue without it
-        console.error("Error fetching user wallet")
+        console.error("Error fetching user wallet");
       }
 
       res.json({
@@ -160,7 +173,7 @@ export class CheckoutController {
             {
               userId: userId.toString(),
               method: "card",
-              purpose: "order-fulfillment"
+              purpose: "order-fulfillment",
             }
           );
 
@@ -179,7 +192,7 @@ export class CheckoutController {
             {
               userId: userId.toString(),
               method: "apple_pay",
-              purpose: "order-fulfillment"
+              purpose: "order-fulfillment",
             }
           );
 

@@ -8,10 +8,11 @@ import { toastConfigError } from "./config/toast.config";
 import { useProductStore } from "@/stores/useProductStore";
 import { useSocket } from "@/hooks/useSocket";
 import { useEffect } from "react";
+import { resetAllStores } from "@/stores/resetStore";
 
 
 export default function Home() {
-  const { user, logout } = useUserStore();
+  const { user } = useUserStore();
   const { mutate: logoutUser } = useLogoutUser();
   const socket = useSocket();
 
@@ -21,9 +22,8 @@ export default function Home() {
 
   const handleLogoutClicked = () => {
     logoutUser(undefined, {
-      onSuccess: (data) => {
-        logout();
-        useProductStore.getState().clearProductStore();
+      onSuccess: async (data) => {
+        resetAllStores();
       },
       onError: (error) => {
         console.error("Logout failed:", error);

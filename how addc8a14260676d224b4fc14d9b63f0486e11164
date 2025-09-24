@@ -1,0 +1,69 @@
+[33mcommit addc8a14260676d224b4fc14d9b63f0486e11164[m
+Author: o2-najeemdeen <onitahcelestine@gmail.com>
+Date:   Sat Sep 13 08:11:41 2025 +0100
+
+    Fix swagger documentation in production - move swagger-output.json to root and update build process
+
+[1mdiff --git a/package.json b/package.json[m
+[1mindex d8ce3b2..0cec549 100644[m
+[1m--- a/package.json[m
+[1m+++ b/package.json[m
+[36m@@ -4,7 +4,7 @@[m
+   "description": "E-commerce marketplace backend",[m
+   "main": "dist/index.js",[m
+   "scripts": {[m
+[31m-    "build": "tsc",[m
+[32m+[m[32m    "build": "tsc && copy swagger-output.json dist\\swagger-output.json",[m
+     "start": "node dist/index.js",[m
+     "dev": "nodemon src/index.ts",[m
+     "test": "jest",[m
+[1mdiff --git a/src/index.ts b/src/index.ts[m
+[1mindex 6f520fa..911b4b9 100644[m
+[1m--- a/src/index.ts[m
+[1m+++ b/src/index.ts[m
+[36m@@ -56,7 +56,7 @@[m [mconst httpServer = createServer(app);[m
+ const logger = LoggerService.getInstance();[m
+ let swaggerDoc: any = {};[m
+ try {[m
+[31m-  swaggerDoc = require("./swagger-output.json");[m
+[32m+[m[32m  swaggerDoc = require("../swagger-output.json");[m
+   console.log("Swagger doc loaded, paths count:", Object.keys(swaggerDoc.paths || {}).length);[m
+   // Update host for production[m
+   if (swaggerDoc) {[m
+[36m@@ -182,6 +182,32 @@[m [mapp.get("/health", (req, res) => {res.json({message: "OK"})})  //Monitor app to[m
+ app.get("/api/v1/test", (req, res) => {res.json({message: "API v1 working"})});[m
+ app.get("/api/v1/products/test", (req, res) => {res.json({message: "Products route working"})});[m
+ [m
+[32m+[m[32m// Debug swagger file existence[m
+[32m+[m[32mapp.get("/api/v1/debug/swagger", (req, res) => {[m
+[32m+[m[32m  const fs = require('fs');[m
+[32m+[m[32m  const path = require('path');[m
+[32m+[m[41m  [m
+[32m+[m[32m  const swaggerPath = path.join(__dirname, '../swagger-output.json');[m
+[32m+[m[32m  const exists = fs.existsSync(swaggerPath);[m
+[32m+[m[41m  [m
+[32m+[m[32m  let fileContent = null;[m
+[32m+[m[32m  if (exists) {[m
+[32m+[m[32m    try {[m
+[32m+[m[32m      fileContent = JSON.parse(fs.readFileSync(swaggerPath, 'utf8'));[m
+[32m+[m[32m    } catch (error: any) {[m
+[32m+[m[32m      fileContent = { error: error.message };[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }[m
+[32m+[m[41m  [m
+[32m+[m[32m  res.json({[m
+[32m+[m[32m    swaggerFileExists: exists,[m
+[32m+[m[32m    swaggerPath,[m
+[32m+[m[32m    currentDir: __dirname,[m
+[32m+[m[32m    pathsCount: fileContent?.paths ? Object.keys(fileContent.paths).length : 0,[m
+[32m+[m[32m    fileContent: exists ? 'File exists' : 'File not found'[m
+[32m+[m[32m  });[m
+[32m+[m[32m});[m
+[32m+[m
+ // Serve Swagger UI[m
+ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));[m
+ app.get("/docs-json", (req, res) => {[m
+[1mdiff --git a/src/swagger-output.json b/swagger-output.json[m
+[1msimilarity index 100%[m
+[1mrename from src/swagger-output.json[m
+[1mrename to swagger-output.json[m

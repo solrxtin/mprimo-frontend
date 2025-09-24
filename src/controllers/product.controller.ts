@@ -48,31 +48,34 @@ export class ProductController {
       const currentProductCount = supposedVendor.analytics?.productCount || 0;
       const canAddProduct = await SubscriptionService.checkPlanLimits(
         supposedVendor._id.toString(),
-        'add_product',
+        "add_product",
         currentProductCount
       );
 
       if (!canAddProduct) {
         res.status(403).json({
           success: false,
-          message: "Product limit reached for your subscription plan. Upgrade to add more products.",
+          message:
+            "Product limit reached for your subscription plan. Upgrade to add more products.",
         });
         return;
       }
 
       // Check if product is being featured
       if (req.body.featured || req.body.isFeatured) {
-        const currentFeaturedCount = supposedVendor.analytics?.featuredProducts || 0;
+        const currentFeaturedCount =
+          supposedVendor.analytics?.featuredProducts || 0;
         const canFeatureProduct = await SubscriptionService.checkPlanLimits(
           supposedVendor._id.toString(),
-          'feature_product',
+          "feature_product",
           currentFeaturedCount
         );
 
         if (!canFeatureProduct) {
           res.status(403).json({
             success: false,
-            message: "Featured product limit reached for your subscription plan. Upgrade to feature more products.",
+            message:
+              "Featured product limit reached for your subscription plan. Upgrade to feature more products.",
           });
           return;
         }
@@ -112,10 +115,12 @@ export class ProductController {
 
       // Update vendor analytics - increment product count
       await Vendor.findByIdAndUpdate(supposedVendor._id, {
-        $inc: { 
-          'analytics.productCount': 1,
-          ...(req.body.featured || req.body.isFeatured ? { 'analytics.featuredProducts': 1 } : {})
-        }
+        $inc: {
+          "analytics.productCount": 1,
+          ...(req.body.featured || req.body.isFeatured
+            ? { "analytics.featuredProducts": 1 }
+            : {}),
+        },
       });
 
       // Fetch complete product details in parallel
@@ -503,10 +508,10 @@ export class ProductController {
 
       // Update vendor analytics - decrement product count
       await Vendor.findByIdAndUpdate(vendor._id, {
-        $inc: { 
-          'analytics.productCount': -1,
-          ...( product.isFeatured ? { 'analytics.featuredProducts': -1 } : {})
-        }
+        $inc: {
+          "analytics.productCount": -1,
+          ...(product.isFeatured ? { "analytics.featuredProducts": -1 } : {}),
+        },
       });
 
       // Invalidate cache after delete
@@ -642,26 +647,29 @@ export class ProductController {
       if (!vendor) {
         throw new Error("Unauthorized");
       }
-      
+
       // Check if this is a bulk operation (multiple variants)
       if (Array.isArray(req.body) && req.body.length > 1) {
-        const { SubscriptionService } = await import('../services/subscription.service');
+        const { SubscriptionService } = await import(
+          "../services/subscription.service"
+        );
         const hasBulkUpload = await SubscriptionService.checkPlanLimits(
           vendor._id.toString(),
-          'bulk_upload'
+          "bulk_upload"
         );
-        
+
         if (!hasBulkUpload) {
           return res.status(403).json({
             success: false,
-            message: 'Bulk variant upload requires Pro or Elite plan. Upgrade to add multiple variants at once.'
+            message:
+              "Bulk variant upload requires Pro or Elite plan. Upgrade to add multiple variants at once.",
           });
         }
-        
+
         // Track bulk upload usage
         await Vendor.findByIdAndUpdate(vendor._id, {
-          $inc: { 'analytics.bulkUploadsUsed': 1 },
-          $set: { 'analytics.lastBulkUpload': new Date() }
+          $inc: { "analytics.bulkUploadsUsed": 1 },
+          $set: { "analytics.lastBulkUpload": new Date() },
         });
       }
       const product = await ProductService.addVariant(
@@ -1099,7 +1107,7 @@ export class ProductController {
   static async addToCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
-      const { productId, quantity, price, variantId } = req.body;
+      const { productId, quantity, price, variantId, optionId } = req.body;
 
       if (!userId || !productId || !quantity || !price || !variantId) {
         res.status(400).json({
@@ -1110,18 +1118,72 @@ export class ProductController {
         return;
       }
 
-      const success = await CartService.addToCart(userId.toString(), {
+      if (variantId && !optionId) {
+        res.status(400).json({
+          success: false,
+          message: "optionId is required when variantId is provided",
+        });
+        return;
+      }
+
+      const product = await ProductService.getProductById(productId);
+      if (!product) {
+        res.status(404).json({ success: false, message: "Product not found" });
+        return;
+      }
+
+      if (product.inventory.listing.type === "instant") {
+        const variant = product.variants.find(
+          (v: any) => v._id.toString() === variantId
+        );
+        if (!variant) {
+          res
+            .status(404)
+            .json({ success: false, message: "Variant not found" });
+          return;
+        }
+
+        const option = variant.options.find(
+          (o: any) => o._id.toString() === optionId
+        );
+
+        if (!option) {
+          res
+            .status(404)
+            .json({ success: false, message: "Variant option not found" });
+          return;
+        }
+
+        if (option.quantity < quantity) {
+          res.status(400).json({
+            success: false,
+            message: `Only ${option.quantity} items in stock`,
+          });
+          return;
+        }
+
+        if (option.salePrice !== price) {
+          res.status(400).json({
+            success: false,
+            message: `Price mismatch. Current price is ${option.salePrice}`,
+          });
+          return;
+        }
+      }
+
+      const cart = await CartService.addToCart(userId.toString(), {
         productId,
         variantId,
         quantity,
         price,
+        optionId,
       });
 
-      if (success) {
+      if (cart) {
         await redisService.trackEvent(productId, "addToCart", userId);
         res
           .status(200)
-          .json({ success: true, message: "Product added to cart" });
+          .json({ success: true, message: "Product added to cart", cart });
       } else {
         res
           .status(500)
@@ -1996,7 +2058,7 @@ export const relistItemForAuction = async (req: Request, res: Response) => {
     req.body;
 
   try {
-    const product = await Product.findById(productId)
+    const product = await Product.findById(productId);
 
     if (!product) {
       return res.status(404).json({

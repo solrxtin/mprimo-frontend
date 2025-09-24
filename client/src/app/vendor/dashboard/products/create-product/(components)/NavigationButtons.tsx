@@ -60,7 +60,6 @@ export default function NavigationButtons({
     }
   };
 
-  console.log(draftId)
 
   const handleSubmitClick = async () => {
     try {

@@ -8,6 +8,7 @@ const logger = LoggerService.getInstance();
 interface CartItem {
   productId: string;
   variantId: string;
+  optionId?: string;
   quantity: number;
   price: number;
 }
@@ -20,35 +21,42 @@ interface WishlistItem {
 
 export class CartService {
   // Cart Methods
-  static async getCart(userId: string) {
-    try {
-      // Try Redis first
-      let cart = await redisService.getCart(userId);
-      
-      if (!cart || cart.length === 0) {
-        // Fallback to MongoDB
-        const dbCart = await Cart.findOne({ userId }).populate('items.productId');
-        if (dbCart && dbCart.items.length > 0) {
-          // Sync to Redis
-          for (const item of dbCart.items) {
-            await redisService.addToCart(
-              userId,
-              item.productId.toString(),
-              item.quantity,
-              item.price,
-              item.variantId
-            );
-          }
-          cart = dbCart.items;
+  static async getCart(userId: string): Promise<CartItem[]> {
+  try {
+    let cart: CartItem[] = await redisService.getCart(userId);
+
+    if (!cart || cart.length === 0) {
+      const dbCart = await Cart.findOne({ userId }).populate('items.productId');
+      if (dbCart && dbCart.items.length > 0) {
+        const items: CartItem[] = dbCart.items.map((item: any) => ({
+          productId: item.productId.toString(),
+          variantId: item.variantId,
+          optionId: item.optionId,
+          quantity: item.quantity,
+          price: item.price,
+        }));
+
+        for (const item of items) {
+          await redisService.addToCart(
+            userId,
+            item.productId,
+            item.quantity,
+            item.price,
+            item.variantId,
+            item.optionId
+          );
         }
+
+        cart = items;
       }
-      
-      return cart || [];
-    } catch (error) {
-      logger.error('Error getting cart:', error);
-      return [];
     }
+
+    return cart || [];
+  } catch (error) {
+    logger.error('Error getting cart:', error);
+    return [];
   }
+}
 
   static async addToCart(userId: string, item: CartItem) {
     try {
@@ -58,11 +66,12 @@ export class CartService {
         item.productId,
         item.quantity,
         item.price,
-        item.variantId
+        item.variantId,
+        item.optionId
       );
 
       // Add to MongoDB
-      await Cart.findOneAndUpdate(
+      const cart = await Cart.findOneAndUpdate(
         { userId },
         {
           $push: {
@@ -79,8 +88,9 @@ export class CartService {
         { upsert: true }
       );
 
-      return true;
+      return cart;
     } catch (error) {
+      console.error(error)
       logger.error('Error adding to cart:', error);
       return false;
     }

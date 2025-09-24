@@ -8,6 +8,7 @@ import Vendor from "../models/vendor.model";
 import Country from "../models/country.model";
 import { LoggerService } from "../services/logger.service";
 import redisService from "../services/redis.service";
+import { SubscriptionService } from "../services/subscription.service";
 
 dotenv.config();
 
@@ -703,6 +704,34 @@ async function seedProducts() {
           // Get category-specific specifications
           const specifications = getCategorySpecifications(category, template);
 
+          // Check subscription plan limits
+          const currentProductCount = vendor.analytics?.productCount || 0;
+          const canAddProduct = await SubscriptionService.checkPlanLimits(
+            vendor._id.toString(),
+            'add_product',
+            currentProductCount
+          );
+
+          if (!canAddProduct) {
+            console.log(`⚠️ Product limit reached for vendor ${vendor.businessInfo?.name}`);
+            continue;
+          }
+
+          // Check if product is being featured
+          const isFeatured = Math.random() > 0.8;
+          if (isFeatured) {
+            const currentFeaturedCount = vendor.analytics?.featuredProducts || 0;
+            const canFeatureProduct = await SubscriptionService.checkPlanLimits(
+              vendor._id.toString(),
+              'feature_product',
+              currentFeaturedCount
+            );
+
+            if (!canFeatureProduct) {
+              console.log(`⚠️ Featured product limit reached for vendor ${vendor.businessInfo?.name}`);
+            }
+          }
+
           const product = await Product.create({
             vendorId: vendor._id,
             name: productName,
@@ -719,6 +748,7 @@ async function seedProducts() {
               path: category.path || [category.name],
             },
             country: vendorCountry._id,
+            featured: isFeatured,
             inventory: {
               lowStockAlert: Math.floor(Math.random() * 5) + 2,
               listing:
@@ -841,6 +871,14 @@ async function seedProducts() {
             },
             offers: [],
             bids: [],
+          });
+
+          // Update vendor analytics - increment product count
+          await Vendor.findByIdAndUpdate(vendor._id, {
+            $inc: { 
+              'analytics.productCount': 1,
+              ...(isFeatured ? { 'analytics.featuredProducts': 1 } : {})
+            }
           });
 
           productCount++;

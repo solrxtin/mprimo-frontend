@@ -6,6 +6,7 @@ declare module "express-session" {
     preferences?: {
       language: string;
       currency: string;
+      country: string;
     };
   }
 }
@@ -84,6 +85,20 @@ declare global {
       preferences: {
         language?: string;
         currency?: string;
+        country?: string;
+      };
+      userRole?: {
+        userId: string;
+        orderId?: string;
+        isBuyer: boolean;
+        isSeller: boolean;
+        isVendor: boolean;
+        canSell: boolean;
+        role: string;
+        vendorId?: string;
+        sellerProducts?: string[];
+        orderTotal?: number;
+        orderStatus?: string;
       };
     }
   }

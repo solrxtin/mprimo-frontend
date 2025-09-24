@@ -16,6 +16,7 @@ export default interface ICategory {
     }[];
     image?: string;
     productDimensionsRequired?: boolean;
+    productWeightRequired?: boolean;
     isActive: boolean;
     createdBy: string;
     updatedBy: string;

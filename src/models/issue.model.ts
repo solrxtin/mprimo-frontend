@@ -13,6 +13,8 @@ export interface IIssue extends Document {
   resolution?: string;
   resolvedAt?: Date;
   chatId?: Types.ObjectId;
+  evidenceUrls?: string[];
+  returnOutcome?: "refund" | "product_replacement";
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -76,6 +78,14 @@ const issueSchema = new mongoose.Schema<IIssue>(
     chatId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "DisputeChat",
+    },
+    evidenceUrls: {
+      type: [String],
+      default: [],
+    },
+    returnOutcome: {
+      type: String,
+      enum: ["refund", "product_replacement"],
     },
   },
   {

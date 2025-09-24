@@ -282,7 +282,8 @@ class RedisService {
     productId: string,
     quantity: number,
     price: number,
-    selectedVariant?: string
+    selectedVariant?: string,
+    optionId?: string
   ) {
     if (!this.isConnected) return;
 
@@ -299,6 +300,7 @@ class RedisService {
           quantity: existingItem.quantity + quantity,
           price, // Optionally update price in case it's changed
           variantId: selectedVariant ?? existingItem.variantId,
+          optionId: optionId ?? existingItem.optionId,
           addedAt: existingItem.addedAt
             ? new Date(existingItem.addedAt)
             : new Date(),
@@ -307,6 +309,7 @@ class RedisService {
         newItem = {
           productId: new mongoose.Types.ObjectId(productId),
           variantId: selectedVariant || "",
+          optionId: optionId || undefined,
           quantity,
           price,
           addedAt: new Date(),

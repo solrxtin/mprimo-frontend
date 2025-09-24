@@ -18,6 +18,7 @@ export interface IWishlist {
 export interface CartItem {
     productId: Types.ObjectId;
     variantId: string; // SKU of selected variant
+    optionId?: string; // ID of selected option
     quantity: number;
     price: number;
     addedAt: Date;
