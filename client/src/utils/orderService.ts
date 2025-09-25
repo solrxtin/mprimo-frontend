@@ -35,7 +35,7 @@ export const orderService = {
       ...(status && { status })
     });
     
-    return fetchWithAuth(`/api/v1/orders/user-orders?${params}`);
+    return fetchWithAuth(`/api/v1/orders?${params}`);
   },
 
   async getOrderById(orderId: string) {
