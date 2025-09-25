@@ -5,7 +5,6 @@ export interface WishlistItem {
     productId: Types.ObjectId;
     addedAt: Date;
     priceWhenAdded: number;
-    currency: string;
 }
 
 export interface IWishlist {

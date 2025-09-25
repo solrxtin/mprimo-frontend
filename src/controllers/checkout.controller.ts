@@ -65,6 +65,9 @@ export class CheckoutController {
           continue;
         }
 
+
+        console.log(`Item is ${item}`)
+
         if (option.quantity < item.quantity) {
           unavailableItems.push({
             ...item,
@@ -74,14 +77,14 @@ export class CheckoutController {
           continue;
         }
 
-        const itemTotal = option.price * item.quantity;
+        const itemTotal = option.salePrice * item.quantity;
         subtotal += itemTotal;
 
         validatedItems.push({
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
-          price: option.price,
+          price: option.salePrice,
           total: itemTotal,
           productName: product.name,
           productImage: product.images?.[0],
@@ -102,20 +105,10 @@ export class CheckoutController {
         .lean();
 
       // Check crypto balance if user has wallet
-      let cryptoBalance = null;
+      let userWallet = null;
       try {
         const wallet = await cryptoService.getWalletByUserId(userId);
-        if (wallet) {
-          const usdcBalance = await cryptoService.getBalance(
-            wallet.address,
-            "usdc"
-          );
-          const usdtBalance = await cryptoService.getBalance(
-            wallet.address,
-            "usdt"
-          );
-          cryptoBalance = { USDC: usdcBalance, USDT: usdtBalance };
-        }
+        userWallet = wallet;
       } catch (error) {
         // Crypto balance check failed, continue without it
         console.error("Error fetching user wallet");
@@ -134,7 +127,7 @@ export class CheckoutController {
             currency,
           },
           paymentMethods,
-          cryptoBalance,
+          userWallet,
           canProceed: unavailableItems.length === 0,
         },
       });

@@ -86,7 +86,7 @@ class RedisService {
         return JSON.parse(cachedProduct);
       }
 
-      const product = id
+      const product = id && mongoose.Types.ObjectId.isValid(id)
         ? await ProductModel.findById(id)
             .populate({
               path: "category.main",
@@ -135,6 +135,8 @@ class RedisService {
 
       return product;
     } catch (error) {
+      console.log("I got called")
+      console.error(error)
       logger.error("Redis cache error:", error);
       return id
         ? await ProductModel.findById(id)
@@ -297,7 +299,7 @@ class RedisService {
         const existingItem: CartItem = JSON.parse(cartItemRaw);
         newItem = {
           ...existingItem,
-          quantity: existingItem.quantity + quantity,
+          quantity: Number(existingItem.quantity) + quantity,
           price, // Optionally update price in case it's changed
           variantId: selectedVariant ?? existingItem.variantId,
           optionId: optionId ?? existingItem.optionId,
@@ -327,6 +329,7 @@ class RedisService {
 
     try {
       const cartKey = `cart:${userId}`;
+      console.log("Cart key is", cartKey);
       const cartItems = await this.redisClient.hgetall(cartKey);
       return Object.values(cartItems)
         .map((item) => JSON.parse(item))

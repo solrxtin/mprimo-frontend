@@ -485,3 +485,62 @@ export const getFAQs = async (req: Request, res: Response) => {
 };
 
 
+export const getUserOffersForAProduct = async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { productId } = req.params;
+
+    if (!productId) {
+      return res.status(400).json({ success: false, message: "Product ID is required" });
+    }
+
+    const product = await Product.findOne(
+      { _id: productId, "offers.userId": userId },
+      { name: 1, offers: 1 }
+    );
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "No offers found for this product" });
+    }
+
+    const userOfferBlock = product.offers.find((o) => String(o.userId) === String(userId));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        productId: product._id,
+        name: product.name,
+        userOffers: userOfferBlock?.userOffers || [],
+        counterOffers: userOfferBlock?.counterOffers || [],
+      },
+    });
+  } catch (error) {
+    console.error("Get User Offers Error:", error);
+    res.status(500).json({ success: false, message: "Error fetching user offers" });
+  }
+};
+
+
+export const getUserOffersGrouped = async(req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.userId;
+
+    const products = await Product.find({ "offers.userId": userId }).select("name slug offers");
+
+    const groupedOffers = products.map((product) => {
+      const offerBlock = product.offers.find((o) => String(o.userId) === String(userId));
+      return {
+        productId: product._id,
+        name: product.name,
+        slug: product.slug,
+        offers: offerBlock?.userOffers || [],
+        counterOffers: offerBlock?.counterOffers || [],
+      };
+    });
+
+    res.status(200).json({ success: true, data: groupedOffers });
+  } catch (error) {
+    next(error);
+  }
+}
+
