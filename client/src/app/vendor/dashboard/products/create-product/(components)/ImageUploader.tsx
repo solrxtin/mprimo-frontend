@@ -319,7 +319,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ src }) => {
                 animate={{ opacity: 1, scale: 1 }}
                 src={typeof preview === "string" ? preview : ""}
                 alt="Preview"
-                className="mx-auto w-full h-full object-cover object-center rounded-md p-2"
+                className="mx-auto w-full h-full object-contain object-center rounded-md p-2"
               />
               {!loading && (
                 <>

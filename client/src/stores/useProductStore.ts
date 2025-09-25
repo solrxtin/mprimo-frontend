@@ -14,10 +14,10 @@ interface ProductState {
   listedProducts: ProductType[] | [];
   setListedProducts: (listedProducts: ProductType[] | []) => void;
   clearProductStore: () => void;
+  resetStore: () => void;
 }
 
 type PersistedState = Pick<ProductState, "listedProducts" | "vendor">;
-
 
 // Define persist configuration
 const persistConfig: PersistOptions<ProductState, PersistedState> = {
@@ -34,13 +34,18 @@ export const useProductStore = create<ProductState>()(
   persist(
     (set, get) => ({
       vendor: null,
-      setVendor: (vendor: Vendor | null) => set({vendor}),
+      setVendor: (vendor: Vendor | null) => set({ vendor }),
       listedProducts: [],
-      setListedProducts: (listedProducts: ProductType[] | []) => set({listedProducts}),
+      setListedProducts: (listedProducts: ProductType[] | []) =>
+        set({ listedProducts }),
       clearProductStore: () => {
         set({ vendor: null, listedProducts: [] });
         localStorage.removeItem("product-storage"); // explicitly clear it
       },
+      resetStore: () => {
+        useProductStore.persist.clearStorage();
+        set({ vendor: null, listedProducts: [] });
+      }
     }),
     persistConfig
   )

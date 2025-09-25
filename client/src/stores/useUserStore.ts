@@ -14,7 +14,7 @@ interface UserState {
   setDeviceId: (deviceId: any) => void;
   wallet: ICryptoWallet | null;
   setWallet: (wallet: ICryptoWallet | null) => void;
-  logout: () => void;
+  resetStore: () => void;
 }
 
 type PersistedState = Pick<UserState, "user" | "deviceId" | "wallet" >;
@@ -41,9 +41,10 @@ export const useUserStore = create<UserState>()(
       setDeviceId: (deviceId: string | null) => set({ deviceId }),
       wallet: null,
       setWallet: (wallet: ICryptoWallet | null) => set({wallet}),
-      logout: () => {
+
+      resetStore: () => {
+        useUserStore.persist.clearStorage();
         set({ user: null, deviceId: null, wallet: null });
-        localStorage.removeItem("user-storage"); // explicitly clear it
       },
     }),
     persistConfig

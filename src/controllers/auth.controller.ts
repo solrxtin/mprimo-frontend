@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
-dotenv.config()
+dotenv.config();
 
 import RefreshToken from "../models/auth.model";
 import {
@@ -18,7 +18,7 @@ import sendPasswordResetEmail from "../mails/send-reset-password.mail";
 import sendPasswordResetSuccessfulEmail from "../mails/send-password-reset-successful.mail";
 import sendVerificationEmail from "../mails/send-verification.mail";
 import sendWelcomeEmail from "../mails/send-welcome-message.mail";
-import { CryptoPaymentService } from "../services/crypto-payment.service"
+import { CryptoPaymentService } from "../services/crypto-payment.service";
 import getCountryPreferences from "../utils/get-country-preferences";
 import Vendor from "../models/vendor.model";
 import { tokenWatcher } from "..";
@@ -26,6 +26,8 @@ import { IVendor } from "../types/vendor.type";
 import AuditLogService from "../services/audit-log.service";
 import { SubscriptionService } from "../services/subscription.service";
 import Wallet from "../models/wallet.model";
+import { StripeVerificationService } from "../services/stripe-verification.service";
+import Country from "../models/country.model";
 
 const logger = LoggerService.getInstance();
 const generateVerificationCode = () =>
@@ -36,7 +38,12 @@ const cryptoService = new CryptoPaymentService();
 export const signup = async(req: Request, res: Response): Promise<Response> => {
   try {
     //TODO: Make sure phone uses international format
-    const { email, password, firstName, lastName,phoneNumber, role } = req.body;
+    const { email, password, firstName, lastName, phoneNumber } = req.body;
+
+    console.log(
+      `Request body is ${email}, ${password}, ${firstName}, ${lastName}, ${phoneNumber}`
+    );
+
     // Validate input
     if (!email || !password || !firstName || !lastName || !phoneNumber || !role) {
       return res.status(400).json({
@@ -50,9 +57,9 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       await AuditLogService.log(
-        'REGISTRATION_ATTEMPT_DUPLICATE_EMAIL',
-        'auth',
-        'warning',
+        "REGISTRATION_ATTEMPT_DUPLICATE_EMAIL",
+        "auth",
+        "warning",
         { email, attemptedRole: "personal" },
         req
       );
@@ -65,20 +72,16 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
         .json({ message: "Password must be at least 8 characters long" });
     }
 
- if (
-  !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(req.body.password)
-) {
-  return res.status(400).json({
-    message:
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be at least 8 characters long",
-  });
-}
-
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(req.body.password)) {
+      return res.status(400).json({
+        message:
+          "Password must contain at least one uppercase letter, one lowercase letter, and one number, and be at least 8 characters long",
+      });
+    }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = generateVerificationCode();
-    console.log(verificationToken);
     const verificationTokenHash = await bcrypt.hash(verificationToken, 10);
 
     // Create new user
@@ -94,11 +97,18 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
       },
       role: "personal",
       status: "active",
+      country: req.preferences?.country,
       preferences: {
         language: req.preferences?.language,
         currency: req.preferences?.currency,
         notifications: {
-          email: true,
+          email: {
+            stockAlert: true,
+            orderStatus: true,
+            pendingReviews: true,
+            paymentUpdates: true,
+            newsletter: false,
+          },
           push: true,
           sms: false,
         },
@@ -117,26 +127,26 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
 
     // Save user to database
     const savedUser = await User.create(newUser);
-    const wallet = await cryptoService.createWallet(savedUser._id)
+    const wallet = await cryptoService.createWallet(savedUser._id);
     const fiatWallet = await Wallet.create({
       userId: savedUser._id,
       currency: req.preferences.currency,
-    })
-    tokenWatcher.addAddressToWatch(wallet.address)
+    });
+    tokenWatcher.addAddressToWatch(wallet.address);
     logger.debug("User created successfully", {
       userId: savedUser._id,
     });
 
     // Log successful registration
     await AuditLogService.log(
-      'USER_REGISTERED',
-      'auth',
-      'info',
-      { 
+      "USER_REGISTERED",
+      "auth",
+      "info",
+      {
         userId: savedUser._id,
         email: savedUser.email,
         role: savedUser.role,
-        hasWallet: !!wallet
+        hasWallet: !!wallet,
       },
       req,
       savedUser._id.toString()
@@ -149,7 +159,7 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
         password: undefined,
       },
       cryptoWallet: wallet,
-      fiatWallet
+      fiatWallet,
     });
   } catch (error) {
     console.error("Signup error:", error);
@@ -188,7 +198,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Find user by email
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -205,8 +215,11 @@ export const login = async (req: Request, res: Response) => {
     }
 
     let vendor: IVendor | null = null;
-    if ((user.role==="personal" && user.canMakeSales) || user.role==="business") {
-      const proposedVendor = await Vendor.findOne({userId: user._id})
+    if (
+      (user.role === "personal" && user.canMakeSales) ||
+      user.role === "business"
+    ) {
+      const proposedVendor = await Vendor.findOne({ userId: user._id });
       vendor = proposedVendor ? proposedVendor : null;
     }
 
@@ -239,19 +252,19 @@ export const login = async (req: Request, res: Response) => {
 
     // Log successful login
     await AuditLogService.log(
-      'USER_LOGIN_SUCCESS',
-      'auth',
-      'info',
-      { 
+      "USER_LOGIN_SUCCESS",
+      "auth",
+      "info",
+      {
         userId: user._id,
         email: user.email,
         role: user.role,
-        country: req.headers['cf-ipcountry'] || 'unknown'
+        country: req.headers["cf-ipcountry"] || "unknown",
       },
       req,
       user._id.toString()
     );
-    
+
     return res.status(200).json({
       message: "Logged in successfully!",
       success: true,
@@ -261,7 +274,7 @@ export const login = async (req: Request, res: Response) => {
       },
       vendor,
       has2faEnabled,
-      requires2FA: true
+      requires2FA: true,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -385,7 +398,7 @@ export const requestPasswordChange = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Email is required" });
     }
     const user = await User.findOne({ email });
-    
+
     // Don't reveal if user exists or not
     if (!user) {
       return res.status(200).json({
@@ -395,14 +408,14 @@ export const requestPasswordChange = async (req: Request, res: Response) => {
     }
 
     await AuditLogService.log(
-      'PASSWORD_CHANGE_REQUESTED',
-      'auth',
-      'info',
-      { 
+      "PASSWORD_CHANGE_REQUESTED",
+      "auth",
+      "info",
+      {
         userId: user._id,
         email: user.email,
         role: user.role,
-        country: req.headers['cf-ipcountry'] || 'unknown'
+        country: req.headers["cf-ipcountry"] || "unknown",
       },
       req,
       user._id.toString()
@@ -424,21 +437,16 @@ export const requestPasswordChange = async (req: Request, res: Response) => {
         : req.socket.remoteAddress || "unknown";
 
     // send email
-    await sendPasswordResetEmail(
-      user.email,
-      resetToken
-    );
+    await sendPasswordResetEmail(user.email, resetToken);
     logger.info("Password reset token sent successfully", {
       ip,
       userId: user._id,
     });
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: `Password reset token sent to the specified token`,
-        user: { ...user, password: undefined },
-      });
+    res.status(200).json({
+      success: true,
+      message: `Password reset token sent to the specified token`,
+      user: { ...user, password: undefined },
+    });
   } catch (error: unknown) {
     logger.error("Password reset request failed", {
       error: error instanceof Error ? error.message : "Unknown error",
@@ -466,7 +474,7 @@ export const changePassword = async (req: Request, res: Response) => {
       });
     }
 
-    const user = await User.findOne({email});
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res
@@ -496,14 +504,14 @@ export const changePassword = async (req: Request, res: Response) => {
     });
 
     await AuditLogService.log(
-      'PASSWORD_CHANGED',
-      'auth',
-      'info',
-      { 
+      "PASSWORD_CHANGED",
+      "auth",
+      "info",
+      {
         userId: user._id,
         email: user.email,
         role: user.role,
-        country: req.headers['cf-ipcountry'] || 'unknown'
+        country: req.headers["cf-ipcountry"] || "unknown",
       },
       req,
       user._id.toString()
@@ -528,7 +536,6 @@ export const changePassword = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 export const verifyPasswordResetEmail = async (req: Request, res: Response) => {
   const { code } = req.body;
@@ -639,7 +646,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       ) as { userId: Types.ObjectId; type: string; exp: number };
 
       // Check token type
-      if (decoded.type !== 'refresh') {
+      if (decoded.type !== "refresh") {
         return res.status(401).json({ message: "Invalid token type" });
       }
 
@@ -651,7 +658,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Updated for cross-site compatibility
-        path: '/', // Ensure cookie is available across the site
+        path: "/", // Ensure cookie is available across the site
         maxAge: 15 * 60 * 1000, // 15 minutes
       });
 
@@ -665,7 +672,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       if (timeUntilExpiry < refreshThreshold || Math.random() < 0.1) {
         const storedToken = await RefreshToken.findOne({
           userId: decoded.userId,
-          token: refreshToken
+          token: refreshToken,
         });
 
         if (!storedToken) {
@@ -742,7 +749,6 @@ export const logout = async (req: Request, res: Response) => {
   }
 };
 
-
 interface IAddress {
   street: string;
   city: string;
@@ -754,20 +760,61 @@ interface IAddress {
 // Vendor
 export const signupVendor = async (req: Request, res: Response) => {
   try {
-    const { businessName, businessEmail, password, country, street, city, state, postalCode } = req.body;
+    const {
+      businessName,
+      businessEmail,
+      password,
+      country,
+      street,
+      city,
+      state,
+      postalCode,
+    } = req.body;
+
+    console.log(req.body);
 
     // Validate input
-    if (!businessEmail || !password || !businessName || !country || !street || !city || !state || !postalCode) {
+    if (
+      !businessEmail ||
+      !password ||
+      !businessName ||
+      !country ||
+      !street ||
+      !city ||
+      !state ||
+      !postalCode
+    ) {
       return res.status(400).json({
         message:
           "Business email, Business name, password, country, street, city, state, postalCode are required",
       });
     }
 
+    const allowedCountry = await Country.findOne({
+      name: { $regex: new RegExp(`^${country}$`, "i") },
+    });
+    if (!allowedCountry) {
+      await AuditLogService.log(
+        "VENDOR_REGISTRATION_ATTEMPT_UNSUPPORTED_COUNTRY",
+        "auth",
+        "info",
+        {
+          userId: req.userId,
+          email: businessEmail,
+          country: country,
+        },
+        req,
+        req.userId.toString() || "unknown"
+      );
+      return res.status(400).json({ message: "Country is not supported" });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ email: businessEmail });
     if (existingUser) {
-      return res.status(409).json({ message: "Business email already registered" });
+      return res
+        .status(409)
+        .json({ message: "Business email already registered" });
     }
 
     // Hash password
@@ -787,7 +834,13 @@ export const signupVendor = async (req: Request, res: Response) => {
         language: preferences.language,
         currency: preferences.currency,
         notifications: {
-          email: true,
+          email: {
+            stockAlert: true,
+            orderStatus: true,
+            pendingReviews: true,
+            paymentUpdates: true,
+            newsletter: false,
+          },
           push: true,
           sms: false,
         },
@@ -802,12 +855,12 @@ export const signupVendor = async (req: Request, res: Response) => {
 
     // Save user to database
     const savedUser = await User.create(newUser);
-    const wallet = await cryptoService.createWallet(savedUser._id)
-    tokenWatcher.addAddressToWatch(wallet.address)
+    const wallet = await cryptoService.createWallet(savedUser._id);
+    tokenWatcher.addAddressToWatch(wallet.address);
     logger.debug("User created successfully", {
       userId: savedUser._id,
     });
-   
+
     const vendor = await Vendor.create({
       userId: savedUser._id,
       accountType: "business",
@@ -818,34 +871,70 @@ export const signupVendor = async (req: Request, res: Response) => {
           street,
           state,
           country,
-          postalCode
-        }
-      }
-    })
+          postalCode,
+        },
+      },
+    });
 
     await AuditLogService.log(
-      'SIGNUP',
-      'auth',
-      'info',
+      "SIGNUP",
+      "auth",
+      "info",
       {
         userId: savedUser._id,
         email: savedUser.email,
         role: savedUser.role,
-        country: req.headers['cf-ipcountry'] || 'unknown',
-        vendor: vendor._id
+        country: req.headers["cf-ipcountry"] || "unknown",
+        vendor: vendor._id,
       },
       req,
       savedUser._id.toString()
     );
-    await SubscriptionService.initializeVendorSubscription(vendor._id.toString())
+    await SubscriptionService.initializeVendorSubscription(
+      vendor._id.toString()
+    );
+    const userData = {
+      email: businessEmail,
+      country: country,
+      businessType: "company",
+      companyName: businessName,
+    } as const;
+    const { success, accountId, account, error } =
+      await StripeVerificationService.createCustomAccount(userData);
+
+    console.log(success, accountId, account, error);
+
+    let linkResult;
+
+    if (success && accountId && account) {
+      // wait for the onboarding link (needed for response)
+      linkResult = await StripeVerificationService.createAccountLink(
+        accountId,
+        `${process.env.FRONTEND_URL}/vendor/verification/refresh`,
+        `${process.env.FRONTEND_URL}/vendor/verification/complete`
+      );
+
+      // fire-and-forget vendor save
+      (async () => {
+        try {
+          vendor.stripeAccountId = accountId;
+          await vendor.save();
+        } catch (err) {
+          console.error("Failed to save vendor with stripeAccountId:", err);
+        }
+      })();
+    }
 
     return res.status(201).json({
-      message: "Business created successfully. Please proceed with verification",
+      message:
+        "Business created successfully. Please proceed with verification",
       user: {
         ...savedUser._doc,
         password: undefined,
-        vendor
+        vendor,
       },
+      onboardingLink: linkResult?.url || null,
+      accountId: accountId || null,
     });
   } catch (error) {
     console.error("Signup error:", error);
@@ -866,7 +955,7 @@ export const signupVendor = async (req: Request, res: Response) => {
 //     // Verify Apple identity token
 //     const applePublicKeys = await getApplePublicKeys();
 //     const decodedToken = await verifyAppleToken(identityToken, applePublicKeys);
-    
+
 //     if (!decodedToken) {
 //       return res.status(401).json({ message: 'Invalid Apple token' });
 //     }
@@ -895,7 +984,7 @@ export const signupVendor = async (req: Request, res: Response) => {
 //     } else {
 //       // Create new user
 //       const preferences = getCountryPreferences(req.headers['cf-ipcountry'] as string || 'US');
-      
+
 //       existingUser = await User.create({
 //         email: email,
 //         profile: {
@@ -946,7 +1035,7 @@ export const signupVendor = async (req: Request, res: Response) => {
 //       'APPLE_LOGIN_SUCCESS',
 //       'auth',
 //       'info',
-//       { 
+//       {
 //         userId: existingUser._id,
 //         email: existingUser.email,
 //         role: existingUser.role
@@ -985,16 +1074,16 @@ async function verifyAppleToken(token: string, publicKeys: any[]) {
     if (!decodedHeader) return null;
 
     const kid = decodedHeader.header.kid;
-    const publicKey = publicKeys.find(key => key.kid === kid);
+    const publicKey = publicKeys.find((key) => key.kid === kid);
     if (!publicKey) return null;
 
-    const jwkToPem = require('jwk-to-pem');
+    const jwkToPem = require("jwk-to-pem");
     const pem = jwkToPem(publicKey);
 
     return jwt.verify(token, pem, {
-      algorithms: ['RS256'],
+      algorithms: ["RS256"],
       audience: process.env.APPLE_CLIENT_ID,
-      issuer: 'https://appleid.apple.com'
+      issuer: "https://appleid.apple.com",
     });
   } catch (error) {
     return null;

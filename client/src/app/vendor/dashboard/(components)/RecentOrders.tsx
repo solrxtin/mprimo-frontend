@@ -216,8 +216,8 @@ const RecentOrders = ({ currency }: { currency: string}) => {
           <p className="text-sm text-gray-500">Add a product to get started</p>
           <div className="">
             <button
-              className="bg-primary text-white px-4 py-2 rounded-lg flex gap-x-2"
-              // onClick={}
+              className="bg-primary text-white px-4 py-2 rounded-lg flex gap-x-2 items-center hover:bg-blue-700 transition-colors cursor-pointer"
+              onClick={() => router.push('/vendor/dashboard/products/create-product')}
             >
               Add Product
               <Plus size={24} />

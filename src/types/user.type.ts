@@ -27,6 +27,7 @@ export interface IUser extends Document {
     avatar?: string;
     sex?: string;
   };
+  country?: string;
   addresses?: Array<{
     _id?: Types.ObjectId;
     type: string;

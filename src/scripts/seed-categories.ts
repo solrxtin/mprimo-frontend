@@ -19,7 +19,7 @@ async function seedCategories() {
     await CategoryModel.deleteMany({});
     console.log("Cleared existing categories");
 
-    const adminId = new mongoose.Types.ObjectId("683d2c3998d96c73245b2a60");
+    const adminId = new mongoose.Types.ObjectId("68c94179472546523eca304c");
     
     // Create main categories (Level 1)
     const electronics = await CategoryModel.create({
@@ -31,6 +31,7 @@ async function seedCategories() {
         { name: "Power Consumption", type: "number", required: false },
         { name: "Voltage", type: "number", required: false },
       ],
+      productDimensionsRequired: true,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -50,6 +51,7 @@ async function seedCategories() {
           options: ["Summer", "Winter", "Spring", "Fall", "All Season"],
         },
       ],
+      productDimensionsRequired: false,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -65,6 +67,7 @@ async function seedCategories() {
         { name: "Weight", type: "number", required: false },
         { name: "Care Instructions", type: "text", required: false },
       ],
+      productDimensionsRequired: true,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -80,6 +83,7 @@ async function seedCategories() {
         { name: "Authenticity", type: "boolean", required: false },
         { name: "Rarity", type: "text", required: false },
       ],
+      productDimensionsRequired: true,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -98,6 +102,7 @@ async function seedCategories() {
         { name: "Dimensions", type: "text", required: true },
         { name: "Authentication", type: "boolean", required: true },
       ],
+      productDimensionsRequired: true,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -114,6 +119,7 @@ async function seedCategories() {
         { name: "Condition", type: "select", required: true, options: ["Mint", "Excellent", "Good", "Fair", "Poor"] },
         { name: "Provenance", type: "text", required: false },
       ],
+      productDimensionsRequired: true,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -131,6 +137,7 @@ async function seedCategories() {
         { name: "Denomination", type: "text", required: true },
         { name: "Grade", type: "text", required: false },
       ],
+      productDimensionsRequired: false,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -148,6 +155,7 @@ async function seedCategories() {
         { name: "Condition", type: "select", required: true, options: ["Mint", "Used", "Hinged", "Never Hinged"] },
         { name: "Certification", type: "boolean", required: false },
       ],
+      productDimensionsRequired: false,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -196,6 +204,7 @@ async function seedCategories() {
         { name: "Year", type: "number", required: true },
         { name: "Compatibility", type: "text", required: false },
       ],
+      productDimensionsRequired: true,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -335,6 +344,7 @@ async function seedCategories() {
         { name: "Brand", type: "text", required: true },
         { name: "Material", type: "text", required: false },
       ],
+      productDimensionsRequired: true,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -447,6 +457,7 @@ async function seedCategories() {
         { name: "Brand", type: "text", required: true },
         { name: "Material", type: "text", required: false },
       ],
+      productDimensionsRequired: true,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,
@@ -464,6 +475,7 @@ async function seedCategories() {
         { name: "Expiry Date", type: "text", required: false },
         { name: "Ingredients", type: "text", required: false },
       ],
+      productDimensionsRequired: false,
       isActive: true,
       createdBy: adminId,
       updatedBy: adminId,

@@ -1,50 +1,61 @@
 import Router, { NextFunction, Request, Response } from "express"
 import { verifyToken } from "../middlewares/verify-token.middleware";
-import { 
-  getUserOrders, 
-  addAddress, 
-  modifyAddress, 
-  deleteAddress, 
-  getUserNotifications, 
-  getUserRecentViews, 
-  getUserProfile, 
-  getUserRecommendations, 
-  addCard, 
-  removeCard, 
-  setDefaultCard, 
-  updateNotificationPreferences, 
-  getFAQs 
-} from "../controllers/user.controller";
+import { getUserOrders, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, getUserRecommendations, addCard, removeCard, setDefaultCard, updateNotificationPreferences } from "../controllers/user.controller";
+
 
 const router = Router()
 
-// Profile routes
-router.get("/profile", verifyToken, getUserProfile);
+// Address management
+router.post("/address", verifyToken, addAddress);
+router.patch("/address", verifyToken, modifyAddress);
+router.delete("/address", verifyToken, deleteAddress);
 
-// Address routes
-router.post("/addresses", verifyToken, addAddress);
-router.put("/addresses/:id", verifyToken, modifyAddress);
-router.delete("/addresses/:id", verifyToken, deleteAddress);
+router.get("/notifications", verifyToken, getUserNotifications)
+router.patch("/notifications/preferences", verifyToken, updateNotificationPreferences)
+router.get("/recent-views", verifyToken, getUserRecentViews)
+router.get("/profile", verifyToken, getUserProfile)
+router.get("/recommendations", verifyToken, getUserRecommendations)
 
-// Order routes
-router.get("/orders", verifyToken, getUserOrders);
+router.get(
+  "/orders",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await getUserOrders(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
-// Notification routes
-router.get("/notifications", verifyToken, getUserNotifications);
-router.put("/notifications/preferences", verifyToken, updateNotificationPreferences);
+router.get(
+  "/offers",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await getUserOffersGrouped(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
-// Recent views
-router.get("/recent-views", verifyToken, getUserRecentViews);
+router.get(
+  "/offers/:productId",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  getUserOffersForAProduct
+);
 
-// Recommendations
-router.get("/recommendations/:userId", getUserRecommendations);
+// Card management
+router.post("/card", verifyToken, addCard);
+router.patch("/card", verifyToken, setDefaultCard);
+router.delete("/card/:last4", verifyToken, removeCard);
 
-// Payment card routes
-router.post("/cards", verifyToken, addCard);
-router.delete("/cards/:last4", verifyToken, removeCard);
-router.put("/cards/default", verifyToken, setDefaultCard);
-
-// FAQ routes
-router.get("/faqs", getFAQs);
 
 export default router

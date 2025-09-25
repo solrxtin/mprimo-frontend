@@ -31,6 +31,14 @@ router.get('/attributes', async (req: Request, res: Response, next: NextFunction
   }
 });
 
+router.get('/requirements', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await CategoryController.getCategoryRequirements(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/tree', async (req: Request, res: Response, next: NextFunction) => {
   try {
     await CategoryController.getCategoryTree(req, res, next);

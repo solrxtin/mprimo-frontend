@@ -40,7 +40,7 @@ type VariantOptionType = {
   value: string;
   sku: string;
   price: number;
-  salePrice?: number;
+  salePrice: number;
   quantity: number;
   isDefault?: boolean;
 };
@@ -75,8 +75,8 @@ type BidType = {
 
 type OfferType = {
   userId: Types.ObjectId;
-  userOffers: { amount: number; accepted?: boolean; rejected?: boolean; createdAt?: Date }[];
-  counterOffers: { amount: number; accepted?: boolean; rejected?: boolean; createdAt?: Date }[];
+  userOffers: { amount: number; accepted?: boolean; rejected?: boolean; createdAt?: Date; variantId: Types.ObjectId; optionId: Types.ObjectId }[];
+  counterOffers: { amount: number; accepted?: boolean; rejected?: boolean; createdAt?: Date; variantId: Types.ObjectId; optionId: Types.ObjectId }[];
 };
 
 type AnalyticsType = {

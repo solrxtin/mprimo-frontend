@@ -50,7 +50,7 @@ export class SubscriptionService {
       switch (action) {
         case 'add_product':
           const productUsage = currentUsage !== undefined ? currentUsage : actualProductCount;
-          return productUsage < plan.productListingLimit;
+          return plan.productListingLimit === -1 || productUsage < plan.productListingLimit;
         
         case 'feature_product':
           const featuredUsage = currentUsage !== undefined ? currentUsage : actualFeaturedCount;

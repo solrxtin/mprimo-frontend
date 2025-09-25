@@ -13,7 +13,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const { user, logout } = useUserStore();
+  const { user } = useUserStore();
   const { mutate: logoutUser } = useLogoutUser();
   const socket = useSocket();
 
@@ -28,9 +28,8 @@ export default function Home() {
 
   const handleLogoutClicked = () => {
     logoutUser(undefined, {
-      onSuccess: (data) => {
-        logout();
-        useProductStore.getState().clearProductStore();
+      onSuccess: async (data) => {
+        resetAllStores();
       },
       onError: (error) => {
         console.error("Logout failed:", error);

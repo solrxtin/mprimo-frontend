@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import {IUser} from "../types/user.type"
+import { IUser } from "../types/user.type";
 import { ROLE_PERMISSIONS } from "../constants/roles.config";
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -29,6 +29,9 @@ const userSchema = new mongoose.Schema<IUser>(
       maxlength: [100, "First name cannot exceed 50 characters"],
       required: false,
     },
+    country: {
+      type: String,
+    },
     profile: {
       firstName: {
         type: String,
@@ -45,11 +48,13 @@ const userSchema = new mongoose.Schema<IUser>(
         validate: {
           validator: (value: string) => {
             // Match international-style numbers, allow spaces and dashes, but disallow dots
-            const pattern = /^\+?[1-9]\d{0,3}[-\s]?\(?\d{2,4}\)?[-\s]?\d{3,4}[-\s]?\d{3,4}$/;
+            const pattern =
+              /^\+?[1-9]\d{0,3}[-\s]?\(?\d{2,4}\)?[-\s]?\d{3,4}[-\s]?\d{3,4}$/;
             return pattern.test(value);
           },
-          message: "Invalid phone number format. Please use an international format like +234 801 234 5678",
-        }        
+          message:
+            "Invalid phone number format. Please use an international format like +234 801 234 5678",
+        },
       },
       avatar: {
         type: String,
@@ -156,11 +161,11 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     saleLimit: {
       type: Number,
-      default: 0
+      default: 0,
     },
     salesCount: {
       type: Number,
-      default: 0
+      default: 0,
     },
     preferences: {
       language: {
@@ -179,20 +184,20 @@ const userSchema = new mongoose.Schema<IUser>(
           },
           orderStatus: {
             type: Boolean,
-            default: true
+            default: true,
           },
           pendingReviews: {
             type: Boolean,
-            default: true
+            default: true,
           },
           paymentUpdates: {
             type: Boolean,
-            default: true
+            default: true,
           },
           newsletter: {
             type: Boolean,
-            default: true
-          }
+            default: true,
+          },
         },
         push: { type: Boolean, default: true },
         sms: { type: Boolean, default: false },
@@ -202,47 +207,49 @@ const userSchema = new mongoose.Schema<IUser>(
     paymentInformation: {
       defaultGateway: {
         type: String,
-        enum: ['stripe', 'paystack', 'flutterwave'],
-        default: 'stripe'
+        enum: ["stripe", "paystack", "flutterwave"],
+        default: "stripe",
       },
-      cards: [{
-        gateway: {
-          type: String,
-          enum: ['stripe', 'paystack', 'flutterwave'],
-          default: 'stripe'
-        },
-        last4: String,
-        brand: String,
-        expMonth: Number,
-        expYear: Number,
-        cardHolderName: String,
-        country: String,
-        isDefault: Boolean,
-        addedAt: Date,
-        metadata: {
-          stripe: {
-            customerId: String,
-            cardId: String,
-            fingerprint: String
+      cards: [
+        {
+          gateway: {
+            type: String,
+            enum: ["stripe", "paystack", "flutterwave"],
+            default: "stripe",
           },
-          paystack: {
-            authorizationCode: String,
-            bin: String,
-            bank: String,
-            cardType: String,
-            reusable: Boolean
+          last4: String,
+          brand: String,
+          expMonth: Number,
+          expYear: Number,
+          cardHolderName: String,
+          country: String,
+          isDefault: Boolean,
+          addedAt: Date,
+          metadata: {
+            stripe: {
+              customerId: String,
+              cardId: String,
+              fingerprint: String,
+            },
+            paystack: {
+              authorizationCode: String,
+              bin: String,
+              bank: String,
+              cardType: String,
+              reusable: Boolean,
+            },
+            flutterwave: {
+              token: String,
+              cardType: String,
+              issuingBank: String,
+              bin: String,
+            },
           },
-          flutterwave: {
-            token: String,
-            cardType: String,
-            issuingBank: String,
-            bin: String
-          }
+          billingAddressId: {
+            type: mongoose.Schema.Types.ObjectId,
+          },
         },
-        billingAddressId: {
-          type: mongoose.Schema.Types.ObjectId,
-        }
-      }]
+      ],
     },
     activity: {
       lastLogin: Date,
@@ -258,23 +265,25 @@ const userSchema = new mongoose.Schema<IUser>(
     twoFactorAuth: {
       enabled: {
         type: Boolean,
-        default: false
+        default: false,
       },
       secret: {
         type: String,
-        default: null
+        default: null,
       },
       tempSecret: {
         type: String,
-        default: null
+        default: null,
       },
-      backupCodes: [{
-        code: String,
-        used: {
-          type: Boolean,
-          default: false
-        }
-      }]
+      backupCodes: [
+        {
+          code: String,
+          used: {
+            type: Boolean,
+            default: false,
+          },
+        },
+      ],
     },
     adminRole: {
       type: String,

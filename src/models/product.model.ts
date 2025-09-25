@@ -414,6 +414,8 @@ const productSchema = new mongoose.Schema<ProductType>(
         userOffers: [
           {
             amount: { type: Number },
+            variantId: { type: mongoose.Schema.Types.ObjectId },
+            optionId: { type: mongoose.Schema.Types.ObjectId },
             accepted: {
               type: Boolean,
               default: false,
@@ -431,6 +433,8 @@ const productSchema = new mongoose.Schema<ProductType>(
         counterOffers: [
           {
             amount: { type: Number },
+            variantId: { type: mongoose.Schema.Types.ObjectId },
+            optionId: { type: mongoose.Schema.Types.ObjectId },
             createdAt: {
               type: Date,
               default: Date.now,

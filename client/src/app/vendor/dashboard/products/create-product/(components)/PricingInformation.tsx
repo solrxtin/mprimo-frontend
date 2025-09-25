@@ -324,7 +324,7 @@ const PricingInformation = (props: Props) => {
     if (hasVariants) {
       // Calculate price range and total quantity from variants
       const allOptions = productDetails.variants.flatMap((v: any) => v.options);
-      const prices = allOptions.map((o: any) => o.price).filter(p => p > 0);
+      const prices = allOptions.map((o: any) => o.price).filter((p: any) => p > 0);
       const quantities = allOptions.map((o: any) => o.quantity);
       
       const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
@@ -422,6 +422,7 @@ const PricingInformation = (props: Props) => {
               },
             });
           }}
+          required={true}
           helperText="The market price of the product."
         />
         <Input

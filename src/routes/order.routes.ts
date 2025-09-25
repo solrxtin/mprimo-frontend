@@ -34,19 +34,7 @@ router.get(
   }
 );
 
-// router.get(
-//   "/users/:userId",
-//   (req: Request, res: Response, next: NextFunction) => {
-//     verifyToken(req, res, next);
-//   },
-//   async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//       await getUserOrders(req, res, next);
-//     } catch (error) {
-//       next(error);
-//     }
-//   }
-// );
+
 
 
 

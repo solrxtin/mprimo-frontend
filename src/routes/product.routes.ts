@@ -467,6 +467,19 @@ router.get(
 );
 
 // Cart Routes
+router.get(
+  "/cart/user",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.getCart(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 router.post(
   "/cart",
   (req: Request, res: Response, next: NextFunction) => {
@@ -496,27 +509,13 @@ router.post(
 );
 
 router.delete(
-  "/cart/:productId",
+  "/cart/clear",
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await ProductController.addToCart(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.get(
-  "/cart",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.addToCart(req, res, next);
+      await ProductController.clearCart(req, res, next);
     } catch (error) {
       next(error);
     }
@@ -524,13 +523,13 @@ router.get(
 );
 
 router.delete(
-  "/cart",
+  "/cart/:productId",
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await ProductController.addToCart(req, res, next);
+      await ProductController.removeProductFromCart(req, res, next);
     } catch (error) {
       next(error);
     }
@@ -545,7 +544,21 @@ router.post(
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await ProductController.addToCart(req, res, next);
+      await ProductController.addToWishlist(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.delete(
+  "/wishlist/clear",
+  (req: Request, res: Response, next: NextFunction) => {
+    verifyToken(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.clearWishlist(req, res, next);
     } catch (error) {
       next(error);
     }
@@ -559,7 +572,7 @@ router.delete(
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await ProductController.addToCart(req, res, next);
+      await ProductController.removeFromWishlist(req, res, next);
     } catch (error) {
       next(error);
     }
@@ -567,27 +580,13 @@ router.delete(
 );
 
 router.get(
-  "/wishlist",
+  "/wishlist/user",
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await ProductController.addToCart(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-router.delete(
-  "/wishlist",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.addToCart(req, res, next);
+      await ProductController.getWishlist(req, res, next);
     } catch (error) {
       next(error);
     }

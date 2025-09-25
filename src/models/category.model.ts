@@ -19,6 +19,7 @@ export interface ICategory extends Document {
   image?: string;
   isActive: boolean;
   productDimensionsRequired?: boolean;
+  productWeightRequired?: boolean;
   createdBy: mongoose.Types.ObjectId;
   updatedBy: mongoose.Types.ObjectId;
   metadata?: Record<string, any>;
@@ -100,6 +101,10 @@ const categorySchema = new Schema<ICategory>(
       },
     },
     productDimensionsRequired: {
+      type: Boolean,
+      default: false,
+    },
+    productWeightRequired: {
       type: Boolean,
       default: false,
     },

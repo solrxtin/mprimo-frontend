@@ -6,6 +6,7 @@ import Select, { SingleValue } from "react-select";
 import countries from "world-countries";
 import { toast } from "react-toastify";
 import { toastConfigError, toastConfigSuccess } from "@/app/config/toast.config";
+import Link from "next/link";
 
 type Props = {};
 type Option = {
@@ -14,7 +15,7 @@ type Option = {
 };
 
 const countryOptions: Option[] = countries.map((country) => ({
-  value: country.cca2,
+  value: country.name.common,
   label: country.name.common,
 }));
 
@@ -125,9 +126,18 @@ const BusinessRegistration = (props: Props) => {
 
       const data = await response.json();
 
+      console.log("Server response:", data);
+
       if (response.ok) {
-        toast.success("Registration successful:", toastConfigSuccess);
-        window.location.href = "/login?registered=true";
+        toast.success("Registration successful!", toastConfigSuccess);
+        
+        // Redirect to Stripe verification if onboarding link is provided
+        if (data.onboardingLink) {
+          window.location.href = data.onboardingLink;
+        } else {
+          // Fallback to login page if no onboarding link
+          window.location.href = "/login";
+        }
       } else {
         console.error("Registration failed:", data);
         toast.error(data.message, toastConfigError);
@@ -246,6 +256,15 @@ const BusinessRegistration = (props: Props) => {
             Register Business Account
           </button>
         </div>
+        <p className="mt-4 text-center text-gray-600 text-xs font-[family-name:var(--font-inter)]">
+              <span>Already have an account? </span>
+              <Link
+                href="/login"
+                className="text-[#5187f6] hover:text-[#5372b0]"
+              >
+                <span>Sign In</span>
+              </Link>
+            </p>
       </form>
 
     </div>

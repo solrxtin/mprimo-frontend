@@ -482,7 +482,14 @@ Care Instructions:
               conditionDescription: e.target.value,
             });
             updateProductDetails("conditionDescription", e.target.value);
+            if (errors.conditionDescription) {
+              const newErrors = { ...errors };
+              delete newErrors.conditionDescription;
+              setErrors(newErrors);
+            }
           }}
+          error={errors.conditionDescription}
+          required={productDetail.condition === "Used" || productDetail.condition === "Refurbished"}
         />
       </form>
       {isMobileOrTablet && (

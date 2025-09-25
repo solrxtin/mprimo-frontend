@@ -38,6 +38,18 @@ async function validateCategory(
     }
   }
 
+  if (!data.productDimensionsRequired) {
+    data.productDimensionsRequired = false;
+  } else if (typeof data.productDimensionsRequired !== "boolean") {
+    errors.push("productDimensionsRequired must be a boolean");
+  }
+
+  if (!data.productWeightRequired) {
+    data.productWeightRequired = false;
+  } else if (typeof data.productWeightRequired !== "boolean") {
+    errors.push("productWeightRequired must be a boolean");
+  }
+
   // Validate attributes if provided
   if (data.attributes) {
     if (!Array.isArray(data.attributes)) {
@@ -288,7 +300,7 @@ export class CategoryController {
 ) {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = parseInt(req.query.limit as string) || 200;
     const filter = req.query.filter
       ? JSON.parse(req.query.filter as string)
       : {};
@@ -296,7 +308,7 @@ export class CategoryController {
     const skip = (page - 1) * limit;
 
     const [categories, total] = await Promise.all([
-      CategoryModel.find(filter).skip(skip).limit(limit),
+      CategoryModel.find(filter).populate('parent', 'name slug').skip(skip).limit(limit),
       CategoryModel.countDocuments(filter),
     ]);
 
@@ -342,6 +354,42 @@ export class CategoryController {
       res.json({
         success: true,
         ...result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getCategoryRequirements(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { categoryName, subCategoryName } = req.query;
+
+      if (!categoryName) {
+        return res.status(400).json({
+          success: false,
+          message: "Category name is required",
+        });
+      }
+
+      const category = await CategoryModel.findOne({ name: categoryName });
+      let subCategory = null;
+
+      if (subCategoryName) {
+        subCategory = await CategoryModel.findOne({ name: subCategoryName });
+      }
+
+      const requirements = {
+        dimensionsRequired: subCategory?.productDimensionsRequired ?? category?.productDimensionsRequired ?? false,
+        weightRequired: subCategory?.productWeightRequired ?? category?.productWeightRequired ?? false
+      };
+
+      res.json({
+        success: true,
+        requirements
       });
     } catch (error) {
       next(error);

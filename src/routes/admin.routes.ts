@@ -12,7 +12,7 @@ import * as vendorPayoutController from "../controllers/vendor-payout.controller
 const router = Router();
 
 // Country Management Routes
-router.get("/countries", verifyToken, requirePermission([PERMISSIONS.MANAGE_SETTINGS]), countryController.getAllCountries);
+router.get("/countries", verifyToken, countryController.getAllCountries);
 router.get("/countries/stats", verifyToken, requirePermission([PERMISSIONS.VIEW_REPORTS]), countryController.getCountryStats);
 router.get("/countries/:id", verifyToken, requirePermission([PERMISSIONS.MANAGE_SETTINGS]), countryController.getCountryById);
 router.post("/countries", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), countryController.createCountry);
@@ -22,7 +22,7 @@ router.patch("/countries/:id/payment-options", verifyToken, requirePermission([P
 router.delete("/countries/:id", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), countryController.deleteCountry);
 
 // Payment Options Management Routes
-router.get("/payment-options", verifyToken, requirePermission([PERMISSIONS.MANAGE_SETTINGS]), paymentOptionsController.getPaymentOptions);
+router.get("/payment-options", verifyToken, paymentOptionsController.getPaymentOptions);
 router.post("/payment-options", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), paymentOptionsController.createPaymentOption);
 router.put("/payment-options/:id", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), paymentOptionsController.updatePaymentOption);
 router.delete("/payment-options/:id", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), paymentOptionsController.deletePaymentOption);

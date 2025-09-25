@@ -245,3 +245,36 @@ export const uploadDocument = multerConfig.uploadDocument.single('document');
 export const uploadDisputeImage = multerConfig.uploadImage.single('image');
 export const uploadDisputeVideo = multerConfig.uploadVideo.single('video');
 export const uploadDisputeDocument = multerConfig.uploadDocument.single('document');
+
+// Evidence upload configuration
+const evidenceFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedMimeTypes = [
+    'image/jpeg', 'image/png', 'image/gif',
+    'video/mp4', 'video/quicktime', 'video/x-msvideo'
+  ];
+  
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only images (JPEG, PNG, GIF) and videos (MP4, MOV, AVI) are allowed.'));
+  }
+};
+
+export const upload = multer({
+  storage: diskStorage,
+  fileFilter: evidenceFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB
+    files: 7 // 5 images + 2 videos
+  }
+});
+
+export const uploadEvidenceToCloudinary = async (filePath: string, fileType: 'image' | 'video'): Promise<{ url: string; public_id: string }> => {
+  const folder = 'dispute-evidence';
+  
+  if (fileType === 'image') {
+    return await uploadImageToCloudinary(filePath, folder);
+  } else {
+    return await uploadVideoToCloudinary(filePath, folder);
+  }
+};

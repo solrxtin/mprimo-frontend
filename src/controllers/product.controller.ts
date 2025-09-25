@@ -49,31 +49,34 @@ export class ProductController {
       const currentProductCount = supposedVendor.analytics?.productCount || 0;
       const canAddProduct = await SubscriptionService.checkPlanLimits(
         supposedVendor._id.toString(),
-        'add_product',
+        "add_product",
         currentProductCount
       );
 
       if (!canAddProduct) {
         res.status(403).json({
           success: false,
-          message: "Product limit reached for your subscription plan. Upgrade to add more products.",
+          message:
+            "Product limit reached for your subscription plan. Upgrade to add more products.",
         });
         return;
       }
 
       // Check if product is being featured
       if (req.body.featured || req.body.isFeatured) {
-        const currentFeaturedCount = supposedVendor.analytics?.featuredProducts || 0;
+        const currentFeaturedCount =
+          supposedVendor.analytics?.featuredProducts || 0;
         const canFeatureProduct = await SubscriptionService.checkPlanLimits(
           supposedVendor._id.toString(),
-          'feature_product',
+          "feature_product",
           currentFeaturedCount
         );
 
         if (!canFeatureProduct) {
           res.status(403).json({
             success: false,
-            message: "Featured product limit reached for your subscription plan. Upgrade to feature more products.",
+            message:
+              "Featured product limit reached for your subscription plan. Upgrade to feature more products.",
           });
           return;
         }
@@ -113,10 +116,12 @@ export class ProductController {
 
       // Update vendor analytics - increment product count
       await Vendor.findByIdAndUpdate(supposedVendor._id, {
-        $inc: { 
-          'analytics.productCount': 1,
-          ...(req.body.featured || req.body.isFeatured ? { 'analytics.featuredProducts': 1 } : {})
-        }
+        $inc: {
+          "analytics.productCount": 1,
+          ...(req.body.featured || req.body.isFeatured
+            ? { "analytics.featuredProducts": 1 }
+            : {}),
+        },
       });
 
       // Fetch complete product details in parallel
@@ -504,10 +509,10 @@ export class ProductController {
 
       // Update vendor analytics - decrement product count
       await Vendor.findByIdAndUpdate(vendor._id, {
-        $inc: { 
-          'analytics.productCount': -1,
-          ...( product.isFeatured ? { 'analytics.featuredProducts': -1 } : {})
-        }
+        $inc: {
+          "analytics.productCount": -1,
+          ...(product.isFeatured ? { "analytics.featuredProducts": -1 } : {}),
+        },
       });
 
       // Invalidate cache after delete
@@ -643,26 +648,29 @@ export class ProductController {
       if (!vendor) {
         throw new Error("Unauthorized");
       }
-      
+
       // Check if this is a bulk operation (multiple variants)
       if (Array.isArray(req.body) && req.body.length > 1) {
-        const { SubscriptionService } = await import('../services/subscription.service');
+        const { SubscriptionService } = await import(
+          "../services/subscription.service"
+        );
         const hasBulkUpload = await SubscriptionService.checkPlanLimits(
           vendor._id.toString(),
-          'bulk_upload'
+          "bulk_upload"
         );
-        
+
         if (!hasBulkUpload) {
           return res.status(403).json({
             success: false,
-            message: 'Bulk variant upload requires Pro or Elite plan. Upgrade to add multiple variants at once.'
+            message:
+              "Bulk variant upload requires Pro or Elite plan. Upgrade to add multiple variants at once.",
           });
         }
-        
+
         // Track bulk upload usage
         await Vendor.findByIdAndUpdate(vendor._id, {
-          $inc: { 'analytics.bulkUploadsUsed': 1 },
-          $set: { 'analytics.lastBulkUpload': new Date() }
+          $inc: { "analytics.bulkUploadsUsed": 1 },
+          $set: { "analytics.lastBulkUpload": new Date() },
         });
       }
       const product = await ProductService.addVariant(
@@ -1150,7 +1158,7 @@ export class ProductController {
   static async addToCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
-      const { productId, quantity, price, variantId } = req.body;
+      const { productId, quantity, price, variantId, optionId } = req.body;
 
       if (!userId || !productId || !quantity || !price || !variantId) {
         res.status(400).json({
@@ -1161,18 +1169,72 @@ export class ProductController {
         return;
       }
 
-      const success = await CartService.addToCart(userId.toString(), {
+      if (variantId && !optionId) {
+        res.status(400).json({
+          success: false,
+          message: "optionId is required when variantId is provided",
+        });
+        return;
+      }
+
+      const product = await ProductService.getProductById(productId);
+      if (!product) {
+        res.status(404).json({ success: false, message: "Product not found" });
+        return;
+      }
+
+      if (product.inventory.listing.type === "instant") {
+        const variant = product.variants.find(
+          (v: any) => v._id.toString() === variantId
+        );
+        if (!variant) {
+          res
+            .status(404)
+            .json({ success: false, message: "Variant not found" });
+          return;
+        }
+
+        const option = variant.options.find(
+          (o: any) => o._id.toString() === optionId
+        );
+
+        if (!option) {
+          res
+            .status(404)
+            .json({ success: false, message: "Variant option not found" });
+          return;
+        }
+
+        if (option.quantity < quantity) {
+          res.status(400).json({
+            success: false,
+            message: `Only ${option.quantity} items in stock`,
+          });
+          return;
+        }
+
+        if (option.salePrice !== price) {
+          res.status(400).json({
+            success: false,
+            message: `Price mismatch. Current price is ${option.salePrice}`,
+          });
+          return;
+        }
+      }
+
+      const cart = await CartService.addToCart(userId.toString(), {
         productId,
         variantId,
         quantity,
         price,
+        optionId,
       });
 
-      if (success) {
+      if (cart) {
         await redisService.trackEvent(productId, "addToCart", userId);
         res
           .status(200)
-          .json({ success: true, message: "Product added to cart" });
+          .json({ success: true, message: "Product added to cart", cart });
       } else {
         res
           .status(500)
@@ -1225,7 +1287,7 @@ export class ProductController {
     }
   }
 
-  static async removeFromCart(req: Request, res: Response, next: NextFunction) {
+  static async removeProductFromCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
       const { productId } = req.params;
@@ -1270,6 +1332,7 @@ export class ProductController {
       const cart = await CartService.getCart(userId.toString());
       res.status(200).json({ success: true, cart });
     } catch (error) {
+      console.error("Error getting cart:", error);
       next(error);
     }
   }
@@ -1302,20 +1365,19 @@ export class ProductController {
     try {
       const userId = req.userId;
       const { productId } = req.params;
-      const { price, currency } = req.body;
+      const { price } = req.body;
 
-      if (!productId || !userId || !price || !currency) {
+      if (!productId || !userId || !price) {
         res.status(400).json({
           success: false,
-          message: "Missing required fields (productId, price, currency)",
+          message: "Missing required fields (productId, price)",
         });
         return;
       }
 
       const success = await CartService.addToWishlist(userId.toString(), {
         productId,
-        priceWhenAdded: price,
-        currency,
+        priceWhenAdded: price
       });
 
       if (success) {
@@ -1403,88 +1465,128 @@ export class ProductController {
 
   // ============= Offer Section =================
   static async makeOffer(req: Request, res: Response, next: NextFunction) {
-    try {
-      const userId = req.userId;
-      const { productId } = req.params;
-      const { price } = req.body;
+  try {
+    const userId = req.userId;
+    const { productId } = req.params;
+    const { price, variantId, optionId } = req.body;
 
-      if (!userId || !productId || !price) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid input" });
-      }
-
-      const product = await Product.findById(productId).populate<{
-        vendorId: IVendor;
-      }>("vendorId");
-      if (!product) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Product not found" });
-      }
-
-      const existingOffer = product.offers.find(
-        (offer) => offer.userId.toString() === userId.toString()
-      );
-
-      if (existingOffer && existingOffer.userOffers.length === 3) {
-        return res.status(400).json({
-          success: false,
-          message: "Maximum number of offers reached",
-        });
-      }
-
-      if (existingOffer) {
-        existingOffer.userOffers.push({
-          amount: price,
-          accepted: false,
-          createdAt: new Date(),
-        });
-      } else {
-        product.offers.push({
-          userId,
-          userOffers: [
-            { amount: price, accepted: false, createdAt: new Date() },
-          ],
-          counterOffers: [],
-        });
-      }
-
-      const notification = Notification.create({
-        userId: product.vendorId.userId,
-        case: "new-offer",
-        type: "offer",
-        title: `New offer made for ${product.name}`,
-        message: `Offer in the amount ${price} was made for your ${product.name}`,
-        data: {
-          redirectUrl: "/",
-          entityId: product._id,
-          entityType: "product",
-        },
-        isRead: false,
+    if (!userId || !productId || !price || !variantId || !optionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: price, variantId, optionId",
       });
-
-      const saveProduct = product.save();
-
-      const [savedNotification] = await Promise.all([
-        notification,
-        saveProduct,
-      ]);
-
-      await PushNotificationService.notifyVendor(
-        product.vendorId.userId.toString(),
-        product.vendorId._id!,
-        "offer",
-        savedNotification
-      );
-
-      return res
-        .status(201)
-        .json({ success: true, message: "Offer successfully made" });
-    } catch (error) {
-      next(error);
     }
+
+    const product = await Product.findById(productId).populate<{ vendorId: IVendor }>("vendorId");
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    if (product.inventory.listing.type !== "instant") {
+      return res.status(400).json({
+        success: false,
+        message: "No offers can be made on this product",
+      });
+    }
+
+    if (!product.inventory.listing?.instant?.acceptOffer) {
+      return res.status(400).json({
+        success: false,
+        message: "Offers are not accepted for this product",
+      });
+    }
+
+    // Find existing offer block for this user
+    const existingOffer = product.offers.find(
+      (offer) => offer.userId.toString() === userId.toString()
+    );
+
+    // Check if user has already made 3 offers for this variant+option
+    const variantOffers = existingOffer?.userOffers.filter(
+      (o) =>
+        o.variantId.toString() === variantId &&
+        o.optionId.toString() === optionId
+    ) || [];
+
+    if (variantOffers.length === 3) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum number of offers reached for this variant and option",
+      });
+    }
+
+    const lastOffer = variantOffers[variantOffers.length - 1];
+
+    if (lastOffer && !lastOffer.rejected) {
+      return res.status(400).json({
+        success: false,
+        message: "Last offer must be rejected before making a new one",
+      });
+    }
+
+    if (lastOffer && lastOffer.accepted) {
+      return res.status(400).json({
+        success: false,
+        message: "Your last offer was accepted, no further offers can be made",
+      });
+    }
+
+    if (lastOffer && lastOffer.amount >= price) {
+      return res.status(400).json({
+        success: false,
+        message: "New offer must be higher than your last offer",
+      });
+    }
+
+    const newOffer = {
+      amount: price,
+      variantId,
+      optionId,
+      accepted: false,
+      rejected: false,
+      createdAt: new Date(),
+    };
+
+    if (existingOffer) {
+      existingOffer.userOffers.push(newOffer);
+    } else {
+      product.offers.push({
+        userId,
+        userOffers: [newOffer],
+        counterOffers: [],
+      });
+    }
+
+    const notification = Notification.create({
+      userId: product.vendorId.userId,
+      case: "new-offer",
+      type: "offer",
+      title: `New offer made for ${product.name}`,
+      message: `Offer of ${price} made for ${product.name} (variant: ${variantId}, option: ${optionId})`,
+      data: {
+        redirectUrl: "/",
+        entityId: product._id,
+        entityType: "product",
+      },
+      isRead: false,
+    });
+
+    const saveProduct = product.save();
+
+    const [savedNotification] = await Promise.all([notification, saveProduct]);
+
+    await PushNotificationService.notifyVendor(
+      product.vendorId.userId.toString(),
+      product.vendorId._id!,
+      "offer",
+      savedNotification
+    );
+
+    return res.status(201).json({ success: true, message: "Offer successfully made" });
+  } catch (error) {
+    next(error);
   }
+}
 }
 
 export const makeCounterOffer = async (
@@ -1493,23 +1595,31 @@ export const makeCounterOffer = async (
   next: NextFunction
 ) => {
   try {
-    const { userId, productId, price } = req.body;
-    const { vendorId } = req.params;
+    const { userId, price, variantId, optionId } = req.body;
+    const { productId } = req.params;
 
-    if (!userId || !productId || !price) {
-      return res.status(400).json({ success: false, message: "Invalid input" });
+    if (!userId || !productId || !price || !variantId || !optionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: userId, productId, price, variantId, optionId",
+      });
+    }
+
+    const vendor = await Vendor.findOne({userId: req.userId});
+    if (!vendor) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
     }
 
     const product = await Product.findOne({
       _id: productId,
-      vendorId,
       offers: { $elemMatch: { userId } },
     });
 
     if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found or no offer from this user",
+      });
     }
 
     const existingOffer = product.offers.find(
@@ -1519,31 +1629,50 @@ export const makeCounterOffer = async (
     if (!existingOffer) {
       return res.status(400).json({
         success: false,
-        message: "Counter offer can't be made when no offer has been made.",
+        message: "No existing offer found from this user",
       });
     }
 
-    if (existingOffer.userOffers.length <= existingOffer.counterOffers.length) {
+    // Find the last user offer for this variant+option
+    const variantOffers = existingOffer.userOffers.filter(
+      (o) =>
+        o.variantId.toString() === variantId &&
+        o.optionId.toString() === optionId
+    );
+
+    if (variantOffers.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "You can't make a counter offer at this time",
+        message: "No offer found for this variant and option",
       });
     }
 
-    const counter = {
+    const lastUserOffer = variantOffers[variantOffers.length - 1];
+
+    if (price <= lastUserOffer.amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Counter offer must be greater than the user's last offer",
+      });
+    }
+
+    const counterOffer = {
       amount: price,
+      variantId,
+      optionId,
       accepted: false,
+      rejected: false,
       createdAt: new Date(),
     };
 
-    existingOffer.counterOffers.push(counter);
+    existingOffer.counterOffers.push(counterOffer);
 
     const notificationData = {
       userId,
       type: "offer",
       case: "new-counter-offer",
-      title: `Counter offer made for ${product.name}`,
-      message: `Counter offer in the amount ${price} was made for your ${product.name}`,
+      title: `Vendor countered your offer for ${product.name}`,
+      message: `A counter offer of ${price} was made for ${product.name} (variant: ${variantId}, option: ${optionId})`,
       data: {
         redirectUrl: "/",
         entityId: product._id,
@@ -1568,7 +1697,7 @@ export const makeCounterOffer = async (
       message: "Counter offer successfully made",
     });
   } catch (error) {
-    console.error(error);
+    console.error("Counter Offer Error:", error);
     next(error);
   }
 };
@@ -1579,10 +1708,10 @@ export const acceptOffer = async (
   next: NextFunction
 ) => {
   try {
-    const { productId, userId } = req.body;
+    const { productId, userId, variantId, optionId } = req.body;
     const { vendorId } = req.params;
 
-    if (!productId || !userId) {
+    if (!productId || !userId || !variantId || !optionId) {
       return res.status(400).json({ success: false, message: "Missing input" });
     }
 
@@ -1598,17 +1727,32 @@ export const acceptOffer = async (
         .json({ success: false, message: "Product not found" });
     }
 
-    const offer = product.offers.find(
+    const existingOffer = product.offers.find(
       (o) => o.userId.toString() === userId.toString()
     );
 
-    if (!offer) {
+    if (!existingOffer) {
       return res
         .status(404)
         .json({ success: false, message: "Offer not found" });
     }
 
-    const latestUserOffer = offer.userOffers?.[offer.userOffers.length - 1];
+    // Find the last user offer for this variant+option
+    const variantOffers = existingOffer.userOffers.filter(
+      (o) =>
+        o.variantId.toString() === variantId &&
+        o.optionId.toString() === optionId
+    );
+
+    if (variantOffers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No offer found for this variant and option",
+      });
+    }
+
+    const latestUserOffer = variantOffers[variantOffers.length - 1];
+
     if (latestUserOffer) latestUserOffer.accepted = true;
 
     // Prepare both async tasks
@@ -1652,53 +1796,70 @@ export const acceptCounterOffer = async (
   next: NextFunction
 ) => {
   try {
-    const { productId, userId } = req.body;
-    const { vendorId } = req.params;
+    const userId = req.userId;
+    const { productId, variantId, optionId } = req.body;
 
-    if (!productId || !userId) {
-      res.status(400).json({ success: false, message: "Missing input" });
-      return;
+    if (!productId || !variantId || !optionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: productId, variantId, optionId",
+      });
     }
 
     const product = await Product.findOne({
       _id: productId,
-      vendorId: vendorId,
-      offers: { $elemMatch: { userId: userId } },
+      offers: { $elemMatch: { userId } },
     }).populate<{ vendorId: IVendor }>("vendorId");
 
     if (!product) {
-      res.status(404).json({ success: false, message: "Product not found" });
-      return;
+      return res.status(404).json({
+        success: false,
+        message: "Product not found or no offer from this user",
+      });
     }
 
-    const offer = product.offers.find(
+    const offerBlock = product.offers.find(
       (o) => o.userId.toString() === userId.toString()
     );
 
-    if (!offer) {
-      res.status(404).json({ success: false, message: "Offer not found" });
-      return;
+    if (!offerBlock) {
+      return res.status(404).json({
+        success: false,
+        message: "Offer block not found for this user",
+      });
     }
 
-    // Accept the latest counter offer
-    const latestCounterOffer =
-      offer.counterOffers?.[offer.counterOffers.length - 1];
+    const matchingCounterOffers = offerBlock.counterOffers.filter(
+      (co) =>
+        co.variantId?.toString() === variantId &&
+        co.optionId?.toString() === optionId
+    );
+
+    if (matchingCounterOffers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No counter offer found for this variant and option",
+      });
+    }
+
+    const latestCounterOffer = matchingCounterOffers[matchingCounterOffers.length - 1];
+
     if (latestCounterOffer.accepted) {
-      res
-        .status(400)
-        .json({ success: false, message: "Offer already accepted" });
-      return;
+      return res.status(400).json({
+        success: false,
+        message: "Counter offer has already been accepted",
+      });
     }
 
-    if (latestCounterOffer) latestCounterOffer.accepted = true;
-    const productPromise = product.save();
+    latestCounterOffer.accepted = true;
 
-    const notificationPromise = Notification.create({
+    const saveProduct = product.save();
+    const createNotification = Notification.create({
       userId: product.vendorId.userId,
       case: "counter-offer-accepted",
       type: "offer",
       title: `Counter offer accepted for ${product.name}`,
-      message: `Counter offer for your ${product.name} was accepted`,
+      message: `Your counter offer for ${product.name} (variant: ${variantId}, option: ${optionId}) was accepted`,
       data: {
         redirectUrl: "/",
         entityId: product._id,
@@ -1707,10 +1868,7 @@ export const acceptCounterOffer = async (
       isRead: false,
     });
 
-    const [_, notification] = await Promise.all([
-      productPromise,
-      notificationPromise,
-    ]);
+    const [_, notification] = await Promise.all([saveProduct, createNotification]);
 
     await PushNotificationService.notifyVendor(
       product.vendorId.userId.toString(),
@@ -1718,9 +1876,13 @@ export const acceptCounterOffer = async (
       "counter-offer-accepted",
       notification
     );
-    return res.status(200).json({ success: true, message: "Offer accepted" });
+
+    return res.status(200).json({
+      success: true,
+      message: "Counter offer accepted successfully",
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Accept Counter Offer Error:", error);
     next(error);
   }
 };
@@ -1731,49 +1893,74 @@ export const rejectOffer = async (
   next: NextFunction
 ) => {
   try {
-    const { productId, userId } = req.body;
+    const { productId, userId, variantId, optionId } = req.body;
     const { vendorId } = req.params;
 
-    if (!productId || !userId) {
-      res.status(400).json({ success: false, message: "Missing input" });
-      return;
+    if (!productId || !userId || !variantId || !optionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: productId, userId, variantId, optionId",
+      });
     }
 
     const product = await Product.findOne({
       _id: productId,
-      vendorId: vendorId,
-      offers: { $elemMatch: { userId: userId } },
+      vendorId,
+      offers: { $elemMatch: { userId } },
     });
 
     if (!product) {
-      res.status(404).json({ success: false, message: "Product not found" });
-      return;
+      return res.status(404).json({
+        success: false,
+        message: "Product not found or no offer from this user",
+      });
     }
 
-    const offer = product.offers.find(
+    const offerBlock = product.offers.find(
       (o) => o.userId.toString() === userId.toString()
     );
 
-    if (!offer) {
-      res.status(404).json({ success: false, message: "Offer not found" });
-      return;
+    if (!offerBlock) {
+      return res.status(404).json({
+        success: false,
+        message: "Offer block not found for this user",
+      });
     }
 
-    // Reject the latest user offer
-    const latestUserOffer = offer.userOffers?.[offer.userOffers.length - 1];
+    const variantOffers = offerBlock.userOffers.filter(
+      (o) =>
+        o.variantId?.toString() === variantId &&
+        o.optionId?.toString() === optionId
+    );
 
-    if (latestUserOffer) latestUserOffer.rejected = true;
+    if (variantOffers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No offer found for this variant and option",
+      });
+    }
 
-    const productPromise = product.save();
+    const latestUserOffer = variantOffers[variantOffers.length - 1];
 
-    const notificationPromise = Notification.create({
-      userId: userId,
+    if (latestUserOffer.rejected) {
+      return res.status(400).json({
+        success: false,
+        message: "Offer has already been rejected",
+      });
+    }
+
+    latestUserOffer.rejected = true;
+
+    const saveProduct = product.save();
+
+    const notification = Notification.create({
+      userId,
       case: "offer-rejected",
       type: "offer",
       title: `Offer rejected for ${product.name}`,
-      message: `Offer for the ${product.name} was rejected. You have ${
-        3 - offer.userOffers.length
-      } offer(s) left.`,
+      message: `Your offer for ${product.name} (variant: ${variantId}, option: ${optionId}) was rejected. You have ${
+        3 - variantOffers.length
+      } offer(s) left for this configuration.`,
       data: {
         redirectUrl: "/",
         entityId: product._id,
@@ -1782,20 +1969,23 @@ export const rejectOffer = async (
       isRead: false,
     });
 
-    const [_, notification] = await Promise.all([
-      productPromise,
-      notificationPromise,
+    const [_, createdNotification] = await Promise.all([
+      saveProduct,
+      notification,
     ]);
 
     await PushNotificationService.notifyUser(
       userId,
       "offer-rejected",
-      notification
+      createdNotification
     );
 
-    return res.status(200).json({ success: true, message: "Offer rejected" });
+    return res.status(200).json({
+      success: true,
+      message: "Offer rejected successfully",
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Reject Offer Error:", error);
     next(error);
   }
 };
@@ -1807,51 +1997,70 @@ export const rejectCounterOffer = async (
 ) => {
   try {
     const userId = req.userId;
-    const { productId } = req.params;
+    const { productId, variantId, optionId } = req.body;
 
-    if (!productId || !userId) {
-      res.status(400).json({ success: false, message: "Missing input" });
-      return;
+    if (!productId || !userId || !variantId || !optionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: productId, userId, variantId, optionId",
+      });
     }
 
     const product = await Product.findOne({
       _id: productId,
-      offers: { $elemMatch: { userId: userId } },
+      offers: { $elemMatch: { userId } },
     }).populate<{ vendorId: IVendor }>("vendorId");
 
     if (!product) {
-      res.status(404).json({ success: false, message: "Product not found" });
-      return;
+      return res.status(404).json({
+        success: false,
+        message: "Product not found or no offer from this user",
+      });
     }
 
-    const offer = product.offers.find(
+    const offerBlock = product.offers.find(
       (o) => o.userId.toString() === userId.toString()
     );
 
-    if (!offer) {
-      res.status(404).json({ success: false, message: "Offer not found" });
-      return;
+    if (!offerBlock) {
+      return res.status(404).json({
+        success: false,
+        message: "Offer block not found for this user",
+      });
     }
 
-    const latestCounterOffer =
-      offer.counterOffers?.[offer.counterOffers.length - 1];
+    const matchingCounterOffers = offerBlock.counterOffers.filter(
+      (co) =>
+        co.variantId?.toString() === variantId &&
+        co.optionId?.toString() === optionId
+    );
+
+    if (matchingCounterOffers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No counter offer found for this variant and option",
+      });
+    }
+
+    const latestCounterOffer = matchingCounterOffers[matchingCounterOffers.length - 1];
+
     if (latestCounterOffer.rejected) {
-      res
-        .status(400)
-        .json({ success: false, message: "Offer already rejected" });
-      return;
+      return res.status(400).json({
+        success: false,
+        message: "Counter offer has already been rejected",
+      });
     }
 
-    if (latestCounterOffer) latestCounterOffer.rejected = true;
+    latestCounterOffer.rejected = true;
 
-    const productPromise = product.save();
+    const saveProduct = product.save();
 
-    const notificationPromise = Notification.create({
-      userId: userId,
+    const createNotification = Notification.create({
+      userId,
       case: "counter-offer-rejected",
       type: "offer",
       title: `Counter offer rejected for ${product.name}`,
-      message: `Counter offer for the ${product.name} was rejected`,
+      message: `Your counter offer for ${product.name} (variant: ${variantId}, option: ${optionId}) was rejected`,
       data: {
         redirectUrl: "/",
         entityId: product._id,
@@ -1861,22 +2070,23 @@ export const rejectCounterOffer = async (
     });
 
     const [_, notification] = await Promise.all([
-      productPromise,
-      notificationPromise,
+      saveProduct,
+      createNotification,
     ]);
 
     await PushNotificationService.notifyVendor(
       product.vendorId.userId.toString(),
       product.vendorId._id!,
-      "offer",
+      "counter-offer-rejected",
       notification
     );
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Counter Offer rejected" });
+    return res.status(200).json({
+      success: true,
+      message: "Counter offer rejected successfully",
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Reject Counter Offer Error:", error);
     next(error);
   }
 };
@@ -2047,7 +2257,7 @@ export const relistItemForAuction = async (req: Request, res: Response) => {
     req.body;
 
   try {
-    const product = await Product.findById(productId)
+    const product = await Product.findById(productId);
 
     if (!product) {
       return res.status(404).json({

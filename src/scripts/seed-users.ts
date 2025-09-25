@@ -165,10 +165,21 @@ async function seedUsers() {
         role: "personal",
         status: "active",
         isEmailVerified: true,
+        country: block.country,
         preferences: {
           language: prefs.language,
           currency: prefs.currency,
-          notifications: { email: true, push: true, sms: false },
+          notifications: {
+            email: {
+              stockAlert: true,
+              orderStatus: true,
+              pendingReviews: true,
+              paymentUpdates: true,
+              newsletter: false,
+            },
+            push: true,
+            sms: false,
+          },
           marketing: false
         },
         activity: { lastLogin: new Date(), totalOrders: 0, totalSpent: 0 },

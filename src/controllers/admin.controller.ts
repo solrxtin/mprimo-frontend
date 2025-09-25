@@ -4358,6 +4358,13 @@ export class VenodrManagenentController {
       const { question, answer, category, tags } = req.body;
       const adminId = req.userId;
 
+      if (!question || !answer || !category) {
+        return res.status(400).json({
+          success: false,
+          message: "Question, answer, and category are required",
+        });
+      }
+
       const faq = await FAQ.create({
         question,
         answer,
