@@ -96,11 +96,13 @@ export const useCartStore = create<CartState>()(
             await cartService.addToCart({
               productId: product._id!,
               quantity,
+              price: selectedVariant?.price,
               variantId: selectedVariant?.variantId,
               optionId: selectedVariant?.optionId
             });
-            // Reload cart from backend
+            // Reload cart from backend to get updated state
             await get().loadCart();
+            console.log('Cart updated for logged in user');
           } else {
             // Add to local store
             const variantKey = selectedVariant
@@ -134,6 +136,7 @@ export const useCartStore = create<CartState>()(
             }
 
             calculateSummary();
+            console.log('Cart updated for guest user', get().summary);
           }
         } catch (error) {
           set({ error: error instanceof Error ? error.message : 'Failed to add to cart' });
@@ -258,22 +261,31 @@ export const useCartStore = create<CartState>()(
 
         try {
           const response = await cartService.getCart();
+          // Handle the actual API response format: { success: true, cart: [...] }
+          const cartItems = response.cart || [];
+          
           // Convert backend cart items to frontend format
-          const items: CartItem[] = response.data.items.map((item: any) => ({
-            product: item.productId,
+          const items: CartItem[] = cartItems.map((item: any) => ({
+            product: {
+              _id: item.productId,
+              name: item.name,
+              images: item.images || [],
+              price: item.price
+            },
             quantity: item.quantity,
             selectedVariant: item.variantId ? {
               variantId: item.variantId,
               optionId: item.optionId,
               variantName: '',
               optionValue: '',
-              price: item.productId.price || 0
+              price: item.price
             } : undefined,
             addedAt: item.addedAt || new Date().toISOString()
           }));
 
           const summary = calculateCartSummary(items);
           set({ items, summary });
+          console.log('Cart loaded for logged in user', summary);
         } catch (error) {
           set({ error: error instanceof Error ? error.message : 'Failed to load cart' });
         } finally {

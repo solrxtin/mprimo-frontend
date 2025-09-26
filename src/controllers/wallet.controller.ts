@@ -9,6 +9,7 @@ export const getWalletActivities = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
+    
     const wallet = await Wallet.findOne({ userId });
 
     if (!wallet) {

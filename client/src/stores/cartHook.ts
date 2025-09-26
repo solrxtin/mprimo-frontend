@@ -16,6 +16,7 @@ export const useAddToCart = () => {
         variantName: string;
         optionValue: string;
         price: number;
+        salesprice:number;
       }
     ) => {
       addToCart(product, quantity, selectedVariant);
@@ -24,7 +25,7 @@ export const useAddToCart = () => {
 };
 
 export const useCartLength = () => {
-  const cartLength = useCartStore((state) => state.getCartLength());
+  const cartLength = useCartStore((state) => state.summary.totalItems);
   
   return cartLength;
 };
@@ -32,7 +33,7 @@ export const useCartLength = () => {
 
 // Hook for getting cart quantity (total quantity of all items)
 export const useCartQuantity = () => {
-  const cartQuantity = useCartStore((state: any) => state.getCartQuantity());
+  const cartQuantity = useCartStore((state) => state.summary.totalQuantity);
   
   return cartQuantity;
 };

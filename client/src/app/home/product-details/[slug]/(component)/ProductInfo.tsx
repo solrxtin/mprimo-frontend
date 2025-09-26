@@ -21,13 +21,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   const { openModal } = useAuthModalStore();
 
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedColor, setSelectedColor] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
     const [quantity, setQuantity] = useState(1);
 
   const [selectedVariant, setSelectedVariant] = useState<
     ProductType["variants"][0] | undefined
   >(productData?.variants?.[0]);
+
   const [selectedOptions, setSelectedOptions] = useState<{
     [variantId: string]: string;
   }>(() => {
@@ -72,7 +72,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
   };
 
-  console.log("varaints", selectedVariant);
 
   const saleType = productData?.inventory?.listing?.type;
   const acceptOffer = productData?.inventory?.listing?.instant?.acceptOffer;
@@ -93,7 +92,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
           optionId: option.id || option._id,
           variantName: variant.name,
           optionValue: option.value,
-          price: option.price,
+          price: option.salePrice,
         };
       }
     }
@@ -286,7 +285,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                 <div className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900">
                   {saleType === "instant" ? (
                     <NumericFormat
-                      value={selectedVariant?.options[0]?.price}
+                      value={selectedVariant?.options[0]?.salePrice}
                       displayType={"text"}
                       thousandSeparator={true}
                       prefix={"₦"}

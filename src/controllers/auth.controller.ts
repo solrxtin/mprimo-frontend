@@ -43,9 +43,10 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
     console.log(
       `Request body is ${email}, ${password}, ${firstName}, ${lastName}, ${phoneNumber}`
     );
+    
 
     // Validate input
-    if (!email || !password || !firstName || !lastName || !phoneNumber || !role) {
+    if (!email || !password || !firstName || !lastName || !phoneNumber) {
       return res.status(400).json({
         message:
           "Email, password, phoneNumber, first name, role, and last name are required",

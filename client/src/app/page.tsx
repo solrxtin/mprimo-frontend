@@ -11,6 +11,7 @@ import { useSocket } from "@/hooks/useSocket";
 import Homepage from "./home/layout";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { resetAllStores } from "@/stores/resetStore";
 
 export default function Home() {
   const { user } = useUserStore();

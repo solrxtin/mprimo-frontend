@@ -1,6 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { useNotifications } from "@/hooks/useNotifications"
+import { useAddress } from "@/hooks/useAddress"
+import { Country, State } from 'country-state-city'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ChevronRight, ChevronLeft, Edit, Eye, EyeOff } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -25,25 +29,19 @@ const settingsNavigation = [
 export default function SettingsPage() {
   const [currentSection, setCurrentSection] = useState<SettingsSection>("main")
   const [showPassword, setShowPassword] = useState(false)
+  const { preferences, updatePreferences } = useNotifications();
+  const { address, updateAddress, loading } = useAddress();
+  
   const [formData, setFormData] = useState({
     firstName: "Dickson",
     middleName: "Dickson",
     lastName: "Dickson",
     email: "Thisismyemil@gmail.com",
-    address: "Thisismyemil@gmail.com",
-    country: "Nigeria",
-    state: "Abuja",
-    city: "Wuse",
-    postalCode: "001234",
-    phoneNumber: "+10928475788",
-    notifications: {
-      newStockAlert: true,
-      lowStockAlert: true,
-      orderStatusAlert: true,
-      pendingReviews: false,
-      paymentAlert: false,
-    },
-  })
+  });
+  
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const countries = Country.getAllCountries();
+  const states = selectedCountry ? State.getStatesOfCountry(selectedCountry) : [];
 
     const router = useRouter()
 
@@ -68,12 +66,25 @@ export default function SettingsPage() {
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
+  
+  const handleAddressChange = (field: string, value: string) => {
+    const updatedAddress = { ...address, [field]: value };
+    updateAddress(updatedAddress);
+  }
+  
+  const handleCountryChange = (countryCode: string) => {
+    setSelectedCountry(countryCode);
+    const country = countries.find(c => c.isoCode === countryCode);
+    handleAddressChange('country', country?.name || '');
+    handleAddressChange('state', ''); // Reset state when country changes
+  }
 
-  const handleNotificationChange = (field: string, checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      notifications: { ...prev.notifications, [field]: checked },
-    }))
+  const handleNotificationChange = async (field: string, checked: boolean) => {
+    const newPreferences = {
+      ...preferences,
+      [field]: checked
+    };
+    await updatePreferences(newPreferences);
   }
 
   const renderMainSettings = () => (
@@ -212,11 +223,11 @@ export default function SettingsPage() {
 
         <div className="space-y-6">
           <div>
-            <Label htmlFor="address">Shipping Address</Label>
+            <Label htmlFor="street">Street Address</Label>
             <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleInputChange("address", e.target.value)}
+              id="street"
+              value={address.street}
+              onChange={(e) => handleAddressChange("street", e.target.value)}
               className="bg-gray-100 border-0 mt-1"
             />
           </div>
@@ -224,28 +235,44 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                value={formData.country}
-                onChange={(e) => handleInputChange("country", e.target.value)}
-                className="bg-gray-100 border-0 mt-1"
-              />
+              <Select value={selectedCountry} onValueChange={handleCountryChange}>
+                <SelectTrigger className="bg-gray-100 border-0 mt-1">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((country) => (
+                    <SelectItem key={country.isoCode} value={country.isoCode}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                value={formData.state}
-                onChange={(e) => handleInputChange("state", e.target.value)}
-                className="bg-gray-100 border-0 mt-1"
-              />
+              <Select 
+                value={address.state} 
+                onValueChange={(value) => handleAddressChange("state", value)}
+                disabled={!selectedCountry}
+              >
+                <SelectTrigger className="bg-gray-100 border-0 mt-1">
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {states.map((state) => (
+                    <SelectItem key={state.isoCode} value={state.name}>
+                      {state.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="postalCode">Postal Code</Label>
               <Input
                 id="postalCode"
-                value={formData.postalCode}
-                onChange={(e) => handleInputChange("postalCode", e.target.value)}
+                value={address.postalCode}
+                onChange={(e) => handleAddressChange("postalCode", e.target.value)}
                 className="bg-gray-100 border-0 mt-1"
               />
             </div>
@@ -256,8 +283,8 @@ export default function SettingsPage() {
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
-                value={formData.city}
-                onChange={(e) => handleInputChange("city", e.target.value)}
+                value={address.city}
+                onChange={(e) => handleAddressChange("city", e.target.value)}
                 className="bg-gray-100 border-0 mt-1"
               />
             </div>
@@ -265,8 +292,8 @@ export default function SettingsPage() {
               <Label htmlFor="phoneNumber">Phone Number</Label>
               <Input
                 id="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                value={address.phoneNumber}
+                onChange={(e) => handleAddressChange("phoneNumber", e.target.value)}
                 className="bg-gray-100 border-0 mt-1"
               />
             </div>
@@ -344,7 +371,7 @@ export default function SettingsPage() {
             ].map((item) => (
               <div key={item.key} className="flex items-center space-x-3">
                 <Checkbox
-                  checked={formData.notifications[item.key as keyof typeof formData.notifications]}
+                  checked={preferences[item.key as keyof typeof preferences]}
                   onCheckedChange={(checked) => handleNotificationChange(item.key, checked as boolean)}
                 />
                 <Label className="text-sm">{item.label}</Label>

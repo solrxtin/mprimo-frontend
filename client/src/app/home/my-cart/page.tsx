@@ -16,17 +16,7 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
 import { useCartSync } from "@/hooks/useCartSync";
 
-interface CartItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  quantity: number;
-  subtotal: number;
-  status: "Ongoing" | "Ended";
-  image: string;
-  badge?: string;
-}
+
 
 export default function CartPage() {
   const { 
@@ -43,6 +33,9 @@ export default function CartPage() {
   const { user } = useUserStore();
   const isLoggedIn = !!user;
   const { openModal } = useAuthModalStore();
+
+
+  console.log("the carts",cartItem )
   
   useCartSync();
   
@@ -631,21 +624,7 @@ export default function CartPage() {
                 {cartItem && cartItem?.length} Items
               </span>
             </div>
-            {/* <div className="flex flex-wrap justify-center gap-8  border-gray-200 p-3">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`pb-4 px-1 font-medium text-base transition-colors relative ${
-                    activeTab === tab.id
-                      ? "text-gray-900 border-b-2 border-primary"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div> */}
+
             <Button
               variant="link"
               className="text-blue-600 hover:text-blue-800 p-0 h-auto font-normal"

@@ -188,7 +188,6 @@ export const cartController = {
           cart.items.push({ productId, quantity, variantId: null, price: 0, addedAt: new Date() });
         }
       }
-
       await cart.save();
       
       const populatedCart = await Cart.findById(req.userId);

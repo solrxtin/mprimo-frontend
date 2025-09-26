@@ -35,6 +35,8 @@ type InventoryType = {
   };
 };
 
+
+
 type CountryType = {
   _id: string;
   name: string;
@@ -49,9 +51,11 @@ type VariantOptionType = {
   price: number;
   salePrice?: number;
   quantity: number;
-
   _id: string;
 };
+
+
+
 
 type VariantType = {
   id: string;
@@ -115,26 +119,26 @@ type ShippingType = {
 
 export type ProductType = {
   _id?: string;
-  slug: string;
-  vendorId: string;
-  name: string;
-  brand: string;
-  description: string;
-  condition: "new" | "used" | "refurbished";
+  slug?: string;
+  vendorId?: string;
+  name?: string;
+  brand?: string;
+  description?: string;
+  condition?: "new" | "used" | "refurbished";
   conditionDescription?: string;
-  category: CategoryType;
-  country: string | CountryType;
-  inventory: InventoryType;
-  images: string[];
-  specifications: SpecificationType[];
-  shipping: ShippingType;
-  status: "active" | "inactive" | "outOfStock";
-  reviews: ReviewType[];
-  rating: number;
-  variants: VariantType[];
-  analytics: AnalyticsType;
-  offers: OfferType[];
-  bids: BidType[];
+  category?: CategoryType;
+  country?: string | CountryType;
+  inventory?: InventoryType;
+  images?: string[];
+  specifications?: SpecificationType[];
+  shipping?: ShippingType;
+  status?: "active" | "inactive" | "outOfStock";
+  reviews?: ReviewType[];
+  rating?: number;
+  variants?: VariantType[];
+  analytics?: AnalyticsType;
+  offers?: OfferType[];
+  bids?: BidType[];
   isFeatured?: boolean;
   createdAt?: string;
   updatedAt?: string;
