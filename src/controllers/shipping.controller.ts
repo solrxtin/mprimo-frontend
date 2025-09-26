@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import gigLogisticsService from '../services/gig-logistics.service';
 import { GigLogisticsConstants, formatGigLocation, createShipmentItem } from '../utils/gig-logistics.util';
 
+import dotenv from "dotenv";
+dotenv.config();
+
 export const getShippingPrice = async (req: Request, res: Response) => {
   try {
     const {

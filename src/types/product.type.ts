@@ -100,7 +100,7 @@ type ShippingType = {
     width: number;
     height: number;
   };
-  restrictions?: ("hazardous" | "fragile" | "perishable" | "oversized" | "none")[];
+  restrictions?: ("hazardous" | "fragile" | "perishable" | "oversized" | "local" | "none")[];
 };
 
 export type ProductType = {

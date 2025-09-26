@@ -1,12 +1,14 @@
 import Router, { NextFunction, Request, Response } from "express"
 import { verifyToken } from "../middlewares/verify-token.middleware";
-import { getUserOrders, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, getUserRecommendations, addCard, removeCard, setDefaultCard, updateNotificationPreferences } from "../controllers/user.controller";
+import { getUserOrders, getUserAddress, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, getUserRecommendations, addCard, removeCard, setDefaultCard, updateNotificationPreferences } from "../controllers/user.controller";
+
 
 
 const router = Router()
 
 // Address management
 router.post("/address", verifyToken, addAddress);
+router.get("/address", verifyToken, getUserAddress);
 router.patch("/address", verifyToken, modifyAddress);
 router.delete("/address", verifyToken, deleteAddress);
 

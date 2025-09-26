@@ -2,16 +2,9 @@ import {Cart} from "../models/cart.model";
 import { WishList } from "../models/cart.model";
 import redisService from "./redis.service";
 import { LoggerService } from "./logger.service";
+import { CartItem } from "../types/cart.type";
 
 const logger = LoggerService.getInstance();
-
-interface CartItem {
-  productId: string;
-  variantId: string;
-  optionId?: string;
-  quantity: number;
-  price: number;
-}
 
 interface WishlistItem {
   productId: string;
@@ -30,6 +23,7 @@ export class CartService {
         const dbCart = await Cart.findOne({ userId }).populate(
           "items.productId"
         );
+        console.log("Cart from DB:", dbCart);
         if (dbCart && dbCart.items.length > 0) {
           const items: CartItem[] = dbCart.items.map((item: any) => ({
             productId: item.productId.toString(),
@@ -37,14 +31,19 @@ export class CartService {
             optionId: item.optionId,
             quantity: item.quantity,
             price: item.price,
+            name: item.name,
+            images: item.images,
+            addedAt: item.addedAt,
           }));
 
           for (const item of items) {
             await redisService.addToCart(
               userId,
-              item.productId,
+              item.productId.toString(),
               item.quantity,
               item.price,
+              item.name,
+              item.images,
               item.variantId,
               item.optionId
             );
@@ -66,9 +65,11 @@ export class CartService {
       // Add to Redis
       await redisService.addToCart(
         userId,
-        item.productId,
+        item.productId.toString(),
         item.quantity,
         item.price,
+        item.name,
+        item.images,
         item.variantId,
         item.optionId
       );

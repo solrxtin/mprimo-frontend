@@ -543,7 +543,7 @@ export class VenodrManagenentController {
 
       const user = await User.find({
         vendorId,
-      }).select("-password -__v email profile businessName addresses");
+      }).select("-password -__v");
 
       if (!user) {
         return res.status(404).json({
@@ -2828,7 +2828,7 @@ export class VenodrManagenentController {
       const {
         timeframe,
         format = "json",
-        userType,
+        userType = "personal",
         country,
         status,
         onboarded,
@@ -2898,6 +2898,8 @@ export class VenodrManagenentController {
         return res.send(pdfBuffer);
       }
 
+      console.log(reportData);
+
       res.status(200).json({
         success: true,
         message: "User stats generated successfully",
@@ -2919,8 +2921,8 @@ export class VenodrManagenentController {
     ]);
 
     const totalUsers = stats.reduce((sum, s) => sum + s.count, 0);
-    const regularUsers = stats.find((s) => s._id === "user")?.count || 0;
-    const vendors = stats.find((s) => s._id === "vendor")?.count || 0;
+    const regularUsers = stats.find((s) => s._id === "personal")?.count || 0;
+    const vendors = stats.find((s) => s._id === "business")?.count || 0;
     const admins = stats.find((s) => s._id === "admin")?.count || 0;
 
     return { totalUsers, regularUsers, vendors, admins };
