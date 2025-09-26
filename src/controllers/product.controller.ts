@@ -1174,6 +1174,8 @@ export class ProductController {
       const cart = await CartService.addToCart(userId.toString(), {
         productId,
         variantId,
+        name: product.name,
+        images: product.images,
         quantity,
         price,
         optionId,
@@ -1220,6 +1222,9 @@ export class ProductController {
           const success = await CartService.addToCart(userId.toString(), {
             productId: item.productId,
             variantId: item.variantId,
+            optionId: item.optionId,
+            name: item.name,
+            images: item.images,
             quantity: item.quantity,
             price: item.price,
           });

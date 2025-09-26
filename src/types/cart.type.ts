@@ -19,8 +19,10 @@ export interface CartItem {
     variantId: string; // SKU of selected variant
     optionId?: string; // ID of selected option
     quantity: number;
+    name: string
+    images: string[]
     price: number;
-    addedAt: Date;
+    addedAt?: Date;
 }
 
 export interface ICart {

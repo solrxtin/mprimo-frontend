@@ -64,6 +64,31 @@ export const addAddress = async (req: Request, res: Response) => {
   }
 };
 
+export const getUserAddress = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req;
+    const user = await User.findById(userId).select("addresses");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      addresses: user.addresses || [],
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while trying to fetch addresses",
+    });
+  }
+}
+
 export const modifyAddress = async (req: Request, res: Response) => {
   try {
     const { address } = req.body;

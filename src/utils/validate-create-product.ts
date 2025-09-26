@@ -143,11 +143,6 @@ export const validateProductData = async (productData: any) => {
       }
     }
 
-    // Validate shipping information
-    if (!shipping.weight) {
-      throw new Error("Product weight is incomplete");
-    }
-
     let selectedCategory;
 
     if (category.sub?.length > 0)
@@ -164,6 +159,14 @@ export const validateProductData = async (productData: any) => {
       ) {
         throw new Error(
           "Shipping information is incomplete: Product dimensions required"
+        );
+      }
+    }
+
+    if (selectedCategory && selectedCategory.productWeightRequired) {
+      if (!shipping.weight) {
+        throw new Error(
+          "Shipping information is incomplete: Product weight required for this product"
         );
       }
     }
@@ -203,6 +206,12 @@ export const validateProductData = async (productData: any) => {
           if (!option.price || option.price < 0.01) {
             throw new Error(
               `Option price must be at least 0.01 for ${option.value}`
+            );
+          }
+
+          if (!option.salePrice || option.salePrice < 0.01) {
+            throw new Error(
+              `Option sale price must be at least 0.01 for ${option.value}`
             );
           }
 

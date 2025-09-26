@@ -59,6 +59,7 @@ interface ProductData {
     options: Array<{
       value: string;
       price: number;
+      salePrice: number;
       quantity: number;
       sku: string;
       isDefault?: boolean;

@@ -1,4 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
+import dotenv from "dotenv";
+
+dotenv.config();
+
 interface GigLocation {
  Latitude: number | string;
  Longitude: number | string;

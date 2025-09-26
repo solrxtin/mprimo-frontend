@@ -270,7 +270,7 @@ const productSchema = new mongoose.Schema<ProductType>(
       restrictions: {
         type: [String],
         enum: {
-          values: ["hazardous", "fragile", "perishable", "oversized", "none"],
+          values: ["hazardous", "fragile", "perishable", "oversized", "none", "local"],
           message: "Invalid shipping restriction",
         },
         default: ["none"],
