@@ -1241,7 +1241,11 @@ export class ProductController {
     }
   }
 
-  static async removeProductFromCart(req: Request, res: Response, next: NextFunction) {
+  static async removeProductFromCart(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const userId = req.userId;
       const { productId } = req.params;
@@ -1331,7 +1335,7 @@ export class ProductController {
 
       const success = await CartService.addToWishlist(userId.toString(), {
         productId,
-        priceWhenAdded: price
+        priceWhenAdded: price,
       });
 
       if (success) {
@@ -1419,128 +1423,140 @@ export class ProductController {
 
   // ============= Offer Section =================
   static async makeOffer(req: Request, res: Response, next: NextFunction) {
-  try {
-    const userId = req.userId;
-    const { productId } = req.params;
-    const { price, variantId, optionId } = req.body;
+    try {
+      const userId = req.userId;
+      const { productId } = req.params;
+      const { price, variantId, optionId } = req.body;
 
-    if (!userId || !productId || !price || !variantId || !optionId) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields: price, variantId, optionId",
+      if (!userId || !productId || !price || !variantId || !optionId) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields: price, variantId, optionId",
+        });
+      }
+
+      const product = await Product.findById(productId).populate<{
+        vendorId: IVendor;
+      }>("vendorId");
+      if (!product) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Product not found" });
+      }
+
+      if (product.inventory.listing.type !== "instant") {
+        return res.status(400).json({
+          success: false,
+          message: "No offers can be made on this product",
+        });
+      }
+
+      if (!product.inventory.listing?.instant?.acceptOffer) {
+        return res.status(400).json({
+          success: false,
+          message: "Offers are not accepted for this product",
+        });
+      }
+
+      // Find existing offer block for this user
+      const existingOffer = product.offers.find(
+        (offer) => offer.userId.toString() === userId.toString()
+      );
+
+      // Check if user has already made 3 offers for this variant+option
+      const variantOffers =
+        existingOffer?.userOffers.filter(
+          (o) =>
+            o.variantId.toString() === variantId &&
+            o.optionId.toString() === optionId
+        ) || [];
+
+      if (variantOffers.length === 3) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Maximum number of offers reached for this variant and option",
+        });
+      }
+
+      const lastOffer = variantOffers[variantOffers.length - 1];
+
+      if (lastOffer && !lastOffer.rejected) {
+        return res.status(400).json({
+          success: false,
+          message: "Last offer must be rejected before making a new one",
+        });
+      }
+
+      if (lastOffer && lastOffer.accepted) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Your last offer was accepted, no further offers can be made",
+        });
+      }
+
+      if (lastOffer && lastOffer.amount >= price) {
+        return res.status(400).json({
+          success: false,
+          message: "New offer must be higher than your last offer",
+        });
+      }
+
+      const newOffer = {
+        amount: price,
+        variantId,
+        optionId,
+        accepted: false,
+        rejected: false,
+        createdAt: new Date(),
+      };
+
+      if (existingOffer) {
+        existingOffer.userOffers.push(newOffer);
+      } else {
+        product.offers.push({
+          userId,
+          userOffers: [newOffer],
+          counterOffers: [],
+        });
+      }
+
+      const notification = Notification.create({
+        userId: product.vendorId.userId,
+        case: "new-offer",
+        type: "offer",
+        title: `New offer made for ${product.name}`,
+        message: `Offer of ${price} made for ${product.name} (variant: ${variantId}, option: ${optionId})`,
+        data: {
+          redirectUrl: "/",
+          entityId: product._id,
+          entityType: "product",
+        },
+        isRead: false,
       });
+
+      const saveProduct = product.save();
+
+      const [savedNotification] = await Promise.all([
+        notification,
+        saveProduct,
+      ]);
+
+      await PushNotificationService.notifyVendor(
+        product.vendorId.userId.toString(),
+        product.vendorId._id!,
+        "offer",
+        savedNotification
+      );
+
+      return res
+        .status(201)
+        .json({ success: true, message: "Offer successfully made" });
+    } catch (error) {
+      next(error);
     }
-
-    const product = await Product.findById(productId).populate<{ vendorId: IVendor }>("vendorId");
-    if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
-    }
-
-    if (product.inventory.listing.type !== "instant") {
-      return res.status(400).json({
-        success: false,
-        message: "No offers can be made on this product",
-      });
-    }
-
-    if (!product.inventory.listing?.instant?.acceptOffer) {
-      return res.status(400).json({
-        success: false,
-        message: "Offers are not accepted for this product",
-      });
-    }
-
-    // Find existing offer block for this user
-    const existingOffer = product.offers.find(
-      (offer) => offer.userId.toString() === userId.toString()
-    );
-
-    // Check if user has already made 3 offers for this variant+option
-    const variantOffers = existingOffer?.userOffers.filter(
-      (o) =>
-        o.variantId.toString() === variantId &&
-        o.optionId.toString() === optionId
-    ) || [];
-
-    if (variantOffers.length === 3) {
-      return res.status(400).json({
-        success: false,
-        message: "Maximum number of offers reached for this variant and option",
-      });
-    }
-
-    const lastOffer = variantOffers[variantOffers.length - 1];
-
-    if (lastOffer && !lastOffer.rejected) {
-      return res.status(400).json({
-        success: false,
-        message: "Last offer must be rejected before making a new one",
-      });
-    }
-
-    if (lastOffer && lastOffer.accepted) {
-      return res.status(400).json({
-        success: false,
-        message: "Your last offer was accepted, no further offers can be made",
-      });
-    }
-
-    if (lastOffer && lastOffer.amount >= price) {
-      return res.status(400).json({
-        success: false,
-        message: "New offer must be higher than your last offer",
-      });
-    }
-
-    const newOffer = {
-      amount: price,
-      variantId,
-      optionId,
-      accepted: false,
-      rejected: false,
-      createdAt: new Date(),
-    };
-
-    if (existingOffer) {
-      existingOffer.userOffers.push(newOffer);
-    } else {
-      product.offers.push({
-        userId,
-        userOffers: [newOffer],
-        counterOffers: [],
-      });
-    }
-
-    const notification = Notification.create({
-      userId: product.vendorId.userId,
-      case: "new-offer",
-      type: "offer",
-      title: `New offer made for ${product.name}`,
-      message: `Offer of ${price} made for ${product.name} (variant: ${variantId}, option: ${optionId})`,
-      data: {
-        redirectUrl: "/",
-        entityId: product._id,
-        entityType: "product",
-      },
-      isRead: false,
-    });
-
-    const saveProduct = product.save();
-
-    const [savedNotification] = await Promise.all([notification, saveProduct]);
-
-    await PushNotificationService.notifyVendor(
-      product.vendorId.userId.toString(),
-      product.vendorId._id!,
-      "offer",
-      savedNotification
-    );
-
-    return res.status(201).json({ success: true, message: "Offer successfully made" });
-  } catch (error) {
-    next(error);
   }
-}
 }
 
 export const makeCounterOffer = async (
@@ -1555,11 +1571,12 @@ export const makeCounterOffer = async (
     if (!userId || !productId || !price || !variantId || !optionId) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: userId, productId, price, variantId, optionId",
+        message:
+          "Missing required fields: userId, productId, price, variantId, optionId",
       });
     }
 
-    const vendor = await Vendor.findOne({userId: req.userId});
+    const vendor = await Vendor.findOne({ userId: req.userId });
     if (!vendor) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
@@ -1796,7 +1813,8 @@ export const acceptCounterOffer = async (
       });
     }
 
-    const latestCounterOffer = matchingCounterOffers[matchingCounterOffers.length - 1];
+    const latestCounterOffer =
+      matchingCounterOffers[matchingCounterOffers.length - 1];
 
     if (latestCounterOffer.accepted) {
       return res.status(400).json({
@@ -1822,7 +1840,10 @@ export const acceptCounterOffer = async (
       isRead: false,
     });
 
-    const [_, notification] = await Promise.all([saveProduct, createNotification]);
+    const [_, notification] = await Promise.all([
+      saveProduct,
+      createNotification,
+    ]);
 
     await PushNotificationService.notifyVendor(
       product.vendorId.userId.toString(),
@@ -1853,7 +1874,8 @@ export const rejectOffer = async (
     if (!productId || !userId || !variantId || !optionId) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: productId, userId, variantId, optionId",
+        message:
+          "Missing required fields: productId, userId, variantId, optionId",
       });
     }
 
@@ -1912,7 +1934,9 @@ export const rejectOffer = async (
       case: "offer-rejected",
       type: "offer",
       title: `Offer rejected for ${product.name}`,
-      message: `Your offer for ${product.name} (variant: ${variantId}, option: ${optionId}) was rejected. You have ${
+      message: `Your offer for ${
+        product.name
+      } (variant: ${variantId}, option: ${optionId}) was rejected. You have ${
         3 - variantOffers.length
       } offer(s) left for this configuration.`,
       data: {
@@ -1956,7 +1980,8 @@ export const rejectCounterOffer = async (
     if (!productId || !userId || !variantId || !optionId) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields: productId, userId, variantId, optionId",
+        message:
+          "Missing required fields: productId, userId, variantId, optionId",
       });
     }
 
@@ -1996,7 +2021,8 @@ export const rejectCounterOffer = async (
       });
     }
 
-    const latestCounterOffer = matchingCounterOffers[matchingCounterOffers.length - 1];
+    const latestCounterOffer =
+      matchingCounterOffers[matchingCounterOffers.length - 1];
 
     if (latestCounterOffer.rejected) {
       return res.status(400).json({
@@ -2275,3 +2301,109 @@ export const relistItemForAuction = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getAuctionProducts = async (req: Request, res: Response) => {
+  try {
+    const { page = 1, limit = 10, categoryId, status } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const filter: any = {
+      "inventory.listing.type": "auction",
+    };
+
+    if (categoryId) {
+      const catId = new Types.ObjectId(categoryId as string);
+      filter.$or = [{ "category.main": catId }, { "category.sub": catId }];
+    }
+
+    if (status && !["live", "upcoming", "ended"].includes(status as string)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status filter. Use 'live', 'upcoming', or 'ended'.",
+      });
+    }
+
+    // Auction status logic
+    if (status === "live") {
+      filter["inventory.listing.auction.isStarted"] = true;
+      filter["inventory.listing.auction.isExpired"] = false;
+    } else if (status === "upcoming") {
+      filter["inventory.listing.auction.isStarted"] = false;
+      filter["inventory.listing.auction.isExpired"] = false;
+    } else if (status === "ended") {
+      filter["inventory.listing.auction.isExpired"] = true;
+    }
+
+    const products = await Product.find(filter)
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({
+        "inventory.listing.auction.priorityScore": -1,
+        "inventory.listing.auction.startTime": -1,
+      });
+
+    const totalProducts = await Product.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      message: "Auction products fetched successfully",
+      pagination: {
+        total: totalProducts,
+        page,
+        limit,
+        totalPages: Math.ceil(totalProducts / Number(limit)),
+      },
+      products,
+    });
+  } catch (error) {
+    console.error("Get Auction Products Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching auction products",
+    });
+  }
+};
+
+
+export const getFeaturedProducts = async (req: Request, res: Response) => {
+  try {
+    const {
+      page = 1,
+      limit = 10
+    } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const filter = {
+      isFeatured: true,
+      status: "active"
+    };
+
+    const products = await Product.find(filter)
+      .skip(skip)
+      .limit(Number(limit))
+      .sort({ featuredExpiry: -1, createdAt: -1 }); // prioritize soon-to-expire and newest
+
+    const totalFeatured = await Product.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      message: "Featured products fetched successfully",
+      pagination: {
+        total: totalFeatured,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(totalFeatured / Number(limit))
+      },
+      products
+    });
+  } catch (error) {
+    console.error("Get Featured Products Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching featured products"
+    });
+  }
+};
+
+

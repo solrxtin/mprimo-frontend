@@ -1,6 +1,16 @@
 // src/routes/product.route.ts
 import { Router, Request, Response, NextFunction } from "express";
-import { acceptCounterOffer, acceptOffer, makeCounterOffer, placeProxyBid, ProductController, rejectCounterOffer, rejectOffer } from "../controllers/product.controller";
+import {
+  acceptCounterOffer,
+  acceptOffer,
+  getAuctionProducts,
+  getFeaturedProducts,
+  makeCounterOffer,
+  placeProxyBid,
+  ProductController,
+  rejectCounterOffer,
+  rejectOffer,
+} from "../controllers/product.controller";
 import { verifyToken } from "../middlewares/verify-token.middleware";
 import { authorizeRole } from "../middlewares/authorize-role.middleware";
 import { ProductService } from "../services/product.service";
@@ -83,6 +93,10 @@ router.get(
     }
   }
 );
+
+// Get auction products with filters
+router.get("/auctions", getAuctionProducts);
+router.get("/featured", getFeaturedProducts);
 
 // Get category specifications
 router.get(
@@ -402,6 +416,7 @@ router.get(
     }
   }
 );
+
 router.post(
   "/cart",
   (req: Request, res: Response, next: NextFunction) => {
@@ -614,6 +629,5 @@ router.post(
     }
   }
 );
-
 
 export default router;
