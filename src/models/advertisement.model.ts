@@ -2,6 +2,7 @@ import mongoose, { Document, Types } from "mongoose";
 
 export interface IAdvertisement extends Document {
   vendorId: Types.ObjectId;
+  productId: Types.ObjectId;
   title: string;
   description: string;
   imageUrl: string;
@@ -25,6 +26,11 @@ const advertisementSchema = new mongoose.Schema<IAdvertisement>({
   vendorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Vendor",
+    required: true
+  },
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
     required: true
   },
   title: {

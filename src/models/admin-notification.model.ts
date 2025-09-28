@@ -3,7 +3,7 @@ import mongoose, { Document, Types } from "mongoose";
 export interface IAdminNotification extends Document {
   title: string;
   content: string;
-  audience: "all" | "vendors" | "buyers" | "specific";
+  audience: "all" | "business" | "personal" | "business-starter" | "business-pro" | "business-elite" | "specific";
   targetUsers?: Types.ObjectId[];
   scheduledFor?: Date;
   status: "draft" | "scheduled" | "sent" | "cancelled";

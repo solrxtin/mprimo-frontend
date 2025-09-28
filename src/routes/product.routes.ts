@@ -550,6 +550,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
+  authorizeRole(["business"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await makeCounterOffer(req, res, next);
@@ -564,6 +565,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
+  authorizeRole(["business"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await acceptOffer(req, res, next);
@@ -592,6 +594,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
+  authorizeRole(["business"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await rejectOffer(req, res, next);
