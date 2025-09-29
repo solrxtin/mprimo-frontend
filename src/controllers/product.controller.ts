@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from "express";
 import { ProductService } from "../services/product.service";
 import { SearchService } from "../services/search.service";
 import redisService from "../services/redis.service";
-import User from "../models/user.model";
 import Vendor from "../models/vendor.model";
 import { validateProductData } from "../utils/validate-create-product";
 import Product from "../models/product.model";

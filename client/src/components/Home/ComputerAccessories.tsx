@@ -1,101 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { Heart, Star, ChevronRight, ArrowRight } from "lucide-react";
-
-interface Product {
-  id: number;
-  name: string;
-  image: string;
-  rating: number;
-  reviewCount: number;
-  price: number;
-  originalPrice?: number;
-  discount: number;
-  condition: "Brand New" | "Used" | "Refurbished";
-  category: "Wholesale" | "Personal";
-  description?: string;
-}
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Samsung Q7F QLED 4K 75 Inches Smart TV",
-    image: "/images/tv.png",
-    rating: 5.0,
-    reviewCount: 28673,
-    price: 1700000,
-    discount: 0,
-    condition: "Used",
-    category: "Personal",
-    description:
-      "Samsung Q7F QLED 4K Vision Smart TV brings next level picture and sound quality, powered by the advanced Q4 AI Processor for you to enjoy",
-  },
-  {
-    id: 2,
-    name: "JBL Boombox 3 Wi-Fi, Black; WLAN and Bluetooth Loudspeaker",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Refurbished",
-    category: "Wholesale",
-  },
-  {
-    id: 3,
-    name: "Bardefu Multi-Function Blender & Grinder Blender",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Brand New",
-    category: "Personal",
-  },
-  {
-    id: 4,
-    name: "Hisense Premium Steel Side-by-Side Refrigerator System",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Used",
-    category: "Wholesale",
-  },
-  {
-    id: 5,
-    name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 60,
-    condition: "Brand New",
-    category: "Personal",
-  },
-  {
-    id: 6,
-    name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 60,
-    condition: "Brand New",
-    category: "Personal",
-  },
-  {
-    id: 5,
-    name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 60,
-    condition: "Brand New",
-    category: "Personal",
-  },
-];
+import React, { useState } from "react";
+import { Heart, Star, ArrowRight, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { ProductType } from "@/types/product.type";
+import Link from "next/link";
 
 const navCategories = [
   "All Accessories",
@@ -112,6 +20,9 @@ const StarRating = ({
   rating: number;
   reviewCount: number;
 }) => {
+  const safeRating = rating || 0;
+  const safeReviewCount = reviewCount || 0;
+
   return (
     <div className="flex items-center gap-1 mb-2">
       {Array.from({ length: 5 }).map((_, index) => (
@@ -119,16 +30,16 @@ const StarRating = ({
           key={index}
           size={14}
           className={`${
-            index < Math.floor(rating)
+            index < Math.floor(safeRating)
               ? "fill-yellow-400 text-yellow-400"
-              : index < rating
+              : index < safeRating
               ? "fill-yellow-200 text-yellow-400"
               : "text-gray-300"
           }`}
         />
       ))}
       <span className="text-sm text-gray-500 ml-1">
-        ({reviewCount.toLocaleString()})
+        ({safeReviewCount.toLocaleString()})
       </span>
     </div>
   );
@@ -138,7 +49,7 @@ const ProductCard = ({
   product,
   isLarge = false,
 }: {
-  product: Product;
+  product: ProductType;
   isLarge?: boolean;
 }) => {
   const [isLiked, setIsLiked] = useState(false);
@@ -153,31 +64,29 @@ const ProductCard = ({
         isLarge ? "p-4 md:p-6" : "p-2 md:p-3"
       } border border-[#ADADAD4D] relative`}
     >
-      {/* Discount Badge */}
-      {product.discount > 0 && (
-        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-yellow-400 text-black px-2 py-1 rounded text-xs sm:text-sm font-normal z-10">
-          -{product.discount}%
-        </div>
-      )}
-
       <div className="relative mb-3 sm:mb-4">
         <div
           className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg ${
             isLarge ? "h-48 sm:h-64" : "h-24 md:h-34"
           } flex items-center justify-center overflow-hidden`}
         >
-          <img
-            src={product.image}
-            alt={product.name}
-            className={`${
-              isLarge
-                ? " h-14 sm:h-20 md:h-46 lg:h-52"
-                : " h-14 sm:h-20 md:h-36 lg:h-32"
-            }  group-hover:scale-105 transition-transform duration-300`}
-          />
+          {product.images && product.images.length > 0 ? (
+            <img
+              src={product.images[0]}
+              alt={product.name}
+              className={`${
+                isLarge
+                  ? " h-14 sm:h-20 md:h-46 lg:h-52"
+                  : " h-14 sm:h-20 md:h-36 lg:h-32"
+              }  group-hover:scale-105 transition-transform duration-300`}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full w-full bg-gray-200">
+              <span className="text-gray-400 text-sm">No Image</span>
+            </div>
+          )}
         </div>
 
-        {/* Heart Icon */}
         <button
           onClick={() => setIsLiked(!isLiked)}
           className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200"
@@ -191,12 +100,20 @@ const ProductCard = ({
         </button>
       </div>
 
-      {/* Product Info */}
-      <div className="space-y-2">
+      <Link
+        href={{
+          pathname: "/home/product-details/[slug]",
+          query: {
+            slug: product.slug,
+            productData: JSON.stringify(product),
+          },
+        }}
+        as={`/home/product-details/${product.slug}`}
+      >
         {!isLarge && (
           <StarRating
-            rating={product.rating}
-            reviewCount={product.reviewCount}
+            rating={product.rating || 0}
+            reviewCount={product?.reviews?.length || 0}
           />
         )}
 
@@ -207,30 +124,20 @@ const ProductCard = ({
         >
           {product.name}{" "}
           {!isLarge && (
-            <span className={`text-xs pl-1 text-gray-400 font-normal  `}>
+            <span className={`text-xs pl-1 text-gray-400 font-normal`}>
               {product.condition}
             </span>
           )}
         </h3>
 
-        <p
-          className={`font-normal text-[7px] mt-1 md:text-[8px]  text-gray-800 line-clamp-2 group-hover:text-blue-400 transition-colors `}
-        >
-          Caon 40 Series is TECNO’s latest flagship imaging and AI smartphone
-          that seamlessly combines good productivity
-        </p>
-
         {isLarge && (
           <>
             <div className="flex items-center">
-              {" "}
               <StarRating
-                rating={product.rating}
-                reviewCount={product.reviewCount}
-              />{" "}
-              <span
-                className={`text-xs pl-1 text-gray-400 font-normal hidden lg:block  `}
-              >
+                rating={product.rating || 0}
+                reviewCount={product.reviews?.length || 0}
+              />
+              <span className={`text-xs pl-1 text-gray-400 font-normal hidden lg:block`}>
                 {product.condition}
               </span>
             </div>
@@ -247,24 +154,25 @@ const ProductCard = ({
                 isLarge ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
               }`}
             >
-              {formatPrice(product.price)}
+              {product.inventory?.listing?.type === "instant"
+                ? formatPrice(
+                    product?.variants?.find((item) => item?.name === "Default")?.options?.[0]?.price ?? 0
+                  )
+                : ""}
             </span>
-            {product.originalPrice && (
-              <span className="text-xs sm:text-sm text-gray-500 line-through">
-                {formatPrice(product.originalPrice)}
-              </span>
-            )}
           </div>
 
           <div className="flex items-center gap-2">
             <span
               className={`text-xs px-2 sm:px-3 py-1 rounded-full ${
-                product.category === "Wholesale"
+                product.category?.main?.name === "Wholesale"
                   ? "bg-purple-100 text-purple-700"
                   : "bg-orange-100 text-orange-700"
               }`}
             >
-              {product.category}
+              {product?.category?.sub && product?.category?.sub.length > 0
+                ? product?.category?.sub[product.category.sub?.length - 1]?.name
+                : product?.category?.main?.name || "General"}
             </span>
           </div>
         </div>
@@ -274,28 +182,74 @@ const ProductCard = ({
             View Details
           </button>
         )}
-      </div>
+      </Link>
     </div>
   );
 };
 
 export default function ComputerAccessories() {
-  const [mainProduct] = useState(products[0]);
-  const otherProducts = products.slice(1);
+  const fetchElectronicsProducts = async () => {
+    const response = await fetchWithAuth(
+      `http://localhost:5800/api/v1/products?category=68cfacfe2de52af0da651c2c&page=1&limit=12&subCategory1=68cfad102de52af0da651de1&sort=%7B%22createdAt%22%3A+-1%7D`
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch electronics products");
+    }
+    const data = await response.json();
+    return data.products;
+  };
+
+  const {
+    data: electronicsData = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["electronicsProducts"],
+    queryFn: fetchElectronicsProducts,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading computer accessories...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Failed to load computer accessories</p>
+            <p className="text-gray-500 text-sm">
+              {error instanceof Error ? error.message : "Something went wrong"}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18 ">
-      {/* Header */}
+    <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18">
       <div className="flex flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
           <h1 className="text-base md:text-xl lg:text-4xl font-semibold text-gray-900">
             Computer Accessories
           </h1>
         </div>
-        {/* Navigation */}
-        <div className="flex  items-center gap-2 ">
-          {/* Desktop navigation */}
-          <div className="hidden lg:flex items-center ">
+        <div className="flex items-center gap-2">
+          <div className="hidden lg:flex items-center">
             {navCategories.map((category, index) => (
               <button
                 key={category}
@@ -310,29 +264,29 @@ export default function ComputerAccessories() {
             ))}
           </div>
 
-          <button className="flex text-xs md:text-sm underline items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
-            Browse All Products
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <Link href="/home/categories">
+            <button className="flex text-xs md:text-sm underline items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors">
+              Browse All Products
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
         </div>
       </div>
 
-      {/* Products Grid */}
-      <div className="">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 lg:h-[685px] ">
-        <div className="lg:col-span-1 order-1 hidden lg:block h-full lg:max-h-[685px]">
-          {" "}
-          <img src="/images/phoneBanner.png" alt="Acceosories Banner" className="object-contain h-full" />
-        </div>
-
-        <div className="lg:col-span-3 md:col-span-2 order-1 lg:max-h-[685px]">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-10 ">
-            {/* {otherProducts.map((product) => (
-              <ProductCard key={product._id} product={product} />
-            ))} */}
+      {electronicsData.length === 0 ? (
+        <div className="flex items-center justify-center min-h-[300px]">
+          <div className="text-center">
+            <p className="text-gray-600 mb-2">No computer accessories available</p>
+            <p className="text-gray-500 text-sm">Check back later for new products</p>
           </div>
         </div>
-      </div></div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {electronicsData.map((product: ProductType) => (
+            <ProductCard key={product._id} product={product} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

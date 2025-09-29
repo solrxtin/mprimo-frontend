@@ -5,7 +5,6 @@ import { useUserStore } from "@/stores/useUserStore";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { toastConfigError } from "./config/toast.config";
-import { useProductStore } from "@/stores/useProductStore";
 import { useSocket } from "@/hooks/useSocket";
 
 import Homepage from "./home/layout";
@@ -33,7 +32,6 @@ export default function Home() {
         resetAllStores();
       },
       onError: (error) => {
-        console.error("Logout failed:", error);
         toast.error(error.message, toastConfigError);
       },
     });

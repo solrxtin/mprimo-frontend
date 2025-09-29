@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 import { CartItem, CartSummary, ProductType } from "@/types/product.type";
 import { cartService } from "@/utils/cartService";
 import { useUserStore } from "./useUserStore";
+import { toastConfigError, toastConfigSuccess } from "@/app/config/toast.config";
+import { toast } from "react-toastify";
 
 interface CartState {
   items: CartItem[];
@@ -100,6 +102,8 @@ export const useCartStore = create<CartState>()(
               variantId: selectedVariant?.variantId,
               optionId: selectedVariant?.optionId
             });
+                toast.success("Product Added to Cart Successfully", toastConfigSuccess);
+            
             // Reload cart from backend to get updated state
             await get().loadCart();
             console.log('Cart updated for logged in user');
@@ -140,6 +144,8 @@ export const useCartStore = create<CartState>()(
           }
         } catch (error) {
           set({ error: error instanceof Error ? error.message : 'Failed to add to cart' });
+              toast.error('Failed to add to cart', toastConfigError);
+
         } finally {
           set({ isLoading: false });
         }
