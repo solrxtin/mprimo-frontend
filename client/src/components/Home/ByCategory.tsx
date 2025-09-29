@@ -10,10 +10,7 @@ const ShopCategoriesComponent = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const categoryData = useCategories() || [];
-  console.log(
-    "Category Data:",
-    categoryData?.data?.categories?.filter((item: any) => item.level === 1)
-  );
+  
   const categories =
     categoryData?.data?.categories?.filter((item: any) => item.level === 1) ||
     [];
@@ -142,7 +139,7 @@ const ShopCategoriesComponent = () => {
         <div className="flex  items-center gap-2 ">
           {/* Desktop navigation */}
           <div className="hidden lg:flex items-center ">
-            {navCategories.map((category, index) => (
+            {/* {navCategories.map((category, index) => (
               <button
                 key={category}
                 className={`px-2 py-2 font-medium transition-colors ${
@@ -153,7 +150,7 @@ const ShopCategoriesComponent = () => {
               >
                 {category}
               </button>
-            ))}
+            ))} */}
           </div>
 
           <Link
@@ -193,7 +190,7 @@ const ShopCategoriesComponent = () => {
             }}
           >
             {categories.map((card: Category) => (
-              <Link key={card._id} href={`/home/categories/${card.slug}`}>
+            <Link key={card._id} href={`/home/categories/${card.slug}?categoryId=${card._id}`}>
                 <div
                   key={card._id}
                   className="flex-shrink-0 w-full border border-[#ADADAD4D]   md::w-[190px] lg:w-[230px] group cursor-pointer"

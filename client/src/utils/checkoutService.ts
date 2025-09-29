@@ -1,5 +1,32 @@
 import { fetchWithAuth } from './fetchWithAuth';
 
+export interface CartValidationResponse {
+  success: boolean;
+  checkout: {
+    items: any[];
+    unavailableItems: Array<{
+      productId: string;
+      name: string;
+      images: string[];
+      variantId: string;
+      optionId: string;
+      quantity: number;
+      price: number;
+      addedAt: string;
+      reason: string;
+      availableQuantity: number;
+    }>;
+    pricing: {
+      subtotal: number;
+      tax: number;
+      shipping: number;
+      total: number;
+      currency: string;
+    };
+    canProceed: boolean;
+  };
+}
+
 export interface CheckoutData {
   validatedItems: Array<{
     productId: string;
@@ -47,8 +74,11 @@ export const checkoutService = {
     });
   },
 
-  async validateCart() {
-    return fetchWithAuth('/api/v1/cart/validate');
+  async validateCart(): Promise<CartValidationResponse> {
+    const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/validate', {
+      method: 'POST',
+    });
+    return response.json();
   },
 
   async getShippingRates(address: any) {

@@ -53,7 +53,7 @@ export const cartService = {
   },
 
   async clearCart(): Promise<CartResponse> {
-    const response = await fetchWithAuth(`${BASE_URL}/products/clear`, {
+    const response = await fetchWithAuth(`${BASE_URL}/products/cart/clear`, {
       method: 'DELETE'
     });
     return response.json();

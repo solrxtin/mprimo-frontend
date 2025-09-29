@@ -169,9 +169,9 @@ const ProductCard = ({
 
   return (
     <div
-      className={`group bg-gradient-to-br from-gray-100 to-gray-200 rounded-md shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-        isLarge ? "p-4 md:p-6" : "p-2 md:p-3"
-      } border border-[#ADADAD4D] relative`}
+      className={`group bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
+        isLarge ? "p-4 sm:p-5 md:p-6" : "p-3 sm:p-4"
+      } border border-[#ADADAD4D] relative touch-manipulation`}
     >
       {/* Discount Badge */}
       {product.discount > 0 && (
@@ -201,11 +201,10 @@ const ProductCard = ({
         {/* Heart Icon */}
         <button
           onClick={() => setIsLiked(!isLiked)}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200"
+          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           <Heart
-            size={16}
-            className={`sm:w-[18px] sm:h-[18px] ${
+            className={`w-4 h-4 sm:w-5 sm:h-5 ${
               isLiked ? "fill-red-500 text-red-500" : "text-gray-400"
             } transition-colors duration-200`}
           />
@@ -288,7 +287,7 @@ const ProductCard = ({
         </div>
 
         {isLarge && (
-          <button className="w-full mt-3 sm:mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base transition-colors duration-200 transform hover:scale-105">
+          <button className="btn-mobile w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors duration-200 transform hover:scale-105">
             View Details
           </button>
         )}
@@ -302,19 +301,19 @@ export default function BestDeals() {
   const otherProducts = products.slice(1);
 
   return (
-    <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18 ">
+    <div className="container-responsive section-spacing">
       {/* Header */}
-      <div className="flex flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between element-spacing gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-          <h1 className="text-base md:text-xl lg:text-4xl font-semibold text-gray-900">
+          <h1 className="text-responsive-xl font-semibold text-gray-900">
             Our Best Deals
           </h1>
+          <CountdownTimer />
         </div>
-        <CountdownTimer />
-        <button className="flex items-center justify-center underline sm:justify-start gap-2 text-blue-600 hover:text-blue-700 font-normal transition-colors group self-start sm:self-auto">
-          <span className="text-xs md:text-sm">See All Deals</span>
+        <button className="btn-mobile flex items-center gap-2 text-blue-600 hover:text-blue-700 font-normal transition-colors group self-start sm:self-auto underline">
+          <span className="text-sm">See All Deals</span>
           <ArrowRight
-            size={20}
+            size={16}
             className="group-hover:translate-x-1 transition-transform"
           />
         </button>
@@ -322,13 +321,14 @@ export default function BestDeals() {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Main Featured Product - Full width on mobile, 1/3 on desktop */}
-        <div className="lg:col-span-1 order-1">
+        {/* Main Featured Product */}
+        <div className="lg:col-span-1">
           <ProductCard product={mainProduct} isLarge={true} />
         </div>
 
-        <div className="lg:col-span-2 order-2 lg:order-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-3">
+        {/* Other Products Grid */}
+        <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {otherProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

@@ -314,34 +314,6 @@ export interface ProductAnalytics {
   wishlist: number;
 }
 
-// export interface ProductType {
-//   _id: string;
-//   vendorId: {
-//     _id: string;
-//   };
-//   name: string;
-//   brand: string;
-//   description: string;
-//   condition: 'new' | 'used' | 'refurbished';
-//   conditionDescription: string;
-//   category: ProductCategory;
-//   country: string;
-//   inventory: ProductInventory;
-//   images: string[];
-//   specifications: ProductSpecification[];
-//   shipping: ProductShipping;
-//   status: 'active' | 'inactive' | 'draft';
-//   rating: number;
-//   variants: ProductVariant[];
-//   analytics: ProductAnalytics;
-//   reviews: any[];
-//   offers: any[];
-//   bids: any[];
-//   createdAt: string;
-//   updatedAt: string;
-//   __v: number;
-//   slug: string;
-// }
 
 // Cart specific types
 export interface CartItem {

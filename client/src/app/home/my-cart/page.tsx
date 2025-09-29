@@ -15,30 +15,30 @@ import { useCartStore } from "@/stores/cartStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
 import { useCartSync } from "@/hooks/useCartSync";
-
-
+import { useValidateCart } from "@/hooks/useCheckout";
+import { CartValidationModal } from "@/components/CartValidationModal";
+import { CartValidationResponse } from "@/utils/checkoutService";
 
 export default function CartPage() {
-  const { 
-    items: cartItem, 
-    summary: cartSummary, 
-    isLoading, 
+  const {
+    items: cartItem,
+    summary: cartSummary,
+    isLoading,
     error,
-    updateQuantity, 
-    removeFromCart, 
+    updateQuantity,
+    removeFromCart,
     clearCart,
-    loadCart 
+    loadCart,
   } = useCartStore();
-  
+
   const { user } = useUserStore();
   const isLoggedIn = !!user;
   const { openModal } = useAuthModalStore();
 
+  console.log("the carts", cartItem);
 
-  console.log("the carts",cartItem )
-  
   useCartSync();
-  
+
   useEffect(() => {
     if (isLoggedIn) {
       loadCart();
@@ -47,16 +47,15 @@ export default function CartPage() {
 
   const [showBidModal, setShowBidModal] = useState(false);
   const [selectedAuctionItem, setSelectedAuctionItem] = useState<any>(null);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationData, setValidationData] = useState<CartValidationResponse | null>(null);
+  
+  const { refetch: validateCart, isLoading: isValidating } = useValidateCart();
 
-  // Filter cart items by type
-  const auctionItems =
-    cartItem?.filter(
-      (item) => item?.product?.inventory?.listing?.type === "auction"
-    ) || [];
-  const buyItems =
-    cartItem?.filter(
-      (item) => item?.product?.inventory?.listing?.type === "instant"
-    ) || [];
+ 
+  const buyItems = cartItem || [];
+
+
 
   const removeAll = async () => {
     await clearCart();
@@ -79,13 +78,6 @@ export default function CartPage() {
     await updateQuantity(productId, newQuantity, variantKey);
   };
 
- 
-
-  const tabs = [
-    { id: 0, label: "Auction" },
-    { id: 1, label: "Buy Now" },
-    { id: 2, label: "Offers" },
-  ];
 
   const router = useRouter();
 
@@ -105,219 +97,8 @@ export default function CartPage() {
 
  
 
-  const Auction = () => {
-    return (
-      <div>
-        <div className="bg-white   rounded-lg border overflow-hidden">
-          {/* Desktop Header */}
-          <div className="hidden md:grid md:grid-cols-12 gap-4 p-4 bg-gray-50 border-b font-medium text-gray-700">
-            <div className="col-span-4">Products</div>
-            <div className="col-span-2">Amount</div>
-            <div className="col-span-2">Quantity</div>
-            <div className="col-span-2">Sub Total</div>
-            <div className="col-span-1">Status</div>
-            <div className="col-span-1">Action</div>
-          </div>
-
-          {/* Items */}
-          <div className="divide-y">
-            {auctionItems.map((item) => (
-              <div
-                key={item.product?._id + (item.selectedVariant?.optionId || "")}
-                className="p-4"
-              >
-                {/* Mobile Layout */}
-                <div className="md:hidden space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex space-x-3 flex-1">
-                      <div className="relative">
-                        <Image
-                          src={item?.product?.images[0] || "/placeholder.svg"}
-                          alt={item?.product?.name}
-                          width={60}
-                          height={60}
-                          className="rounded-lg object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm leading-tight">
-                          {item?.product?.name}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {item?.product?.description}
-                        </p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <span className="font-bold text-sm">
-                            ₦ {item.selectedVariant?.price.toLocaleString()}
-                          </span>
-                          {/* {item.badge && (
-                                <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">
-                                  {item.badge}
-                                </Badge>
-                              )} */}
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-700 p-1"
-                      onClick={() => handleRemove(item)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() =>
-                          handleUpdateQuantity(item, item.quantity - 1)
-                        }
-                      >
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                      <span className="w-8 text-center text-sm">
-                        {item.quantity.toString().padStart(2, "0")}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() =>
-                          handleUpdateQuantity(item, item.quantity + 1)
-                        }
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-sm">
-                        ₦ {(item.selectedVariant?.price ?? 0) * item.quantity}
-                      </div>
-                      {/* <div
-                        className={`text-xs ${
-                          item.status === "Ongoing"
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {item.status}
-                      </div> */}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Gavel className="w-4 h-4 mr-1" />
-                    Bid Now
-                  </Button>
-                </div>
-
-                {/* Desktop Layout */}
-                <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
-                  <div className="col-span-4 flex items-center space-x-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-700 p-1"
-                      onClick={() => handleRemove(item)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                    <div className="relative">
-                      <Image
-                        src={item?.product?.images[0] || "/placeholder.svg"}
-                        alt={item?.product?.name}
-                        width={80}
-                        height={80}
-                        className="rounded-lg object-cover"
-                      />
-                
-                    </div>
-                    <div>
-                      <h3 className="font-medium"> {item?.product?.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {item?.product?.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-bold">
-                        ₦ {item.selectedVariant?.price.toLocaleString()}
-                      </span>
-                      {/* {item.badge && (
-                        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                          {item.badge}
-                        </Badge>
-                      )} */}
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() =>
-                          handleUpdateQuantity(item, item.quantity - 1)
-                        }
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                      <span className="w-8 text-center">
-                        {item.quantity.toString().padStart(2, "0")}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() =>
-                          handleUpdateQuantity(item, item.quantity + 1)
-                        }
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="font-bold">
-                      ₦ {(item.selectedVariant?.price ?? 0) * item.quantity}
-                    </span>
-                  </div>
-                  <div className="col-span-1">
-          
-                  </div>
-                  <div className="col-span-1">
-                    <Button
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700"
-                      // onClick={() => handleBidNow(item)}
-                    >
-                      <Gavel className="w-4 h-4 mr-1" />
-                      Bid Now
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const BuyNow = () => {
-    const subtotal = buyItems.reduce(
-      (sum, item) =>
-        sum +
-        (item.product?.variants?.[0]?.options?.[0]?.price || 0) * item.quantity,
-      0
-    );
+    const subtotal = cartSummary.subtotal;
     const shipping = 50000;
     const discount = 5000;
     const tax = 5000;
@@ -363,9 +144,9 @@ export default function CartPage() {
                             <div className="relative">
                               <Image
                                 src={
-                                  item?.product?.images[0] || "/placeholder.svg"
+                                  item?.product?.images?.[0] || "/placeholder.svg"
                                 }
-                                alt={item?.product?.name}
+                                alt={item?.product?.name || "product image"}
                                 width={60}
                                 height={60}
                                 className="rounded-lg object-cover"
@@ -464,18 +245,14 @@ export default function CartPage() {
                           <div className="relative">
                             <Image
                               src={
-                                item?.product?.images[0] || "/placeholder.svg"
+                                item?.product?.images?.[0] || "/placeholder.svg"
                               }
-                              alt={item?.product?.name}
+                              alt={item?.product?.name || "product image"}
                               width={80}
                               height={80}
                               className="rounded-lg object-cover"
                             />
-                            {/* {item.badge && (
-                            <Badge className="absolute -bottom-1 -right-1 text-xs px-2 py-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                              {item.badge}
-                            </Badge>
-                          )} */}
+                            
                           </div>
                           <div>
                             <h3 className="font-medium">
@@ -492,11 +269,7 @@ export default function CartPage() {
                           <span className="font-bold">
                             ₦ {item.selectedVariant?.price.toLocaleString()}
                           </span>
-                          {/* {item.badge && (
-                            <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                              {item.badge}
-                            </Badge>
-                          )} */}
+                         
                         </div>
                       </div>
                       <div className="col-span-2">
@@ -542,24 +315,26 @@ export default function CartPage() {
           <div className="lg:col-span-1">
             <div>
               <div className="">
-                <h3 className="font-semibold text-center text-lg mb-4">Cart Total</h3>
+                <h3 className="font-semibold text-center text-lg mb-4">
+                  Cart Total
+                </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span>Sub Total:</span>
-                    <span>₦ {subtotal.toLocaleString()}</span>
+                    <span>₦ {cartSummary.subtotal.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
+                  {/* <div className="flex justify-between">
                     <span>Shipping:</span>
                     <span>₦ {shipping.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
+                  </div> */}
+                  {/* <div className="flex justify-between">
                     <span>Discount:</span>
                     <span>₦ {discount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tax:</span>
                     <span>₦ {tax.toLocaleString()}</span>
-                  </div>
+                  </div> */}
                   <hr />
                   <div className="flex justify-between font-bold text-lg">
                     <span>TOTAL:</span>
@@ -568,17 +343,22 @@ export default function CartPage() {
                 </div>
                 <div className="space-y-3 mt-6">
                   <Button
-                    onClick={() => {
+                    onClick={async () => {
                       if (!user) {
                         openModal();
                         return;
-                      } else {
-                        router.push("/home/checkout");
+                      }
+                      
+                      const result = await validateCart();
+                      if (result.data) {
+                        setValidationData(result.data);
+                        setShowValidationModal(true);
                       }
                     }}
+                    disabled={isValidating}
                     className="w-full bg-blue-600 hover:bg-blue-700"
                   >
-                    Checkout
+                    {isValidating ? 'Validating...' : 'Checkout'}
                   </Button>
                   <Button
                     variant="outline"
@@ -595,15 +375,6 @@ export default function CartPage() {
     );
   };
 
-  const Offer = () => {
-    return (
-      <div>
-        <div className="bg-white rounded-lg border p-8 text-center">
-          <p className="text-gray-500">No offers available</p>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <>
@@ -621,7 +392,7 @@ export default function CartPage() {
             <div className="flex items-center space-x-2 mb-4 sm:mb-0">
               <h1 className="text-2xl font-bold">My Cart</h1>
               <span className="text-gray-600">
-                {cartItem && cartItem?.length} Items
+                {cartSummary.totalItems} Items
               </span>
             </div>
 
@@ -647,6 +418,16 @@ export default function CartPage() {
             auctionItem={selectedAuctionItem}
           />
         )}
+        
+        <CartValidationModal
+          isOpen={showValidationModal}
+          onClose={() => setShowValidationModal(false)}
+          validationData={validationData}
+          onProceed={() => {
+            setShowValidationModal(false);
+            router.push('/home/checkout');
+          }}
+        />
       </div>
     </>
   );

@@ -1,24 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
-  ShoppingCart,
-  Heart,
-  User,
-  ChevronDown,
-  Globe,
-  Home,
-  Star,
   Filter,
-  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -30,226 +20,149 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useRouter } from "next/navigation";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
-import { useQuery } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { AllProduct } from "@/utils/config";
 import ProductCard from "@/components/ProductCard";
+import { useProducts, useCategoryBySlug, useCategoryTree } from "@/hooks/useProducts";
 import { ProductType } from "@/types/product.type";
 
-const brands = [
-  "Apple",
-  "Asus",
-  "BlackBerry",
-  "Gionee",
-  "Google",
-  "HTC",
-  "Huawei",
-  "Infinix",
-  "Itel",
-  "LG",
-  "Nokia",
-  "OnePlus",
-  "Oppo",
-  "Redmi",
-  "Samsung",
-  "Sony",
-  "ZTE",
+interface FilterState {
+  category?: string;
+  subCategories: string[];
+  brands: string[];
+  priceRange: [number, number];
+  sort: string;
+  search: string;
+}
+
+const SORT_OPTIONS = [
+  { value: '{"createdAt": -1}', label: "Newest" },
+  { value: '{"variants.options.price": 1}', label: "Price: Low to High" },
+  { value: '{"variants.options.price": -1}', label: "Price: High to Low" },
+  { value: '{"analytics.views": -1}', label: "Most Popular" },
+  { value: '{"rating": -1}', label: "Customer Rating" },
 ];
 
-const galaxyModels = [
-  "Galaxy A15 5G",
-  "Galaxy A35 5G",
-  "Galaxy A56 5G",
-  "Galaxy S24",
-  "Galaxy S24+",
-  "Galaxy S25 Ultra",
-  "Galaxy S25 Edge",
-  "Galaxy Z Flip 6",
-  "Galaxy Z Flip 7",
-  "Galaxy Z Fold 6",
-  "Galaxy Z Fold 7",
+const PRICE_RANGES = [
+  { label: "All Prices", value: "" },
+  { label: "Under ₦1,000", value: "0-1000" },
+  { label: "₦1k to ₦10k", value: "1000-10000" },
+  { label: "₦10k to ₦100k", value: "10000-100000" },
+  { label: "₦100k to ₦1M", value: "100000-1000000" },
+  { label: "₦1M and Above", value: "1000000-10000000" },
 ];
 
-const products = [
-  {
-    id: "1",
-    name: "Samsung S10 Smartphone 256GB Rom 24GB Ram",
-    condition: "Refurbished",
-    price: 25000,
-    originalPrice: 50000,
-    rating: 4,
-    reviews: 234,
-    image: "/placeholder.svg?height=200&width=200",
-    badge: "50% OFF",
-    isWishlisted: false,
-  },
-  {
-    id: "2",
-    name: "Cannon 40 Pro Dual Sim Emerald Lake Green 128GB Ram 256GB 5G",
-    condition: "New",
-    price: 125000,
-    rating: 4,
-    reviews: 156,
-    image: "/placeholder.svg?height=200&width=200",
-    badge: "NEW",
-    isWishlisted: false,
-  },
-  {
-    id: "3",
-    name: "Samsung S21 Ultra Dual Sim Black 12GB Ram 256GB 5G",
-    condition: "Used",
-    price: 200000,
-    rating: 4,
-    reviews: 89,
-    image: "/placeholder.svg?height=200&width=200",
-    isWishlisted: false,
-  },
-  {
-    id: "4",
-    name: "Apple Iphone X 256GB 12GB Ram Armond Screen Ray",
-    condition: "Refurbished",
-    price: 125000,
-    originalPrice: 200000,
-    rating: 4,
-    reviews: 234,
-    image: "/placeholder.svg?height=200&width=200",
-    badge: "38% OFF",
-    isWishlisted: false,
-  },
-  {
-    id: "5",
-    name: "Samsung S21 Ultra Dual Sim Black 12GB Ram 256GB 5G",
-    condition: "Used",
-    price: 200000,
-    rating: 4,
-    reviews: 89,
-    image: "/placeholder.svg?height=200&width=200",
-    isWishlisted: false,
-  },
-  {
-    id: "6",
-    name: "Samsung S21 Ultra Dual Sim Black 12GB Ram 256GB 5G",
-    condition: "Used",
-    price: 200000,
-    rating: 4,
-    reviews: 89,
-    image: "/placeholder.svg?height=200&width=200",
-    isWishlisted: false,
-  },
-  {
-    id: "7",
-    name: "Apple Iphone X 256GB 12GB Ram Armond Screen Ray",
-    condition: "Refurbished",
-    price: 125000,
-    originalPrice: 200000,
-    rating: 4,
-    reviews: 234,
-    image: "/placeholder.svg?height=200&width=200",
-    badge: "38% OFF",
-    isWishlisted: false,
-  },
-  {
-    id: "8",
-    name: "Samsung S21 Ultra Dual Sim Black 12GB Ram 256GB 5G",
-    condition: "Used",
-    price: 200000,
-    rating: 4,
-    reviews: 89,
-    image: "/placeholder.svg?height=200&width=200",
-    isWishlisted: false,
-  },
-  {
-    id: "9",
-    name: "Apple Iphone X 256GB 12GB Ram Armond Screen Ray",
-    condition: "Refurbished",
-    price: 125000,
-    originalPrice: 200000,
-    rating: 4,
-    reviews: 234,
-    image: "/placeholder.svg?height=200&width=200",
-    badge: "38% OFF",
-    isWishlisted: false,
-  },
-];
 
-export default function PhonesTabletsPage() {
-  const [productSearch, setProductSearch] = useState("");
-  const [sortBy, setSortBy] = useState("Most Popular");
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState([0, 1000000]);
+export default function CategoryPage() {
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryId = params.categoryId as string;
+  
+  const [filters, setFilters] = useState<FilterState>({
+    category: categoryId,
+    subCategories: [],
+    brands: [],
+    priceRange: [0, 10000000],
+    sort: '{"createdAt": -1}',
+    search: "",
+  });
+  
+  const [page, setPage] = useState(1);
   const [selectedPriceRange, setSelectedPriceRange] = useState("All Prices");
-  const [showGalaxyFilter, setShowGalaxyFilter] = useState(false);
-  const [selectedGalaxyModel, setSelectedGalaxyModel] = useState("");
-  const [wishlistedItems, setWishlistedItems] = useState<string[]>([]);
 
-  const fetchCategories = async () => {
-    const response = await fetchWithAuth(
-      "http://localhost:5800/api/v1/search-categories-slug"
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch categories");
+  // Fetch category data
+  const { data: categoryData } = useCategoryBySlug(categoryId);
+  
+  // Fetch category tree for subcategories
+  const { data: categoryTree } = useCategoryTree(categoryData?.category?._id);
+  
+  // Build product filters
+  const productFilters = useMemo(() => {
+    const filterParams: any = {
+      category: categoryData?.category?._id,
+      page,
+      limit: 12,
+    };
+    
+    if (filters.subCategories.length > 0) {
+      filterParams.subCategory1 = filters.subCategories[0];
+      if (filters.subCategories[1]) filterParams.subCategory2 = filters.subCategories[1];
+      if (filters.subCategories[2]) filterParams.subCategory3 = filters.subCategories[2];
+      if (filters.subCategories[3]) filterParams.subCategory4 = filters.subCategories[3];
     }
-    const data = await response.json();
-    return data; // Return the entire response object
-  };
-
-  const useCategories = useQuery({
-    queryKey: ["categories"],
-    queryFn: fetchCategories,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 24 * 60 * 60 * 1000, // 1 day
-    refetchOnWindowFocus: false,
-    retry: 1,
-  });
-
-
-  const fetchAllProducts = async () => {
-    const response = await fetchWithAuth(`${AllProduct}?page=10&category=684c08266a4f7d5babe67284`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch user subscriptions");
+    
+    if (filters.brands.length > 0) {
+      filterParams.brand = filters.brands.join(',');
     }
-    const data = await response.json();
-    return data.products;
-  };
-
-  const useAllProducts = useQuery({
-    queryKey: ["useAllProducts"],
-    queryFn: fetchAllProducts,
-    // enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
-    refetchOnWindowFocus: false,
-    retry: 1,
-  });
-
-  const allProductData = useAllProducts?.data || [];
-
-  const toggleWishlist = (productId: string) => {
-    setWishlistedItems((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
-  };
+    
+    if (selectedPriceRange !== "All Prices") {
+      const range = PRICE_RANGES.find(r => r.label === selectedPriceRange);
+      if (range?.value) {
+        filterParams.priceRange = range.value;
+      }
+    }
+    
+    if (filters.sort) {
+      filterParams.sort = filters.sort;
+    }
+    
+    return filterParams;
+  }, [categoryData, filters, selectedPriceRange, page]);
+  
+  // Fetch products with filters
+  const { data: productsData, isLoading } = useProducts(productFilters);
+  
+  const products = productsData?.products || [];
+  const availableBrands = productsData?.filters?.brands || [];
+  const subcategories = categoryTree?.categories || [];
 
   const toggleBrand = (brand: string) => {
-    setSelectedBrands((prev) =>
-      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
-    );
+    setFilters(prev => ({
+      ...prev,
+      brands: prev.brands.includes(brand)
+        ? prev.brands.filter(b => b !== brand)
+        : [...prev.brands, brand]
+    }));
   };
-
-  const router = useRouter();
+  
+  const toggleSubcategory = (subcategoryId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      subCategories: prev.subCategories.includes(subcategoryId)
+        ? prev.subCategories.filter(s => s !== subcategoryId)
+        : [...prev.subCategories, subcategoryId]
+    }));
+  };
+  
+  const handleSortChange = (sortValue: string) => {
+    setFilters(prev => ({ ...prev, sort: sortValue }));
+  };
+  
+  const handlePriceRangeChange = (range: string) => {
+    setSelectedPriceRange(range);
+  };
+  
+  const clearFilters = () => {
+    setFilters({
+      category: categoryId,
+      subCategories: [],
+      brands: [],
+      priceRange: [0, 10000000],
+      sort: '{"createdAt": -1}',
+      search: "",
+    });
+    setSelectedPriceRange("All Prices");
+  };
 
   const manualBreadcrumbs: BreadcrumbItem[] = [
     { label: "Shop by Categories", href: "/home/categories" },
-    { label: "Phone and Tablets", href: null },
+    { label: categoryData?.category?.name || "Category", href: null },
   ];
   const handleBreadcrumbClick = (
     item: BreadcrumbItem,
     e: React.MouseEvent<HTMLAnchorElement>
   ): void => {
     e.preventDefault();
-    console.log("Breadcrumb clicked:", item);
     if (item.href) {
       router.push(item?.href);
     }
@@ -257,47 +170,34 @@ export default function PhonesTabletsPage() {
 
   const SidebarContent = ({ type }: { type: string }) => (
     <div className={` space-y-6`}>
-      {/* Categories */}
-      <div>
-        <h3 className="font-bold text-sm  lg:text-lg mb-4">CATEGORIES</h3>
-        <div className="space-y-2 bg-white">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-left font-normal"
-          >
-            All
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-between text-left font-normal"
-          >
-            Mobile Phones
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-between text-left font-normal"
-          >
-            Tablets
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-between text-left font-normal"
-          >
-            Accessories
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+      {/* Subcategories */}
+      {subcategories.length > 0 && (
+        <div>
+          <h3 className="font-bold text-sm lg:text-lg mb-4">SUBCATEGORIES</h3>
+          <div className="space-y-2 bg-white p-3">
+            {subcategories.map((subcategory: any) => (
+              <div key={subcategory._id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={subcategory._id}
+                  checked={filters.subCategories.includes(subcategory._id)}
+                  onCheckedChange={() => toggleSubcategory(subcategory._id)}
+                />
+                <Label htmlFor={subcategory._id} className="text-sm">
+                  {subcategory.name}
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
       {/* Price Range */}
       <div>
         <h3 className="font-bold text-sm  lg:text-lg mb-4">PRICE RANGE</h3>
         <div className="space-y-4 bg-white p-3">
           <div className="">
             <Slider
-              value={priceRange}
-              onValueChange={setPriceRange}
+              value={filters.priceRange}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value as [number, number] }))}
               max={1000000}
               step={10000}
               className="w-full"
@@ -309,32 +209,14 @@ export default function PhonesTabletsPage() {
           </div>
           <RadioGroup
             value={selectedPriceRange}
-            onValueChange={setSelectedPriceRange}
+            onValueChange={handlePriceRangeChange}
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="All Prices" id="all-prices" />
-              <Label htmlFor="all-prices">All Prices</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Under N1,000" id="under-1000" />
-              <Label htmlFor="under-1000">Under N1,000</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="N1k to N10k" id="1k-10k" />
-              <Label htmlFor="1k-10k">N1k to N10k</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="N10k to N100k" id="10k-100k" />
-              <Label htmlFor="10k-100k">N10k to N100k</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="N100k to N1M" id="100k-1m" />
-              <Label htmlFor="100k-1m">N100k to N1M</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="N1M and Above" id="1m-above" />
-              <Label htmlFor="1m-above">N1M and Above</Label>
-            </div>
+            {PRICE_RANGES.map((range) => (
+              <div key={range.label} className="flex items-center space-x-2">
+                <RadioGroupItem value={range.label} id={range.label} />
+                <Label htmlFor={range.label}>{range.label}</Label>
+              </div>
+            ))}
           </RadioGroup>
         </div>
       </div>
@@ -342,11 +224,11 @@ export default function PhonesTabletsPage() {
       <div>
         <h3 className="font-bold text-sm  lg:text-lg mb-4">BRANDS</h3>
         <div className="space-y-2 max-h-64 overflow-y-auto bg-white p-3">
-          {brands.map((brand) => (
+          {availableBrands.map((brand: string) => (
             <div key={brand} className="flex items-center space-x-2">
               <Checkbox
                 id={brand}
-                checked={selectedBrands.includes(brand)}
+                checked={filters.brands.includes(brand)}
                 onCheckedChange={() => toggleBrand(brand)}
               />
               <Label htmlFor={brand} className="text-sm">
@@ -372,8 +254,8 @@ export default function PhonesTabletsPage() {
 
       <div className="flex w-full">
         <div className="w-[30%] md:block hidden">
-          <h1 className="text-xl md:text-3xl font-bold mb-4 col-span-1 ">
-            Phones & Tablets
+          <h1 className="text-xl md:text-3xl font-bold mb-4 col-span-1">
+            {categoryData?.category?.name || "Category"}
           </h1>
           {/* Desktop Sidebar */}
           <div className="hidden lg:block w-64 flex-shrink-0">
@@ -392,9 +274,9 @@ export default function PhonesTabletsPage() {
                     <Search className="w-2 h-2 md:w-4 md:h-4" color="black" />
                   </button>
                   <input
-                    placeholder="Search category..."
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Search products..."
+                    value={filters.search}
+                    onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                     className="flex-1 border-0 px-2 w-full pl-[2px] outline-0 text-[#121212] placeholder:text-sm"
                   />
 
@@ -417,79 +299,21 @@ export default function PhonesTabletsPage() {
                       variant="outline"
                       className="min-w-[140px] justify-between"
                     >
-                      {sortBy}
+                      {SORT_OPTIONS.find(opt => opt.value === filters.sort)?.label || "Sort"}
                       <ChevronDown className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56">
-                    <DropdownMenuItem onClick={() => setSortBy("Most Popular")}>
-                      Most Popular
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortBy("Price: Low to High")}
-                    >
-                      Price: Low to High
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortBy("Price: High to Low")}
-                    >
-                      Price: High to Low
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("Newest")}>
-                      Newest
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortBy("Customer Rating")}
-                    >
-                      Customer Rating
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSortBy("Type");
-                        setShowGalaxyFilter(true);
-                      }}
-                    >
-                      Type
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("Condition")}>
-                      Condition
-                    </DropdownMenuItem>
+                    {SORT_OPTIONS.map((option) => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        onClick={() => handleSortChange(option.value)}
+                      >
+                        {option.label}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                {/* Galaxy Filter Dropdown */}
-                {showGalaxyFilter && (
-                  <div className="mb-4">
-                    <DropdownMenu
-                      open={showGalaxyFilter}
-                      onOpenChange={setShowGalaxyFilter}
-                    >
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="min-w-[200px] justify-between"
-                        >
-                          {selectedGalaxyModel || "Select Galaxy Model"}
-                          <ChevronDown className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56 max-h-64 overflow-y-auto">
-                        <DropdownMenuItem
-                          onClick={() => setSelectedGalaxyModel("")}
-                        >
-                          All
-                        </DropdownMenuItem>
-                        {galaxyModels.map((model) => (
-                          <DropdownMenuItem
-                            key={model}
-                            onClick={() => setSelectedGalaxyModel(model)}
-                          >
-                            {model}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -515,161 +339,123 @@ export default function PhonesTabletsPage() {
 
               {/* Active Filters and Results Count */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#F1F4F9] rounded-md py-[6px] px-2 mb-3">
-                <div className="flex items-center space-x-2 text-sm">
+                <div className="flex items-center space-x-2 text-sm flex-wrap">
                   <span className="text-gray-600">Active Filters:</span>
-                  <Badge
-                    variant="secondary"
-                    className="bg-gray-200 text-gray-700"
-                  >
-                    Household ×
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="bg-gray-200 text-gray-700"
-                  >
-                    Fashion ×
-                  </Badge>
+                  {filters.brands.map((brand) => (
+                    <Badge
+                      key={brand}
+                      variant="secondary"
+                      className="bg-gray-200 text-gray-700 cursor-pointer"
+                      onClick={() => toggleBrand(brand)}
+                    >
+                      {brand} ×
+                    </Badge>
+                  ))}
+                  {selectedPriceRange !== "All Prices" && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-gray-200 text-gray-700 cursor-pointer"
+                      onClick={() => setSelectedPriceRange("All Prices")}
+                    >
+                      {selectedPriceRange} ×
+                    </Badge>
+                  )}
+                  {(filters.brands.length > 0 || selectedPriceRange !== "All Prices") && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="text-xs"
+                    >
+                      Clear All
+                    </Button>
+                  )}
                 </div>
                 <div className="text-sm text-gray-600">
-                  <span className="font-bold">{allProductData?.length}</span> Results
+                  <span className="font-bold">{productsData?.total || 0}</span> Results
                 </div>
               </div>
 
               {/* Products Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6 mb-8">
-                {allProductData.map((product: ProductType) => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
-
-                {/* {products.map((product) => (
-                  <Card
-                    key={product.id}
-                    className="hover:shadow-lg transition-shadow"
-                  >
-                    <CardContent className="p-4">
-                      <div className="relative mb-4">
-                        <Image
-                          src={product.image || "/placeholder.svg"}
-                          alt={product.name}
-                          width={200}
-                          height={200}
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                        {product.badge && (
-                          <Badge className="absolute top-2 left-2 bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                            {product.badge}
-                          </Badge>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
-                          onClick={() => toggleWishlist(product.id)}
-                        >
-                          <Heart
-                            className={`w-5 h-5 ${
-                              wishlistedItems.includes(product.id)
-                                ? "fill-red-500 text-red-500"
-                                : ""
-                            }`}
-                          />
-                        </Button>
-                      </div>
-
-                      <div className="flex items-center mb-2">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < product.rating
-                                ? "text-yellow-400 fill-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                        <span className="text-xs text-gray-500 ml-1">
-                          ({product.reviews})
-                        </span>
-                        <Button
-                          variant="link"
-                          className="text-xs text-blue-600 ml-auto p-0 h-auto"
-                        >
-                          View Ratings
-                        </Button>
-                      </div>
-
-                      <h3 className="font-medium text-sm mb-2 line-clamp-2">
-                        {product.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 mb-3">
-                        {product.condition}
-                      </p>
-
-                      <div className="flex items-center space-x-2 mb-4">
-                        <span className="font-bold text-lg">
-                          ₦ {product.price.toLocaleString()}
-                        </span>
-                        {product.originalPrice && (
-                          <span className="text-sm text-gray-500 line-through">
-                            ₦ {product.originalPrice.toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        >
-                          <ShoppingCart className="w-4 h-4 mr-1" />
-                          Add to Cart
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-orange-100 text-orange-800 hover:bg-orange-200"
-                        >
-                          <Heart className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))} */}
-              </div>
+              {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6 mb-8">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
+                      <div className="bg-gray-200 h-48 rounded-lg mb-4"></div>
+                      <div className="bg-gray-200 h-4 rounded mb-2"></div>
+                      <div className="bg-gray-200 h-4 rounded w-3/4 mb-2"></div>
+                      <div className="bg-gray-200 h-6 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6 mb-8">
+                  {products.map((product: ProductType) => (
+                    <ProductCard key={product._id} product={product} />
+                  ))}
+                  {products.length === 0 && (
+                    <div className="col-span-full text-center py-12">
+                      <p className="text-gray-500">No products found matching your filters.</p>
+                      <Button onClick={clearFilters} className="mt-4">
+                        Clear Filters
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Pagination */}
-              <div className="flex justify-center items-center space-x-2 mb-8">
-                <Button variant="ghost" size="sm" disabled>
-                  Prev
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
-                >
-                  1
-                </Button>
-                <Button variant="ghost" size="sm">
-                  2
-                </Button>
-                <Button variant="ghost" size="sm">
-                  3
-                </Button>
-                <span className="text-gray-500">...</span>
-                <Button variant="ghost" size="sm">
-                  100
-                </Button>
-                <Button variant="ghost" size="sm">
-                  Next
-                </Button>
-              </div>
+              {productsData?.totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-2 mb-8">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    Prev
+                  </Button>
+                  {[...Array(Math.min(5, productsData.totalPages))].map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <Button
+                        key={pageNum}
+                        size="sm"
+                        variant={page === pageNum ? "default" : "ghost"}
+                        onClick={() => setPage(pageNum)}
+                        className={page === pageNum ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                  {productsData.totalPages > 5 && (
+                    <>
+                      <span className="text-gray-500">...</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setPage(productsData.totalPages)}
+                      >
+                        {productsData.totalPages}
+                      </Button>
+                    </>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    disabled={page === productsData.totalPages}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div></div>
       </div>
-
-      {/* Main Content */}
     </div>
   );
 }

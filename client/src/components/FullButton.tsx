@@ -3,9 +3,9 @@ import { ClipLoader } from "react-spinners";
 
 
 interface FullButtonProps {
-    action: () => void;
-    name: string;
-    color: string
+    action: () => void ;
+    name?: string;
+    color?: string
     disabled?: boolean;
     type?: "button" | "submit" | "reset";
     isLoading?: boolean;

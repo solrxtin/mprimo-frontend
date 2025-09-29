@@ -40,11 +40,6 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
     //TODO: Make sure phone uses international format
     const { email, password, firstName, lastName, phoneNumber } = req.body;
 
-    console.log(
-      `Request body is ${email}, ${password}, ${firstName}, ${lastName}, ${phoneNumber}`
-    );
-    
-
     // Validate input
     if (!email || !password || !firstName || !lastName || !phoneNumber) {
       return res.status(400).json({
@@ -53,7 +48,6 @@ export const signup = async(req: Request, res: Response): Promise<Response> => {
       });
     }
 
-    
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {

@@ -72,9 +72,9 @@ const ProductCard = ({
 
   return (
     <div
-      className={`group bg-gradient-to-br from-gray-100 to-gray-200 rounded-md shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-        isLarge ? "p-4 md:p-6" : "p-2 md:p-3"
-      } border border-[#ADADAD4D] relative`}
+      className={`group bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
+        isLarge ? "p-4 sm:p-5 md:p-6" : "p-3 sm:p-4"
+      } border border-[#ADADAD4D] relative touch-manipulation`}
     >
       {/* Discount Badge */}
       {/* {product.discount > 0 && (
@@ -86,7 +86,7 @@ const ProductCard = ({
       <div className="relative mb-3 sm:mb-4">
         <div
           className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg ${
-            isLarge ? "h-48 sm:h-64" : "h-24 md:h-34"
+            isLarge ? "h-40 sm:h-48 md:h-56 lg:h-64" : "h-32 sm:h-36 md:h-40"
           } flex items-center justify-center overflow-hidden`}
         >
           <img
@@ -94,20 +94,19 @@ const ProductCard = ({
             alt={product.name}
             className={`${
               isLarge
-                ? " h-14 sm:h-20 md:h-46 lg:h-52"
-                : " h-14 sm:h-20 md:h-36 lg:h-32"
-            }  group-hover:scale-105 transition-transform duration-300`}
+                ? "h-32 sm:h-40 md:h-48 lg:h-56"
+                : "h-24 sm:h-28 md:h-32"
+            } w-auto object-contain group-hover:scale-105 transition-transform duration-300`}
           />
         </div>
 
         {/* Heart Icon */}
         <button
           onClick={handleWishlistToggle}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200"
+          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           <Heart
-            size={16}
-            className={`sm:w-[18px] sm:h-[18px] ${
+            className={`w-4 h-4 sm:w-5 sm:h-5 ${
               isWishlisted ? "fill-red-500 text-red-500" : "text-gray-400"
             } transition-colors duration-200`}
           />
@@ -135,13 +134,13 @@ const ProductCard = ({
         )}
 
         <h3
-          className={`font-semibold text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors ${
-            isLarge ? "text-sm mg:text-lg mb-2 sm:mb-4" : "text-sm sm:text-base"
+          className={`font-semibold text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight ${
+            isLarge ? "text-base sm:text-lg md:text-xl mb-2 sm:mb-3" : "text-sm sm:text-base mb-2"
           }`}
         >
-          {product.name}{" "}
+          {product.name}
           {!isLarge && (
-            <span className={`text-xs pl-1 text-gray-400 font-normal  `}>
+            <span className="text-xs text-gray-400 font-normal block sm:inline sm:ml-1">
               {product.condition}
             </span>
           )}
@@ -171,11 +170,11 @@ const ProductCard = ({
          
         </div> */}
 
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex flex-col">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex flex-col flex-1">
             <span
               className={`font-bold text-gray-900 ${
-                isLarge ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
+                isLarge ? "text-lg sm:text-xl md:text-2xl" : "text-sm sm:text-base md:text-lg"
               }`}
             >
               {product.inventory?.listing?.type === "instant"
@@ -184,22 +183,16 @@ const ProductCard = ({
                   )
                 : ""}
             </span>
-            {/* {product.inventory?.listing?.type === "instant" && (
-              <span className="text-xs sm:text-sm text-gray-500 line-through">
-                {formatPrice(product.inventory?.listing?.instant?.price ?? 0)}
-              </span>
-            )} */}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <span
-              className={`text-xs px-2 sm:px-3 py-1 rounded-full ${
+              className={`text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-full whitespace-nowrap ${
                 product.category?.main?.name === "Wholesale"
                   ? "bg-purple-100 text-purple-700"
                   : "bg-orange-100 text-orange-700"
               }`}
             >
-            
               {product?.category?.sub &&
                 product?.category?.sub[product.category.sub?.length - 1]?.name}
             </span>
@@ -207,7 +200,7 @@ const ProductCard = ({
         </div>
 
         {isLarge && (
-          <button className="w-full mt-3 sm:mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold text-sm sm:text-base transition-colors duration-200 transform hover:scale-105">
+          <button className="btn-mobile w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors duration-200 transform hover:scale-105">
             View Details
           </button>
         )}
