@@ -62,7 +62,6 @@ type VariantType = {
   isDefault: boolean;
   name: string;
   options: VariantOptionType[];
-
   _id: string;
 };
 

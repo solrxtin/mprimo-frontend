@@ -619,6 +619,7 @@ export const BidModal1 = ({ isBid, closeBid }: BidModal1Props) => {
       <Modal
         isOpen={isBid} // Replace with your state management for modal visibility
         onClose={handleClose} // Replace with your state management for closing the modal
+        
       >
        {step === 1 && ( <div className="inline-block overflow-hidden text-left pb-4  px-3 md:px-6 lg:px-7 relative align-bottom transition-all transform bg-[white] rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-[620px] sm:w-full">
           <div className="py-4 flex justify-between  ">

@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLogoutUser } from "@/hooks/mutations";
 import { toast } from "react-toastify";
+import LogOutPromptModal from "./users/LogOutPromptModal";
+import { useState } from "react";
 
 // Define the base path for your user section
 const BASE_PATH = "/home/user";
@@ -32,6 +34,15 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const logoutMutation = useLogoutUser();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
+
+  const closeLogoutModal = () => {
+    setIsLogoutModalOpen(false);
+  };
+
+  const openLogoutModal = () => {
+    setIsLogoutModalOpen(false);
+  };
 
   const handleClick = (link: string) => {
     router.push(link);
@@ -73,13 +84,18 @@ export function Sidebar() {
       })}
       <Button
         variant="ghost"
-        onClick={handleLogout}
-        disabled={logoutMutation.isPending}
+        onClick={openLogoutModal}
         className="w-full justify-start text-left font-normal text-gray-700 hover:bg-gray-100 mt-8"
       >
         <LogOut className="mr-3 h-4 w-4" />
-        {logoutMutation.isPending ? "Logging out..." : "Logout"}
+        Logout{" "}
       </Button>
+      <LogOutPromptModal
+        isOpen={true}
+        onClose={closeLogoutModal}
+        logout={handleLogout}
+        loading={logoutMutation.isPending}
+      />
     </div>
   );
 }

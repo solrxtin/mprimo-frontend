@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {ProductProps} from "../../types/product.type"
 
 interface MarketplaceSectionProps {
-  product: ProductProps;
+  product?: ProductProps;
 }
 
 const MarketplaceSection = ({ product }: MarketplaceSectionProps) => {

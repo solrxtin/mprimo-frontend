@@ -3,12 +3,11 @@
 import type React from "react";
 
 import { useState, useCallback, useEffect } from "react";
-import { Star, Heart, MessageCircle, X } from "lucide-react";
+import { Star, Heart, X } from "lucide-react";
 import { BidModal1 } from "@/components/BidModal";
 import { ProductType } from "@/types/product.type";
 import { NumericFormat } from "react-number-format";
 import { useCartStore } from "@/stores/cartStore";
-import { useUserStore } from "@/stores/useUserStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
 
 type ProductInfoProps = {
@@ -17,7 +16,6 @@ type ProductInfoProps = {
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   const { addToCart, isLoading } = useCartStore();
-  const { isLoggedIn } = useUserStore();
   const { openModal } = useAuthModalStore();
 
   const [selectedImage, setSelectedImage] = useState(0);
@@ -92,7 +90,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
           optionId: option.id || option._id,
           variantName: variant.name,
           optionValue: option.value,
-          price: option.salePrice,
+          price: option.price,
         };
       }
     }
@@ -143,7 +141,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
               className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg  h-48 md:h-64 lg:h-96 flex items-center justify-center overflow-hidden`}
             >
               <img
-                src={productData?.images[0]}
+                src={productData?.images?.[0] || ""}
                 alt={productData?.name}
                 className={` h-28 sm:h-36 md:h-52 lg:h-64
                 group-hover:scale-105 transition-transform duration-300`}
@@ -152,30 +150,30 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
 
             {/* Thumbnail Images */}
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {/* {Array.from({ length: 5 }, (_, i) => ( */}
-              {productData?.images
-                .slice(1, productData?.images?.length)
-                .map((item, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedImage(i)}
-                    className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === i ? "border-primary" : "border-gray-200"
-                    }`}
-                  >
-                    <img
-                      src={item}
-                      alt={productData?.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
+              {productData?.images && productData.images.length > 1 &&
+                productData.images
+                  .slice(1)
+                  .map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(i)}
+                      className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                        selectedImage === i ? "border-primary" : "border-gray-200"
+                      }`}
+                    >
+                      <img
+                        src={item}
+                        alt={productData?.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <div className="flex">{renderStars(productData?.rating)}</div>
+              <div className="flex">{renderStars(productData?.rating || 0)}</div>
               <span className="text-sm font-medium text-gray-700">
                 {productData?.rating} Seller Star Rating
               </span>
