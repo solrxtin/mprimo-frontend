@@ -261,16 +261,18 @@ export const useCartStore = create<CartState>()(
 
       loadCart: async () => {
         const isLoggedIn = !!useUserStore.getState().user;
-        if (!isLoggedIn) return;
+        if (!isLoggedIn) {
+          // For guest users, just calculate summary from existing items
+          get().calculateSummary();
+          return;
+        }
 
         set({ isLoading: true, error: null });
 
         try {
           const response = await cartService.getCart();
-          // Handle the actual API response format: { success: true, cart: [...] }
           const cartItems = response.cart || [];
           
-          // Convert backend cart items to frontend format
           const items: CartItem[] = cartItems.map((item: any) => ({
             product: {
               _id: item.productId,
@@ -291,7 +293,6 @@ export const useCartStore = create<CartState>()(
 
           const summary = calculateCartSummary(items);
           set({ items, summary });
-          console.log('Cart loaded for logged in user', summary);
         } catch (error) {
           set({ error: error instanceof Error ? error.message : 'Failed to load cart' });
         } finally {
@@ -301,18 +302,16 @@ export const useCartStore = create<CartState>()(
 
       syncCartOnLogin: async () => {
         const { items } = get();
-        if (items.length === 0) {
-          await get().loadCart();
-          return;
-        }
-
+        
         set({ isLoading: true, error: null });
 
         try {
-          await cartService.syncCart(items);
+          if (items.length > 0) {
+            // Sync local cart items to backend
+            await cartService.syncCart(items);
+          }
+          // Load cart from backend (this will replace local items)
           await get().loadCart();
-          // Clear local storage after sync
-          set({ items: [] });
         } catch (error) {
           set({ error: error instanceof Error ? error.message : 'Failed to sync cart' });
         } finally {
@@ -365,16 +364,11 @@ export const useCartStore = create<CartState>()(
       },
     }),
      {
-      name: "mprimo-cart", // storage key
-      storage: {
-        getItem: (name) => {
-          const value = sessionStorage.getItem(name);
-          return value ? JSON.parse(value) : null;
-        },
-        setItem: (name, value) => sessionStorage.setItem(name, JSON.stringify(value)),
-        removeItem: (name) => sessionStorage.removeItem(name),
-      },
-      // Removed partialize to fix type error
+      name: "mprimo-cart",
+      partialize: (state) => ({
+        items: state.items,
+        summary: state.summary,
+      }),
     }
   )
 );

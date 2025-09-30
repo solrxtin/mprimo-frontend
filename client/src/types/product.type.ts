@@ -57,7 +57,7 @@ type VariantOptionType = {
 
 
 
-type VariantType = {
+export type VariantType = {
   id: string;
   isDefault: boolean;
   name: string;

@@ -5,10 +5,13 @@ import type React from "react";
 import { useState, useCallback, useEffect } from "react";
 import { Star, Heart, X } from "lucide-react";
 import { BidModal1 } from "@/components/BidModal";
-import { ProductType } from "@/types/product.type";
+import { ProductType, VariantType } from "@/types/product.type";
 import { NumericFormat } from "react-number-format";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
+import { useUserStore } from "@/stores/useUserStore";
+import { useWishlist } from "@/hooks/useWishlist";
+import Wishlist from "@/components/client-component/Wishlist";
 
 type ProductInfoProps = {
   productData: ProductType;
@@ -17,14 +20,20 @@ type ProductInfoProps = {
 const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   const { addToCart, isLoading } = useCartStore();
   const { openModal } = useAuthModalStore();
+  const { user } = useUserStore();
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+    isAddingToWishlist,
+  } = useWishlist();
 
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isFavorited, setIsFavorited] = useState(false);
-    const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(1);
 
   const [selectedVariant, setSelectedVariant] = useState<
-    ProductType["variants"][0] | undefined
-  >(productData?.variants?.[0]);
+    VariantType | undefined
+  >(undefined);
 
   const [selectedOptions, setSelectedOptions] = useState<{
     [variantId: string]: string;
@@ -54,7 +63,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   }, [productData]);
 
   useEffect(() => {
-    setSelectedVariant(productData?.variants?.[0]);
+    if (productData?.variants && productData.variants.length > 0) {
+      setSelectedVariant(productData.variants[0]);
+    }
   }, [productData]);
 
   const getSelectedOption = (variant: any) => {
@@ -62,7 +73,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     return variant.options.find((opt: any) => (opt.id || opt._id) === optionId);
   };
 
-    const handleIncrease = () => {
+  const handleIncrease = () => {
     setQuantity((prev) => prev + 1);
   };
 
@@ -70,10 +81,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
   };
 
-
   const saleType = productData?.inventory?.listing?.type;
   const acceptOffer = productData?.inventory?.listing?.instant?.acceptOffer;
- const handleAddToCart = async () => {
+  const handleAddToCart = async () => {
     if (!productData) return;
 
     // If there are variants, build the selectedVariant object for the first variant
@@ -97,13 +107,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
 
     await addToCart(productData, quantity, selectedVariantObj);
   };
-
-  const colors = [
-    { name: "Black", value: "#000000" },
-    { name: "Red", value: "#DC2626" },
-    { name: "Blue", value: "#2563EB" },
-    { name: "Burgundy", value: "#7C2D12" },
-  ];
 
   const paymentMethods = [
     { name: "Visa", color: "bg-blue-600" },
@@ -141,7 +144,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
               className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg  h-48 md:h-64 lg:h-96 flex items-center justify-center overflow-hidden`}
             >
               <img
-                src={productData?.images?.[0] || ""}
+                src={productData?.images?.[0]}
                 alt={productData?.name}
                 className={` h-28 sm:h-36 md:h-52 lg:h-64
                 group-hover:scale-105 transition-transform duration-300`}
@@ -150,30 +153,31 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
 
             {/* Thumbnail Images */}
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {productData?.images && productData.images.length > 1 &&
-                productData.images
-                  .slice(1)
-                  .map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedImage(i)}
-                      className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                        selectedImage === i ? "border-primary" : "border-gray-200"
-                      }`}
-                    >
-                      <img
-                        src={item}
-                        alt={productData?.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
+              {productData?.images &&
+                productData.images.length > 1 &&
+                productData.images.slice(1).map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedImage(i)}
+                    className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                      selectedImage === i ? "border-primary" : "border-gray-200"
+                    }`}
+                  >
+                    <img
+                      src={item}
+                      alt={productData?.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
             </div>
           </div>
 
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <div className="flex">{renderStars(productData?.rating || 0)}</div>
+              <div className="flex">
+                {renderStars(productData?.rating || 0)}
+              </div>
               <span className="text-sm font-medium text-gray-700">
                 {productData?.rating} Seller Star Rating
               </span>
@@ -260,7 +264,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                           }));
                         }}
                       >
-                        {variant.options.map((option: any) => (
+                        {variant.options?.map((option: any) => (
                           <option
                             value={option.id || option._id}
                             key={option.id || option._id}
@@ -277,7 +281,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
               </div>
             </div>
 
-            {/* Price and Wishlist */}
+            {/* Price and Wish?.list */}
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-lg md:text-xl lg:text-2xl font-semibold text-gray-900">
@@ -303,21 +307,48 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                 </div>
                 <div className="text-xs md:text-sm text-gray-500">Buy now</div>
               </div>
-              <button
-                onClick={() => setIsFavorited(!isFavorited)}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              {/* <button
+                onClick={() => {
+                  if (!user) {
+                    openModal();
+                    return;
+                  }
+                  const price =
+                    selectedVariant?.options?.[0]?.salePrice ||
+                    selectedVariant?.options?.[0]?.price ||
+                    0;
+                  if (isInWishlist(productData._id!)) {
+                    removeFromWishlist(productData._id!);
+                  } else {
+                    addToWishlist({ productId: productData._id!, price });
+                  }
+                }}
+                disabled={isAddingToWishlist}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
                 aria-label="Add to wishlist"
               >
                 <Heart
                   size={24}
                   className={`${
-                    isFavorited ? "text-red-500 fill-current" : "text-gray-400"
+                    isInWishlist(productData?._id!)
+                      ? "text-red-500 fill-current"
+                      : "text-gray-400"
                   } transition-colors`}
                 />
-              </button>
+              </button> */}
+
+              <Wishlist
+                productData={productData}
+                price={
+                  selectedVariant?.options?.[0]?.salePrice ||
+                  selectedVariant?.options?.[0]?.price ||
+                  0
+                }
+                user={user}
+              />
             </div>
 
-              {/* Quantity Selector */}
+            {/* Quantity Selector */}
             <div className="flex items-center gap-3 mb-2">
               <span className="text-gray-600">Quantity:</span>
               <button
@@ -353,7 +384,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                 disabled={isLoading}
                 className="flex-1 bg-orange-400 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Adding...' : 'Add To Cart'}
+                {isLoading ? "Adding..." : "Add To Cart"}
               </button>
             </div>
 

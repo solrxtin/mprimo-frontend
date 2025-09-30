@@ -555,6 +555,8 @@ router.delete(
 router.post(
   "/wishlist/:productId",
   (req: Request, res: Response, next: NextFunction) => {
+        console.log("wishlist route")
+
     verifyToken(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {

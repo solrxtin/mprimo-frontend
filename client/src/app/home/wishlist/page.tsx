@@ -7,26 +7,25 @@ import { Home, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
-import Header from "@/components/Home/Header"
 import { useRouter } from "next/navigation"
-import { useWishlistStore } from "@/stores/useWishlistStore"
+import { useWishlist } from "@/hooks/useWishlist"
 import { useAddToCart } from "@/stores/cartHook"
 
 export default function WishlistPage() {
-  const { items, removeFromWishlist, clearWishlist } = useWishlistStore()
+  const { wishlist: items, removeFromWishlist, isLoading } = useWishlist()
   const { addToCart } = useAddToCart()
   const router = useRouter()
 
   const handleAddToCart = (item: any) => {
-    const selectedVariant = item.product.variants?.[0]?.options?.[0] ? {
-      variantId: item.product.variants[0]._id,
-      optionId: item.product.variants[0].options[0]._id,
-      variantName: item.product.variants[0].name,
-      optionValue: item.product.variants[0].options[0].value,
-      price: item.product.variants[0].options[0].price,
+    const selectedVariant = item.productId.variants?.[0]?.options?.[0] ? {
+      variantId: item.productId.variants[0]._id,
+      optionId: item.productId.variants[0].options[0]._id,
+      variantName: item.productId.variants[0].name,
+      optionValue: item.productId.variants[0].options[0].value,
+      price: item.productId.variants[0].options[0].price,
     } : undefined
     
-    addToCart(item.product, 1, selectedVariant)
+    addToCart(item.productId, 1, selectedVariant)
   }
     const manualBreadcrumbs: BreadcrumbItem[] = [
     { label: "My-Wishlist", href: "/home/wishlist" },
@@ -67,7 +66,10 @@ export default function WishlistPage() {
           <Button
             variant="link"
             className="text-blue-600 hover:text-blue-800 p-0 h-auto font-normal"
-            onClick={clearWishlist}
+            onClick={() => {
+              // TODO: Implement clear all wishlist API call
+              console.log('Clear all wishlist');
+            }}
           >
             Remove All
           </Button>
@@ -85,28 +87,33 @@ export default function WishlistPage() {
 
           {/* Items */}
           <div className="divide-y">
-            {items.map((item) => (
-              <div key={item.product._id} className="p-4">
+            {isLoading ? (
+              <div className="p-8 text-center">Loading...</div>
+            ) : items.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">Your wishlist is empty</div>
+            ) : (
+              items.map((item) => (
+                <div key={item.productId._id} className="p-4">
                 {/* Mobile Layout */}
                 <div className="md:hidden space-y-3">
                   <div className="flex space-x-3">
                     <div className="relative">
                       <Image
-                        src={item.product.images[0] || "/placeholder.svg"}
-                        alt={item.product.name}
+                        src={item.productId.images[0] || "/placeholder.svg"}
+                        alt={item.productId.name}
                         width={60}
                         height={60}
                         className="rounded-lg object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm leading-tight">{item.product.name}</h3>
-                      <p className="text-xs text-gray-500 mt-1">{item.product.description}</p>
+                      <h3 className="font-medium text-sm leading-tight">{item.productId.name}</h3>
+                      <p className="text-xs text-gray-500 mt-1">Added: {new Date(item.addedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold">₦ {item.product.variants?.[0]?.options?.[0]?.price?.toLocaleString()}</span>
+                      <span className="font-bold">₦ {item.productId.variants?.[0]?.options?.[0]?.price?.toLocaleString()}</span>
                     </div>
                     <span className="text-sm text-green-600">Available</span>
                   </div>
@@ -123,7 +130,7 @@ export default function WishlistPage() {
                       size="sm"
                       variant="outline"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                      onClick={() => removeFromWishlist(item.product._id!)}
+                      onClick={() => removeFromWishlist(item.productId._id)}
                     >
                       Remove
                     </Button>
@@ -135,21 +142,21 @@ export default function WishlistPage() {
                   <div className="col-span-5 flex items-center space-x-3">
                     <div className="relative">
                       <Image
-                        src={item.product.images[0] || "/placeholder.svg"}
-                        alt={item.product.name}
+                        src={item.productId.images[0] || "/placeholder.svg"}
+                        alt={item.productId.name}
                         width={80}
                         height={80}
                         className="rounded-lg object-cover"
                       />
                     </div>
                     <div>
-                      <h3 className="font-medium">{item.product.name}</h3>
-                      <p className="text-sm text-gray-500">{item.product.description}</p>
+                      <h3 className="font-medium">{item.productId.name}</h3>
+                      <p className="text-sm text-gray-500">Added: {new Date(item.addedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="col-span-2">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold">₦ {item.product.variants?.[0]?.options?.[0]?.price?.toLocaleString()}</span>
+                      <span className="font-bold">₦ {item.productId.variants?.[0]?.options?.[0]?.price?.toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="col-span-2">
@@ -167,14 +174,15 @@ export default function WishlistPage() {
                     <Button
                       size="sm"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                      onClick={() => removeFromWishlist(item.product._id!)}
+                      onClick={() => removeFromWishlist(item.productId._id)}
                     >
                       Remove
                     </Button>
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 

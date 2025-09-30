@@ -17,8 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-import Modal from "../Modal";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import FullButton from "../FullButton";
 import Link from "next/link";
 import Modal2 from "../Modal2";
@@ -28,6 +27,7 @@ import { useAuthModalStore } from "@/stores/useAuthModalStore";
 import { useSearchSuggestions } from "@/hooks/useSearch";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SearchSuggestion } from "@/types/search.types";
+import { useWishlist } from "@/hooks/useWishlist";
 
 const Header = () => {
   const [isSell, setIsSell] = useState(false);
@@ -36,8 +36,8 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
   const cartLength = useCartLength();
+  const { wishlistCount } = useWishlist();
   const { openModal } = useAuthModalStore();
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const debouncedQuery = useDebounce(searchQuery, 300);
   const { data: suggestionsData } = useSearchSuggestions(debouncedQuery, 5);
@@ -256,15 +256,20 @@ const Header = () => {
             </Link>
 
             <Link href="/home/wishlist">
-              <button className="text-white hover:bg-blue-700 p-2 rounded">
+              <div className="text-white hover:bg-blue-700 relative p-2 rounded">
                 <Heart className="w-5 h-5" />
-              </button>
+                {/* { wishlistCount && wishlistCount > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center text-white">
+                    {wishlistCount}
+                  </div>
+                )} */}
+              </div>
             </Link>
 
             <Link href="/home/my-cart">
               <button className="text-white hover:bg-blue-700 relative p-2 rounded">
                 <ShoppingCart className="w-5 h-5" />
-                {cartLength > 0 && (
+                {cartLength && cartLength > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center text-white">
                     {cartLength}
                   </span>

@@ -135,7 +135,6 @@ async function initializeWalletWatching() {
     wallets.forEach((wallet) => {
       tokenWatcher.addAddressToWatch(wallet.address);
     });
-    console.log(`Started watching ${wallets.length} wallets for token transfers`);
   } catch (error) {
     console.error('Error initializing wallet watching:', error);
   }

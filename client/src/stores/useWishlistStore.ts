@@ -1,19 +1,18 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ProductType } from "@/types/product.type";
-
-interface WishlistItem {
-  product: ProductType;
-  addedAt: string;
-}
+import { WishlistItem } from "@/types/wishlist.type";
 
 interface WishlistState {
   items: WishlistItem[];
+  isLoading: boolean;
 
   // Actions
-  addToWishlist: (product: ProductType) => void;
-  removeFromWishlist: (productId: string) => void;
+  setItems: (items: WishlistItem[]) => void;
+  addItem: (item: WishlistItem) => void;
+  removeItem: (productId: string) => void;
   clearWishlist: () => void;
+  setLoading: (loading: boolean) => void;
 
   // Getters
   getWishlistLength: () => number;
@@ -24,23 +23,21 @@ export const useWishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
       items: [],
+      isLoading: false,
 
-      addToWishlist: (product) => {
+      setItems: (items) => set({ items }),
+      
+      addItem: (item) => {
         const { items } = get();
-        const existingItem = items.find((item) => item.product._id === product._id);
-
+        const existingItem = items.find((existingItem) => existingItem.productId._id === item.productId._id);
         if (!existingItem) {
-          const newItem: WishlistItem = {
-            product,
-            addedAt: new Date().toISOString(),
-          };
-          set({ items: [...items, newItem] });
+          set({ items: [...items, item] });
         }
       },
 
-      removeFromWishlist: (productId) => {
+      removeItem: (productId) => {
         const { items } = get();
-        const updatedItems = items.filter((item) => item.product._id !== productId);
+        const updatedItems = items.filter((item) => item.productId._id !== productId);
         set({ items: updatedItems });
       },
 
@@ -48,13 +45,15 @@ export const useWishlistStore = create<WishlistState>()(
         set({ items: [] });
       },
 
+      setLoading: (loading) => set({ isLoading: loading }),
+
       getWishlistLength: () => {
         return get().items.length;
       },
 
       isInWishlist: (productId) => {
         const { items } = get();
-        return items.some((item) => item.product._id === productId);
+        return items.some((item) => item.productId?._id === productId);
       },
     }),
     {
