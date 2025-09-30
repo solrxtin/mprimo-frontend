@@ -15,6 +15,7 @@ import { socketService } from "..";
 import { ProductType } from "../types/product.type";
 import { SubscriptionService } from "./subscription.service";
 import Vendor from "../models/vendor.model";
+import AdminNotification from "../models/admin-notification.model";
 
 dotenv.config();
 const logger = LoggerService.getInstance();
@@ -86,33 +87,34 @@ class RedisService {
         return JSON.parse(cachedProduct);
       }
 
-      const product = id && mongoose.Types.ObjectId.isValid(id)
-        ? await ProductModel.findById(id)
-            .populate({
-              path: "category.main",
-              select: "name slug",
-            })
-            .populate({
-              path: "category.sub",
-              select: "name slug",
-            })
-            .populate({
-              path: "country",
-              select: "name currency",
-            })
-        : await ProductModel.findOne({ slug })
-            .populate({
-              path: "category.main",
-              select: "name slug",
-            })
-            .populate({
-              path: "category.sub",
-              select: "name slug",
-            })
-            .populate({
-              path: "country",
-              select: "name currency",
-            });
+      const product =
+        id && mongoose.Types.ObjectId.isValid(id)
+          ? await ProductModel.findById(id)
+              .populate({
+                path: "category.main",
+                select: "name slug",
+              })
+              .populate({
+                path: "category.sub",
+                select: "name slug",
+              })
+              .populate({
+                path: "country",
+                select: "name currency",
+              })
+          : await ProductModel.findOne({ slug })
+              .populate({
+                path: "category.main",
+                select: "name slug",
+              })
+              .populate({
+                path: "category.sub",
+                select: "name slug",
+              })
+              .populate({
+                path: "country",
+                select: "name currency",
+              });
 
       if (product) {
         // Cache using both ID and slug for flexibility
@@ -135,8 +137,8 @@ class RedisService {
 
       return product;
     } catch (error) {
-      console.log("I got called")
-      console.error(error)
+      console.log("I got called");
+      console.error(error);
       logger.error("Redis cache error:", error);
       return id
         ? await ProductModel.findById(id)
@@ -812,6 +814,11 @@ class RedisService {
     scheduleJob("0 9 * * *", async () => {
       await this.processSubscriptionTasks();
     });
+
+    // Send system notifications every 15 minutes
+    scheduleJob("*/15 * * * *", async () => {
+      await this.processScheduledNotifications();
+    });
   }
 
   private async processMetric(metricType: string, date: Date) {
@@ -1081,6 +1088,45 @@ class RedisService {
       logger.info(`Processed ${expiredCount} expired trials`);
     } catch (error) {
       logger.error("Error processing subscription tasks:", error);
+    }
+  }
+
+  private async processScheduledNotifications() {
+    try {
+      // Find notifications that are scheduled and due
+      const dueNotifications = await AdminNotification.find({
+        status: "scheduled",
+        scheduledFor: { $lte: new Date() },
+      });
+
+      for (const notification of dueNotifications) {
+        const { title, content, targetUsers } = notification;
+
+        if (targetUsers && targetUsers.length > 0) {
+          // Create user-facing notifications
+          const userNotifications = targetUsers.map((userId) => ({
+            userId,
+            type: "system",
+            case: "announcement",
+            title,
+            message: content,
+            data: {},
+            isRead: false,
+          }));
+
+          await Notification.insertMany(userNotifications);
+
+          // Update admin notification status
+          notification.status = "sent";
+          notification.sentAt = new Date();
+          await notification.save();
+          logger.info(
+            `Sent scheduled notification "${title}" to ${targetUsers.length} users`
+          );
+        }
+      }
+    } catch (error) {
+      logger.error("Error processing scheduled admin notifications:", error);
     }
   }
 }

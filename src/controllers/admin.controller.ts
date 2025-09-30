@@ -1,7 +1,9 @@
 /*************COUNTRY CONTROLLERS */
 import { Request, Response } from "express";
 import Country, { ICountry } from "../models/country.model";
-import SubscriptionPlan from "../models/subscription-plan.model";
+import SubscriptionPlan, {
+  ISubscriptionPlan,
+} from "../models/subscription-plan.model";
 import Vendor from "../models/vendor.model";
 import Product from "../models/product.model";
 import mongoose from "mongoose";
@@ -40,6 +42,7 @@ import { generateRandomPassword } from "../utils/generate-random-password";
 import Payment, { VendorPayment } from "../models/payment.model";
 import CategoryModel from "../models/category.model";
 import Wallet from "../models/wallet.model";
+import { Types } from "mongoose";
 
 export class CountryController {
   static async createCountry(req: Request, res: Response) {
@@ -264,7 +267,7 @@ export class SubscriptionPlanController {
         prioritySupport,
       ];
 
-      console.log(requiredFields)
+      console.log(requiredFields);
 
       if (requiredFields.some((field) => field === undefined)) {
         return res.status(400).json({
@@ -328,7 +331,7 @@ export class SubscriptionPlanController {
     try {
       const { vendorId } = req.params;
       const result = vendorId
-        ? await Vendor.findById(vendorId).populate('subscriptionPlan')
+        ? await Vendor.findById(vendorId).populate("subscriptionPlan")
         : await SubscriptionPlan.find();
       if (!result)
         return res
@@ -2226,7 +2229,6 @@ export class VenodrManagenentController {
       });
     }
   }
-
 
   // Reports
   /****Order and Transaction Reports */
@@ -4306,14 +4308,24 @@ export class VenodrManagenentController {
       const { policyId } = req.params;
       const updates = req.body;
 
-      const policy = await Policy.findByIdAndUpdate(policyId, updates, { new: true });
+      const policy = await Policy.findByIdAndUpdate(policyId, updates, {
+        new: true,
+      });
       if (!policy) {
-        return res.status(404).json({ success: false, message: "Policy not found" });
+        return res
+          .status(404)
+          .json({ success: false, message: "Policy not found" });
       }
 
-      res.json({ success: true, message: "Policy updated successfully", data: policy });
+      res.json({
+        success: true,
+        message: "Policy updated successfully",
+        data: policy,
+      });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: "Error updating policy" });
+      res
+        .status(500)
+        .json({ success: false, message: "Error updating policy" });
     }
   }
 
@@ -4323,7 +4335,9 @@ export class VenodrManagenentController {
       await Policy.findByIdAndDelete(policyId);
       res.json({ success: true, message: "Policy deleted successfully" });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: "Error deleting policy" });
+      res
+        .status(500)
+        .json({ success: false, message: "Error deleting policy" });
     }
   }
 
@@ -4393,7 +4407,7 @@ export class VenodrManagenentController {
       if (!faq) {
         res.status(404).json({
           success: false,
-          message: "FAQ not found"
+          message: "FAQ not found",
         });
         return;
       }
@@ -4404,14 +4418,13 @@ export class VenodrManagenentController {
       res.status(200).json({
         success: true,
         message: "FAQ updated successfully",
-        data: faq
+        data: faq,
       });
-
     } catch (error) {
       console.error("Error updating FAQ:", error);
       res.status(500).json({
         success: false,
-        message: "An error occurred while updating the FAQ"
+        message: "An error occurred while updating the FAQ",
       });
     }
   }
@@ -4464,7 +4477,6 @@ export class VenodrManagenentController {
     }
   }
 
-
   static async getFAQStats(req: Request, res: Response) {
     try {
       const [totalFAQs, publishedFAQs, mostViewed, totalViews] =
@@ -4502,14 +4514,76 @@ export class VenodrManagenentController {
       const { title, content, audience, targetUsers, scheduledFor } = req.body;
       const adminId = req.userId;
 
+      if (!title || !content || !audience) {
+        return res.status(400).json({
+          success: false,
+          message: "Title, content, and audience are required",
+        });
+      }
+
+      if (
+        audience === "specific" &&
+        (!targetUsers || targetUsers.length === 0)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Target users are required for specific audience",
+        });
+      }
+
       const notification = await AdminNotification.create({
         title,
         content,
         audience,
-        targetUsers,
-        scheduledFor,
         createdBy: adminId,
       });
+
+      const scheduledDate = scheduledFor ? new Date(scheduledFor) : null;
+
+      if (scheduledDate && isNaN(scheduledDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid scheduled date",
+        });
+      }
+
+      if (scheduledDate && scheduledDate > new Date()) {
+        notification.scheduledFor = scheduledDate;
+        notification.status = "scheduled";
+      }
+
+      let targetUserIds: any[] = [];
+
+      if (audience === "specific" && targetUsers && targetUsers.length > 0) {
+        targetUserIds = targetUsers;
+      } else {
+        targetUserIds = await populateTargetUser(audience);
+      }
+
+      notification.targetUsers = targetUserIds;
+
+      if (scheduledDate && scheduledDate <= new Date()) {
+        const notifications = targetUserIds.map((userId) => ({
+          userId,
+          type: "system",
+          case: "announcement",
+          title,
+          message: content,
+          data: {},
+          isRead: false,
+        }));
+
+        await Notification.insertMany(notifications);
+
+        notification.status = "sent";
+        notification.sentAt = new Date();
+      }
+
+      if (!scheduledDate) {
+        notification.status = "draft";
+      }
+
+      await notification.save();
 
       res.json({
         success: true,
@@ -4523,57 +4597,98 @@ export class VenodrManagenentController {
     }
   }
 
-  static async sendNotification(req: Request, res: Response) {
+  static async updateNotification(req: Request, res: Response) {
     try {
       const { notificationId } = req.params;
-      const notification = await AdminNotification.findById(notificationId);
-
-      if (!notification) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Notification not found" });
-      }
-
+      const { title, content, audience, targetUsers, scheduledFor } = req.body;
       let targetUserIds: any[] = [];
-      if (notification.audience === "all") {
-        const users = await User.find({}).select("_id");
-        targetUserIds = users.map((u) => u._id);
-      } else if (notification.audience === "vendors") {
-        const users = await User.find({ role: "business" }).select("_id");
-        targetUserIds = users.map((u) => u._id);
-      } else if (notification.audience === "buyers") {
-        const users = await User.find({ role: "personal" }).select("_id");
-        targetUserIds = users.map((u) => u._id);
-      } else {
-        targetUserIds = notification.targetUsers || [];
+
+      const notification = await AdminNotification.findById(notificationId);
+      if (!notification) {
+        return res.status(404).json({
+          success: false,
+          message: "Notification not found",
+        });
       }
 
-      // Send notifications to all target users
-      const notifications = targetUserIds.map((userId) => ({
-        userId,
-        type: "system",
-        case: "announcement",
-        title: notification.title,
-        message: notification.content,
-        data: {},
-        isRead: false,
-      }));
+      if (title) notification.title = title;
+      if (content) notification.content = content;
+      if (audience) notification.audience = audience;
+      if (audience === "specific" && targetUsers && targetUsers.length > 0) {
+        targetUserIds = targetUsers;
+      } else if (audience !== "specific") {
+        targetUserIds = await populateTargetUser(audience);
+      }
 
-      await Notification.insertMany(notifications);
+      notification.targetUsers = targetUserIds;
 
-      notification.status = "sent";
-      notification.sentAt = new Date();
+      if (scheduledFor) {
+        const scheduledDate = new Date(scheduledFor);
+        if (isNaN(scheduledDate.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid scheduled date",
+          });
+        }
+
+        if (scheduledDate <= new Date()) {
+          const finalTitle = title || notification.title;
+          const finalContent = content || notification.content;
+
+          const notifications = targetUserIds.map((userId) => ({
+            userId,
+            type: "system",
+            case: "announcement",
+            title: finalTitle,
+            message: finalContent,
+            data: {},
+            isRead: false,
+          }));
+
+          await Notification.insertMany(notifications);
+          notification.sentAt = new Date();
+        }
+
+        notification.scheduledFor = scheduledDate;
+        notification.status = scheduledDate > new Date() ? "scheduled" : "sent";
+      }
+
       await notification.save();
 
       res.json({
         success: true,
-        message: "Notification sent successfully",
-        sentTo: targetUserIds.length,
+        message: "Notification updated successfully",
+        data: notification,
       });
-    } catch (error: any) {
-      res
-        .status(500)
-        .json({ success: false, message: "Error sending notification" });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error updating notification",
+      });
+    }
+  }
+
+  static async deleteNotification(req: Request, res: Response) {
+    try {
+      const { notificationId } = req.params;
+
+      const notification = await AdminNotification.findByIdAndDelete(notificationId);
+      if (!notification) {
+        return res.status(404).json({
+          success: false,
+          message: "Notification not found",
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Notification deleted successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error deleting notification",
+      });
     }
   }
 
@@ -4642,6 +4757,13 @@ export class VenodrManagenentController {
         return res
           .status(404)
           .json({ success: false, message: "Advertisement not found" });
+      }
+
+      if (existingAdvert.adType === "featured") {
+        await Product.findByIdAndUpdate(existingAdvert.productId, {
+          isFeatured: true,
+          featuredExpiry: endDate,
+        });
       }
 
       // Notify vendor
@@ -4921,16 +5043,18 @@ export class VenodrManagenentController {
         status,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        createdBy: adminId
+        createdBy: adminId,
       });
 
       res.status(201).json({
         success: true,
         message: "Promotion created successfully",
-        data: promotion
+        data: promotion,
       });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: "Error creating promotion" });
+      res
+        .status(500)
+        .json({ success: false, message: "Error creating promotion" });
     }
   }
 
@@ -4978,12 +5102,14 @@ export class VenodrManagenentController {
             page: Number(page),
             limit: Number(limit),
             total,
-            pages: Math.ceil(total / Number(limit))
-          }
-        }
+            pages: Math.ceil(total / Number(limit)),
+          },
+        },
       });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: "Error fetching promotions" });
+      res
+        .status(500)
+        .json({ success: false, message: "Error fetching promotions" });
     }
   }
 
@@ -5017,17 +5143,19 @@ export class VenodrManagenentController {
       if (!promotion) {
         return res.status(404).json({
           success: false,
-          message: "Promotion not found"
+          message: "Promotion not found",
         });
       }
 
       res.json({
         success: true,
         message: "Promotion updated successfully",
-        data: promotion
+        data: promotion,
       });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: "Error updating promotion" });
+      res
+        .status(500)
+        .json({ success: false, message: "Error updating promotion" });
     }
   }
 
@@ -5049,7 +5177,65 @@ export class VenodrManagenentController {
       await Promotion.findByIdAndDelete(promotionId);
       res.json({ success: true, message: "Promotion deleted successfully" });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: "Error deleting promotion" });
+      res
+        .status(500)
+        .json({ success: false, message: "Error deleting promotion" });
     }
   }
 }
+
+const populateTargetUser = async (audience: string) => {
+  let targetUsers: Types.ObjectId[] = [];
+  let plan: ISubscriptionPlan | null = null;
+  switch (audience) {
+    case "all":
+      targetUsers = await User.find({})
+        .select("_id")
+        .then((users) => users.map((u) => u._id));
+      break;
+    case "business":
+      targetUsers = await User.find({ role: "business" })
+        .select("_id")
+        .then((users) => users.map((u) => u._id));
+      break;
+    case "personal":
+      targetUsers = await User.find({ role: "personal" })
+        .select("_id")
+        .then((users) => users.map((u) => u._id));
+      break;
+    case "business-starter":
+      plan = await SubscriptionPlan.findOne({ name: "Starter" });
+      if (plan) {
+        targetUsers = await Vendor.find({
+          "subscription.currentPlan": plan._id,
+        })
+          .select("userId")
+          .then((vendors) => vendors.map((v) => v.userId));
+      }
+      break;
+    case "business-pro":
+      plan = await SubscriptionPlan.findOne({ name: "Pro" });
+      if (plan) {
+        targetUsers = await Vendor.find({
+          "subscription.currentPlan": plan._id,
+        })
+          .select("userId")
+          .then((vendors) => vendors.map((v) => v.userId));
+      }
+      break;
+    case "business-elite":
+      plan = await SubscriptionPlan.findOne({ name: "Elite" });
+      if (plan) {
+        targetUsers = await Vendor.find({
+          "subscription.currentPlan": plan._id,
+        })
+          .select("userId")
+          .then((vendors) => vendors.map((v) => v.userId));
+      }
+      break;
+    default:
+      break;
+  }
+
+  return targetUsers;
+};

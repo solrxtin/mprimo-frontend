@@ -138,7 +138,8 @@ router.get("/faqs/stats", verifyToken, requirePermission([PERMISSIONS.VIEW_REPOR
 
 // Notification Management
 router.post("/notifications", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.createNotification);
-router.patch("/notifications/:notificationId/send", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.sendNotification);
+router.patch("/notifications/:notificationId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.updateNotification);
+router.delete("/notifications/:notificationId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.deleteNotification);
 
 // Advertisement Management
 router.get("/advertisements", verifyToken, requirePermission([PERMISSIONS.MANAGE_VENDORS]), VenodrManagenentController.getAdvertisements);
