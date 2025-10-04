@@ -5,7 +5,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { Home, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
 import { useRouter } from "next/navigation"
 import { useWishlist } from "@/hooks/useWishlist"
@@ -46,8 +45,6 @@ export default function WishlistPage() {
 
   return (
    <>
-
-
       <div className="min-h-screen font-roboto bg-gray-50 body-padding">
         <div className=" mx-auto pt-4">
           {/* Breadcrumb */}
@@ -92,28 +89,28 @@ export default function WishlistPage() {
             ) : items.length === 0 ? (
               <div className="p-8 text-center text-gray-500">Your wishlist is empty</div>
             ) : (
-              items.map((item) => (
-                <div key={item.productId._id} className="p-4">
+           items &&   items.map((item) => (
+                <div key={item?.productId?._id} className="p-4">
                 {/* Mobile Layout */}
                 <div className="md:hidden space-y-3">
                   <div className="flex space-x-3">
                     <div className="relative">
                       <Image
-                        src={item.productId.images[0] || "/placeholder.svg"}
-                        alt={item.productId.name}
+                        src={item?.productId?.images[0] || "/placeholder.svg"}
+                        alt={item?.productId?.name}
                         width={60}
                         height={60}
                         className="rounded-lg object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm leading-tight">{item.productId.name}</h3>
+                      <h3 className="font-medium text-sm leading-tight">{item?.productId?.name}</h3>
                       <p className="text-xs text-gray-500 mt-1">Added: {new Date(item.addedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold">₦ {item.productId.variants?.[0]?.options?.[0]?.price?.toLocaleString()}</span>
+                      <span className="font-bold">₦ {item?.productId?.variants?.[0]?.options?.[0]?.price?.toLocaleString()}</span>
                     </div>
                     <span className="text-sm text-green-600">Available</span>
                   </div>
@@ -130,7 +127,7 @@ export default function WishlistPage() {
                       size="sm"
                       variant="outline"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                      onClick={() => removeFromWishlist(item.productId._id)}
+                      onClick={() => removeFromWishlist(item?.productId?._id)}
                     >
                       Remove
                     </Button>
@@ -142,21 +139,21 @@ export default function WishlistPage() {
                   <div className="col-span-5 flex items-center space-x-3">
                     <div className="relative">
                       <Image
-                        src={item.productId.images[0] || "/placeholder.svg"}
-                        alt={item.productId.name}
+                        src={item?.productId?.images[0] || "/placeholder.svg"}
+                        alt={item?.productId?.name}
                         width={80}
                         height={80}
                         className="rounded-lg object-cover"
                       />
                     </div>
                     <div>
-                      <h3 className="font-medium">{item.productId.name}</h3>
-                      <p className="text-sm text-gray-500">Added: {new Date(item.addedAt).toLocaleDateString()}</p>
+                      <h3 className="font-medium">{item?.productId?.name}</h3>
+                      <p className="text-sm text-gray-500">Added: {new Date(item?.addedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="col-span-2">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold">₦ {item.productId.variants?.[0]?.options?.[0]?.price?.toLocaleString()}</span>
+                      <span className="font-bold">₦ {item?.productId?.variants?.[0]?.options?.[0]?.price?.toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="col-span-2">
@@ -174,7 +171,7 @@ export default function WishlistPage() {
                     <Button
                       size="sm"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                      onClick={() => removeFromWishlist(item.productId._id)}
+                      onClick={() => removeFromWishlist(item?.productId?._id)}
                     >
                       Remove
                     </Button>

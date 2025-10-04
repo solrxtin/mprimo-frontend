@@ -1,6 +1,6 @@
 import Router, { NextFunction, Request, Response } from "express"
 import { verifyToken } from "../middlewares/verify-token.middleware";
-import { getUserOrders, getUserAddress, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, getUserRecommendations, addCard, removeCard, setDefaultCard, updateNotificationPreferences } from "../controllers/user.controller";
+import { getUserOrders, getUserAddress, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, getUserRecommendations, addCard, removeCard, setDefaultCard, getUserCards, updateNotificationPreferences } from "../controllers/user.controller";
 
 
 
@@ -55,6 +55,7 @@ router.get(
 );
 
 // Card management
+router.get("/cards", verifyToken, getUserCards);
 router.post("/card", verifyToken, addCard);
 router.patch("/card", verifyToken, setDefaultCard);
 router.delete("/card/:last4", verifyToken, removeCard);

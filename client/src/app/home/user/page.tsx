@@ -11,6 +11,8 @@ import Header from "@/components/Home/Header"
 import { Sidebar } from "@/components/SideBar"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
 import { useRouter } from "next/navigation"
+import { useUserProfile, useRecentViews } from "@/hooks/useUser"
+import Link from "next/link"
 // import { ActivitiesModal } from "@/components/modals/activities-modal"
 // import { AddFundsModal } from "@/components/modals/add-funds-modal"
 
@@ -38,46 +40,26 @@ const recentActivities = [
   },
 ]
 
-const recentViews = [
-  {
-    id: "1",
-    name: "Logitech Bluetooth 3.0 Ultra Slim Keyboard",
-    price: 25000,
-    rating: 4,
- image: "/images/tv.png",  },
-  {
-    id: "2",
-    name: "Logitech Bluetooth 3.0 Ultra Slim Keyboard",
-    price: 25000,
-    rating: 4,
- image: "/images/tv.png",  },
-  {
-    id: "3",
-    name: "Logitech Bluetooth 3.0 Ultra Slim Keyboard",
-    price: 25000,
-    rating: 4,
- image: "/images/tv.png",  },
-  {
-    id: "4",
-    name: "Logitech Bluetooth 3.0 Ultra Slim Keyboard",
-    price: 25000,
-    rating: 4,
- image: "/images/tv.png",  },
-]
+
 
 export default function DashboardPage() {
   const [showBalance, setShowBalance] = useState(false)
   const [showActivitiesModal, setShowActivitiesModal] = useState(false)
   const [showAddFundsModal, setShowAddFundsModal] = useState(false)
-    const router = useRouter()
+  const router = useRouter()
+  
+  const { data: profileData, isLoading: profileLoading } = useUserProfile();
+  const { data: recentViewsData, isLoading: viewsLoading } = useRecentViews(8);
+  
+  const recentViews = recentViewsData?.recentViews || [];
   
     
   
     const manualBreadcrumbs: BreadcrumbItem[] = [
-      { label: "Cart", href: "/my-cart" },
-      { label: "Auction", href: null},
-    
-    ];
+    { label: "My Account", href: "/home/user/settings" },
+    { label: "Dashboard", href: "/home" },
+    { label: "Overview", href: null },
+  ];
     const handleBreadcrumbClick = (
       item: BreadcrumbItem,
       e: React.MouseEvent<HTMLAnchorElement>
@@ -98,76 +80,94 @@ export default function DashboardPage() {
             className="mb-4"
           />
           <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-2">Hello, Uche</h1>
+            <h1 className="text-2xl font-bold mb-2">
+              Hello, {profileData?.user?.profile?.firstName || 'User'}
+            </h1>
             <p className="text-gray-600">
               Welcome to your Shopping Command Centre! Easily manage your orders, wishlist, and explore tailored deals
               in one convenient hub.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid lg:grid-cols-3 gap-6 mb-8 ">
             {/* Account Info */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold">ACCOUNT INFO</h3>
+            <Card className="p-0 rounded-none ">
+              <CardContent className="p-0 rounded-none">
+                <div className="flex items-center justify-between mb-4 p-2 bg-[#E2E8F0]">
+                  <h3 className="font-medium text-sm md:text-base">ACCOUNT INFO</h3>
                   <Button variant="ghost" size="sm">
                     <Edit className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="space-y-3">
-                  <div>
+                <div className="space-y-2 p-2">
+                  <div className="flex items-center gap-1">
                     <span className="text-sm text-gray-600">Name:</span>
-                    <p className="font-medium">Daniel Uchenna</p>
+                    <p className="">
+                      {profileData?.user?.profile?.firstName} {profileData?.user?.profile?.lastName}
+                    </p>
                   </div>
-                  <div>
+                  <div className="flex items-center gap-1">
                     <span className="text-sm text-gray-600">Email:</span>
-                    <p className="font-medium">Thisismyemail@gmail.com</p>
+                    <p className="">{profileData?.user?.email}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Shipping Address */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold">SHIPPING ADDRESS</h3>
+             <Card className="p-0 rounded-none ">
+              <CardContent className="p-0 rounded-none">
+                <div className="flex items-center justify-between mb-4 p-2 bg-[#E2E8F0]">
+                  <h3 className="font-medium text-sm md:text-base">SHIPPING ADDRESS</h3>
+            
                   <Button variant="ghost" size="sm">
                     <Edit className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="space-y-3">
-                  <div>
+                <div className="space-y-3 p-2">
+                  <div className="flex items-center gap-1">
                     <span className="text-sm text-gray-600">Name:</span>
-                    <p className="font-medium">Daniel Uchenna</p>
+                    <p className="">
+                      {profileData?.user?.profile?.firstName} {profileData?.user?.profile?.lastName}
+                    </p>
                   </div>
-                  <div>
+                  <div className="flex  gap-1">
                     <span className="text-sm text-gray-600">Address:</span>
-                    <p className="font-medium">Warehouse No23 Wuye Ultra Wuye Abuja-Wuye, Federal Capital Territory</p>
+                    <p className="">
+                      {profileData?.shippingDefaultAddress ? 
+                        `${profileData.shippingDefaultAddress.street}, ${profileData.shippingDefaultAddress.city}, ${profileData.shippingDefaultAddress.state}` :
+                        'No default address set'
+                      }
+                    </p>
                   </div>
-                  <div>
+                  <div className="flex items-center gap-1">
                     <span className="text-sm text-gray-600">Phone:</span>
-                    <p className="font-medium">+2348100000000</p>
+                    <p className="">{profileData?.user?.profile?.phoneNumber || 'Not provided'}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Credit Balance */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold">CREDIT BALANCE</h3>
-                  <Button variant="ghost" size="sm" onClick={() => setShowBalance(!showBalance)}>
+             <Card className="p-0 rounded-none ">
+              <CardContent className="p-0 rounded-none">
+                <div className="flex items-center justify-between mb-4 p-2 bg-[#E2E8F0]">
+                  <h3 className="font-medium text-sm md:text-base">CREDIT BALANCE</h3>
+                
+                </div>
+                <div className="space-y-2 p-2">
+                  <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-gray-600">Balance:</span>
+                    <p className="font-bold text-lg">
+                      {showBalance ? `₦ ${profileData?.fiatWallet?.toLocaleString() || '0'}` : "₦ ******"}
+                    </p>
+                  </div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowBalance(!showBalance)}>
                     {showBalance ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm text-gray-600">Balance:</span>
-                    <p className="font-bold text-lg">{showBalance ? "₦ 200,000" : "₦ ******"}</p>
                   </div>
+                 
                   <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => setShowAddFundsModal(true)}>
                     Add Funds
                   </Button>
@@ -233,25 +233,21 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {recentViews.map((product) => (
-                <Card key={product.id} className="hover:shadow-lg transition-shadow">
+                <Card key={product._id} className="hover:shadow-lg transition-shadow">
                   <CardContent className="p-4">
-                    <Image
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      width={200}
-                      height={150}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
-                    />
-                    <div className="flex items-center mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`text-sm ${i < product.rating ? "text-yellow-400" : "text-gray-300"}`}>
-                          ★
-                        </span>
-                      ))}
-                      <span className="text-xs text-gray-500 ml-1">(23)</span>
-                    </div>
-                    <h4 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h4>
-                    <p className="font-bold text-lg mb-3">₦ {product.price.toLocaleString()}</p>
+                    <Link href={`/home/product-details/${product.slug}`}>
+                      <Image
+                        src={product.images?.[0] || "/placeholder.svg"}
+                        alt={product.name}
+                        width={200}
+                        height={150}
+                        className="w-full h-32 object-cover rounded-lg mb-3"
+                      />
+                      <h4 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h4>
+                      <p className="font-bold text-lg mb-3">
+                        ₦ {product.variants?.[0]?.options?.[0]?.price?.toLocaleString() || '0'}
+                      </p>
+                    </Link>
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" className="flex-1">
                         Add to Cart
@@ -299,26 +295,22 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {recentViews.map((product) => (
-                <Card key={`might-like-${product.id}`} className="hover:shadow-lg transition-shadow">
+              {recentViews.slice(0, 4).map((product) => (
+                <Card key={`might-like-${product._id}`} className="hover:shadow-lg transition-shadow">
                   <CardContent className="p-4">
-                    <Image
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      width={200}
-                      height={150}
-                      className="w-full h-32 object-cover rounded-lg mb-3"
-                    />
-                    <div className="flex items-center mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`text-sm ${i < product.rating ? "text-yellow-400" : "text-gray-300"}`}>
-                          ★
-                        </span>
-                      ))}
-                      <span className="text-xs text-gray-500 ml-1">(23)</span>
-                    </div>
-                    <h4 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h4>
-                    <p className="font-bold text-lg mb-3">₦ {product.price.toLocaleString()}</p>
+                    <Link href={`/home/product-details/${product.slug}`}>
+                      <Image
+                        src={product.images?.[0] || "/placeholder.svg"}
+                        alt={product.name}
+                        width={200}
+                        height={150}
+                        className="w-full h-32 object-cover rounded-lg mb-3"
+                      />
+                      <h4 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h4>
+                      <p className="font-bold text-lg mb-3">
+                        ₦ {product.variants?.[0]?.options?.[0]?.price?.toLocaleString() || '0'}
+                      </p>
+                    </Link>
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" className="flex-1">
                         Add to Cart

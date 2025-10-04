@@ -569,3 +569,23 @@ export const getUserOffersGrouped = async(req: Request, res: Response, next: Nex
   }
 }
 
+export const getUserCards = async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    const user = await User.findById(userId).select("paymentInformation");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      cards: user.paymentInformation?.cards || [],
+      defaultGateway: user.paymentInformation?.defaultGateway,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error fetching cards" });
+  }
+};
+

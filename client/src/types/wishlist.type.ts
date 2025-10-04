@@ -1,4 +1,4 @@
-export interface WishlistItem {
+export type WishlistItem = {
   _id: string;
   productId: {
     _id: string;

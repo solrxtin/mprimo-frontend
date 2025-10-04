@@ -236,9 +236,9 @@ const ShopCategoriesComponent = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-center gap-2 flex-wrap">
+      {/* <div className="flex items-center justify-center gap-2 flex-wrap">
         {generatePagination()}
-      </div>
+      </div> */}
     </div>
   );
 };

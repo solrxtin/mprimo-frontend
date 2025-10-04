@@ -91,7 +91,7 @@ export function Sidebar() {
         Logout{" "}
       </Button>
       <LogOutPromptModal
-        isOpen={true}
+        isOpen={isLogoutModalOpen}
         onClose={closeLogoutModal}
         logout={handleLogout}
         loading={logoutMutation.isPending}

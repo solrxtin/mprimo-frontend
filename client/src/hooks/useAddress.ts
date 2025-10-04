@@ -1,95 +1,103 @@
-import { useState, useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
+import { toastConfigError, toastConfigSuccess } from '@/app/config/toast.config';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
 interface Address {
   _id?: string;
+  type: 'shipping' | 'billing';
   street: string;
   city: string;
   state: string;
   country: string;
   postalCode: string;
-  phoneNumber: string;
+  isDefault: boolean;
 }
 
-const BASE_URL = 'http://localhost:5800/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5800/api/v1';
 
-export const useAddress = () => {
-  const [address, setAddress] = useState<Address>({
-    street: '',
-    city: '',
-    state: '',
-    country: '',
-    postalCode: '',
-    phoneNumber: '',
+const addressApi = {
+  getAddresses: async (): Promise<{ addresses: Address[] }> => {
+    const response = await fetchWithAuth(`${API_BASE}/users/address`);
+    if (!response.ok) throw new Error('Failed to fetch addresses');
+    return response.json();
+  },
+
+  addAddress: async (address: Omit<Address, '_id'>) => {
+    const response = await fetchWithAuth(`${API_BASE}/users/address`, {
+      method: 'POST',
+      body: JSON.stringify({ address }),
+    });
+    if (!response.ok) throw new Error('Failed to add address');
+    return response.json();
+  },
+
+  updateAddress: async (address: Address) => {
+    const response = await fetchWithAuth(`${API_BASE}/users/address`, {
+      method: 'PATCH',
+      body: JSON.stringify({ address }),
+    });
+    if (!response.ok) throw new Error('Failed to update address');
+    return response.json();
+  },
+
+  deleteAddress: async (addressId: string) => {
+    const response = await fetchWithAuth(`${API_BASE}/users/address/${addressId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete address');
+    return response.json();
+  },
+};
+
+export const useAddresses = () => {
+  return useQuery({
+    queryKey: ['addresses'],
+    queryFn: addressApi.getAddresses,
   });
-  const [loading, setLoading] = useState(false);
+};
 
-  const addAddress = async (addressData: Address) => {
-    setLoading(true);
-    try {
-      const response = await fetchWithAuth(`${BASE_URL}/users/address`, {
-        method: 'POST',
-        body: JSON.stringify(addressData)
-      });
-      const data = await response.json();
-      if (data.success) {
-        setAddress(data.data);
-      }
-    } catch (error) {
-      console.error('Error adding address:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export const useAddAddress = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: addressApi.addAddress,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      toast.success('Address added successfully', toastConfigSuccess);
+    },
+    onError: () => {
+      toast.error('Failed to add address', toastConfigError);
+    },
+  });
+};
 
-  const updateAddress = async (addressData: Address) => {
-    setLoading(true);
-    try {
-      const response = await fetchWithAuth(`${BASE_URL}/users/address`, {
-        method: 'PATCH',
-        body: JSON.stringify(addressData)
-      });
-      const data = await response.json();
-      if (data.success) {
-        setAddress(data.data);
-      }
-    } catch (error) {
-      console.error('Error updating address:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export const useUpdateAddress = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: addressApi.updateAddress,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      toast.success('Address updated successfully', toastConfigSuccess);
+    },
+    onError: () => {
+      toast.error('Failed to update address', toastConfigError);
+    },
+  });
+};
 
-  const deleteAddress = async () => {
-    setLoading(true);
-    try {
-      const response = await fetchWithAuth(`${BASE_URL}/users/address`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      if (data.success) {
-        setAddress({
-          street: '',
-          city: '',
-          state: '',
-          country: '',
-          postalCode: '',
-          phoneNumber: '',
-        });
-      }
-    } catch (error) {
-      console.error('Error deleting address:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    address,
-    loading,
-    addAddress,
-    updateAddress,
-    deleteAddress,
-    setAddress
-  };
+export const useDeleteAddress = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: addressApi.deleteAddress,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      toast.success('Address deleted successfully', toastConfigSuccess);
+    },
+    onError: () => {
+      toast.error('Failed to delete address', toastConfigError);
+    },
+  });
 };

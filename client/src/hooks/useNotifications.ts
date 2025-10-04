@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
+import { toastConfigError, toastConfigSuccess } from '@/app/config/toast.config';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
 interface NotificationPreferences {
-  newStockAlert: boolean;
-  lowStockAlert: boolean;
-  orderStatusAlert: boolean;
+  stockAlert: boolean;
+  orderStatus: boolean;
   pendingReviews: boolean;
-  paymentAlert: boolean;
+  paymentUpdates: boolean;
+  newsletter: boolean;
 }
 
 interface Notification {
@@ -18,58 +20,44 @@ interface Notification {
   createdAt: string;
 }
 
-const BASE_URL = 'http://localhost:5800/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5800/api/v1';
+
+const notificationApi = {
+  getNotifications: async (): Promise<{ notifications: Notification[] }> => {
+    const response = await fetchWithAuth(`${API_BASE}/users/notifications`);
+    if (!response.ok) throw new Error('Failed to fetch notifications');
+    return response.json();
+  },
+
+  updatePreferences: async (preferences: NotificationPreferences) => {
+    const response = await fetchWithAuth(`${API_BASE}/users/notifications/preferences`, {
+      method: 'PATCH',
+      body: JSON.stringify(preferences),
+    });
+    if (!response.ok) throw new Error('Failed to update preferences');
+    return response.json();
+  },
+};
 
 export const useNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [preferences, setPreferences] = useState<NotificationPreferences>({
-    newStockAlert: true,
-    lowStockAlert: true,
-    orderStatusAlert: true,
-    pendingReviews: true,
-    paymentAlert: true,
+  return useQuery({
+    queryKey: ['notifications'],
+    queryFn: notificationApi.getNotifications,
+    staleTime: 2 * 60 * 1000,
   });
-  const [loading, setLoading] = useState(false);
+};
 
-  const fetchNotifications = async () => {
-    setLoading(true);
-    try {
-      const response = await fetchWithAuth(`${BASE_URL}/users/notifications`);
-      const data = await response.json();
-      if (data.success) {
-        setNotifications(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updatePreferences = async (newPreferences: NotificationPreferences) => {
-    try {
-      const response = await fetchWithAuth(`${BASE_URL}/users/notifications/preferences`, {
-        method: 'PATCH',
-        body: JSON.stringify(newPreferences)
-      });
-      const data = await response.json();
-      if (data.success) {
-        setPreferences(newPreferences);
-      }
-    } catch (error) {
-      console.error('Error updating preferences:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
-  return {
-    notifications,
-    preferences,
-    loading,
-    updatePreferences,
-    refetch: fetchNotifications
-  };
+export const useUpdateNotificationPreferences = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: notificationApi.updatePreferences,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      toast.success('Notification preferences updated', toastConfigSuccess);
+    },
+    onError: () => {
+      toast.error('Failed to update preferences', toastConfigError);
+    },
+  });
 };
