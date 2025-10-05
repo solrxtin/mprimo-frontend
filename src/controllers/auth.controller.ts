@@ -39,10 +39,6 @@ export const signup = async (req: Request, res: Response) => {
     //TODO: Make sure phone uses international format
     const { email, password, firstName, lastName, phoneNumber } = req.body;
 
-    console.log(
-      `Request body is ${email}, ${password}, ${firstName}, ${lastName}, ${phoneNumber}`
-    );
-
     // Validate input
     if (!email || !password || !firstName || !lastName || !phoneNumber) {
       return res.status(400).json({

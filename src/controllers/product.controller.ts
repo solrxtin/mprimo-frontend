@@ -20,6 +20,8 @@ import mongoose, { Types } from "mongoose";
 import { WishList } from "../models/cart.model";
 import Order from "../models/order.model";
 import { SubscriptionService } from "../services/subscription.service";
+import { VariantCombinationUtil } from "../utils/variant-combinations.util";
+import { IUser } from "../types/user.type";
 
 export class ProductController {
   static async createProduct(req: Request, res: Response, next: NextFunction) {
@@ -81,26 +83,60 @@ export class ProductController {
         }
       }
 
-      // Ensure variants exist and have default flags
-      if (!req.body.variants || req.body.variants.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "At least one variant is required for product creation",
+      // Handle combination-based variants
+      if (req.body.combinations && req.body.variantDimensions) {
+        const { combinations, variantDimensions } = req.body;
+        
+        // Validate combinations using utility
+        const validation = VariantCombinationUtil.validateCombinations(
+          combinations,
+          variantDimensions
+        );
+        
+        if (!validation.valid) {
+          return res.status(400).json({
+            success: false,
+            message: validation.error,
+          });
+        }
+        
+        // Process combinations using utility
+        const processedCombinations = VariantCombinationUtil.processCombinations(
+          combinations,
+          req.body.name
+        );
+        
+        // Convert to current model structure
+        req.body.variants = [{
+          name: variantDimensions.join(" & "), // "Color & Size"
+          isDefault: true,
+          options: processedCombinations
+        }];
+        
+        // Store dimension info for frontend
+        req.body.variantDimensions = variantDimensions;
+      } else {
+        // Handle legacy variant structure
+        if (!req.body.variants || req.body.variants.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "At least one variant is required for product creation",
+          });
+        }
+        
+        // Ensure at least one variant and option is marked as default
+        if (!req.body.variants.some((v: any) => v.isDefault)) {
+          req.body.variants[0].isDefault = true;
+        }
+        
+        req.body.variants.forEach((variant: any) => {
+          if (variant.isDefault && variant.options?.length > 0) {
+            if (!variant.options.some((o: any) => o.isDefault)) {
+              variant.options[0].isDefault = true;
+            }
+          }
         });
       }
-
-      // Ensure at least one variant and option is marked as default
-      if (!req.body.variants.some((v: any) => v.isDefault)) {
-        req.body.variants[0].isDefault = true;
-      }
-
-      req.body.variants.forEach((variant: any) => {
-        if (variant.isDefault && variant.options?.length > 0) {
-          if (!variant.options.some((o: any) => o.isDefault)) {
-            variant.options[0].isDefault = true;
-          }
-        }
-      });
 
       const productData = {
         ...req.body,
@@ -247,6 +283,7 @@ export class ProductController {
           success: false,
           message: "Unauthorized",
         });
+        return;
       }
       const vendorProducts = await ProductService.getProductsByVendorId(
         vendorId
@@ -728,25 +765,42 @@ export class ProductController {
           }),
       };
 
+      // Handle empty query - return all products with filters
+      const searchQuery = q && typeof q === "string" && q.trim() ? String(q).trim() : "";
+      
       // Run suggestions and search in parallel to optimize response time
       const [suggestions, results] = await Promise.all([
-        q && typeof q === "string" && q.length < 10
-          ? redisService.getSuggestions(q.toLowerCase())
-          : Promise.resolve([]), // If no suggestions needed, return empty array
+        searchQuery && searchQuery.length >= 2 && searchQuery.length < 10
+          ? redisService.getSuggestions(searchQuery.toLowerCase())
+          : Promise.resolve([]),
         ProductService.searchProducts(
-          String(q),
+          req.preferences?.currency || "USD",
+          searchQuery,
           filters,
           Number(page),
           Number(limit)
         ),
       ]);
 
-      console.log("Suggestions: ", suggestions);
-
       return res.json({
         ...results,
         suggestions,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getBestDeals(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const results = await ProductService.getBestDeals(page, limit);
+      res.status(200).json(results);
     } catch (error) {
       next(error);
     }
@@ -765,10 +819,54 @@ export class ProductController {
       const results = await ProductService.getProductsByCategory(
         categoryId,
         page,
-        limit
+        limit,
+        req.preferences?.currency || "USD"
       );
 
       res.json(results);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getVariantDimensions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const product = await ProductService.getProductById(id);
+      
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
+
+      // Extract dimensions from variant options
+      const dimensions: Record<string, string[]> = {};
+      
+      if (product.variants && product.variants.length > 0) {
+        for (const variant of product.variants) {
+          for (const option of variant.options) {
+            if (option.dimensions) {
+              Object.entries(option.dimensions).forEach(([key, value]) => {
+                if (!dimensions[key]) {
+                  dimensions[key] = [];
+                }
+                if (!dimensions[key].includes(value)) {
+                  dimensions[key].push(value);
+                }
+              });
+            }
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        variantDimensions: product.variantDimensions || [],
+        availableOptions: dimensions,
+        combinations: product.variants[0]?.options || []
+      });
     } catch (error) {
       next(error);
     }
@@ -1107,24 +1205,18 @@ export class ProductController {
   static async addToCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
-      const { productId, quantity, price, variantId, optionId } = req.body;
+      const { productId, quantity, price, optionId } = req.body;
 
-      if (!userId || !productId || !quantity || !price || !variantId) {
+      if (!userId || !productId || !quantity || !price || !optionId) {
         res.status(400).json({
           success: false,
           message:
-            "Missing cart parameters (productId, quantity, price, variantId required)",
+            "Missing cart parameters (productId, quantity, price, optionId required)",
         });
         return;
       }
 
-      if (variantId && !optionId) {
-        res.status(400).json({
-          success: false,
-          message: "optionId is required when variantId is provided",
-        });
-        return;
-      }
+      console.log("Add to cart request:", req.body);
 
       const product = await ProductService.getProductById(productId);
       if (!product) {
@@ -1132,40 +1224,51 @@ export class ProductController {
         return;
       }
 
-      if (product.inventory.listing.type === "instant") {
-        const variant = product.variants.find(
-          (v: any) => v._id.toString() === variantId
-        );
-        if (!variant) {
-          res
-            .status(404)
-            .json({ success: false, message: "Variant not found" });
-          return;
-        }
+      const vendor = product.vendorId as any;
+      const user = vendor.userId as IUser;
+      // Ensure vendor can't add his or her products to cart
+      if (user && (user._id === userId)) {
+        res.status(400).json({
+          success: false,
+          message: "Vendors cannot add their own products to cart",
+        });
+        return;
+      }
 
+      // Find option across all variants
+      let foundOption = null;
+      let foundVariant = null;
+      
+      for (const variant of product.variants) {
         const option = variant.options.find(
           (o: any) => o._id.toString() === optionId
         );
-
-        if (!option) {
-          res
-            .status(404)
-            .json({ success: false, message: "Variant option not found" });
-          return;
+        if (option) {
+          foundOption = option;
+          foundVariant = variant;
+          break;
         }
+      }
 
-        if (option.quantity < quantity) {
+      if (!foundOption || !foundVariant) {
+        res.status(404).json({ success: false, message: "Variant option not found" });
+        return;
+      }
+
+      if (product.inventory.listing.type === "instant") {
+        if (foundOption.quantity < quantity) {
           res.status(400).json({
             success: false,
-            message: `Only ${option.quantity} items in stock`,
+            message: `Only ${foundOption.quantity} items in stock`,
           });
           return;
         }
 
-        if (option.salePrice !== price) {
+        const expectedPrice = foundOption.salePrice || foundOption.price;
+        if (expectedPrice !== price) {
           res.status(400).json({
             success: false,
-            message: `Price mismatch. Current price is ${option.salePrice}`,
+            message: `Price mismatch. Current price is ${expectedPrice}`,
           });
           return;
         }
@@ -1173,7 +1276,7 @@ export class ProductController {
 
       const cart = await CartService.addToCart(userId.toString(), {
         productId,
-        variantId,
+        variantId: (foundVariant as any)._id.toString(),
         name: product.name,
         images: product.images,
         quantity,
@@ -1218,17 +1321,32 @@ export class ProductController {
       // Add each cart item using CartService
       let successCount = 0;
       for (const item of cart) {
-        if (item.productId && item.variantId && item.quantity && item.price) {
-          const success = await CartService.addToCart(userId.toString(), {
-            productId: item.productId,
-            variantId: item.variantId,
-            optionId: item.optionId,
-            name: item.name,
-            images: item.images,
-            quantity: item.quantity,
-            price: item.price,
-          });
-          if (success) successCount++;
+        if (item.productId && item.optionId && item.quantity && item.price) {
+          // Find variant for this option
+          const product = await ProductService.getProductById(item.productId);
+          let variantId = null;
+          
+          if (product) {
+            for (const variant of product.variants) {
+              if (variant.options.some((o: any) => o._id.toString() === item.optionId)) {
+                variantId = (variant as any)._id.toString();
+                break;
+              }
+            }
+          }
+          
+          if (variantId) {
+            const success = await CartService.addToCart(userId.toString(), {
+              productId: item.productId,
+              variantId,
+              optionId: item.optionId,
+              name: item.name,
+              images: item.images,
+              quantity: item.quantity,
+              price: item.price,
+            });
+            if (success) successCount++;
+          }
         }
       }
 
@@ -1323,19 +1441,77 @@ export class ProductController {
     try {
       const userId = req.userId;
       const { productId } = req.params;
-      const { price } = req.body;
+      const { optionId } = req.body;
 
-      if (!productId || !userId || !price) {
+      if (!productId || !userId) {
         res.status(400).json({
           success: false,
-          message: "Missing required fields (productId, price)",
+          message: "Missing required fields (productId)",
         });
         return;
       }
 
+      const product = await ProductService.getProductById(productId);
+      if (!product) {
+        res.status(404).json({ success: false, message: "Product not found" });
+        return;
+      }
+
+      const vendor = product.vendorId as any;
+      const user = vendor.userId as IUser;
+
+      // Ensure vendor can't add his or her products to wishlist
+      if (user && (user._id === userId)) {
+        res.status(400).json({
+          success: false,
+          message: "Vendors cannot add their own products to wishlist",
+        });
+        return;
+      }
+
+      let price = 0;
+      let selectedVariantId: string | undefined = undefined;
+      
+      if (optionId) {
+        // Find option across all variants
+        let foundOption = null;
+        
+        for (const variant of product.variants) {
+          const option = variant.options.find(
+            (o: any) => o._id.toString() === optionId
+          );
+          if (option) {
+            foundOption = option;
+            selectedVariantId = (variant as any)._id.toString();
+            break;
+          }
+        }
+        
+        if (!foundOption) {
+          res.status(404).json({ success: false, message: "Option not found" });
+          return;
+        }
+
+        price = foundOption.salePrice || foundOption.price;
+      } else {
+        // Use first variant's first option price as fallback
+        if (product.variants && product.variants.length > 0) {
+          const firstVariant = product.variants[0];
+          if (firstVariant.options && firstVariant.options.length > 0) {
+            const firstOption = firstVariant.options[0];
+            price = firstOption.salePrice || firstOption.price;
+            selectedVariantId = (firstVariant as any)._id.toString();
+          }
+        }
+      }
+
       const success = await CartService.addToWishlist(userId.toString(), {
         productId,
-        priceWhenAdded: price,
+        price,
+        name: product.name,
+        images: product.images,
+        variantId: selectedVariantId,
+        optionId,
       });
 
       if (success) {
@@ -1387,6 +1563,7 @@ export class ProductController {
   static async getWishlist(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
+  
       if (!userId) {
         res.status(401).json({ success: false, message: "Unauthorized" });
         return;
@@ -1426,12 +1603,12 @@ export class ProductController {
     try {
       const userId = req.userId;
       const { productId } = req.params;
-      const { price, variantId, optionId } = req.body;
+      const { price, optionId } = req.body;
 
-      if (!userId || !productId || !price || !variantId || !optionId) {
+      if (!userId || !productId || !price || !optionId) {
         return res.status(400).json({
           success: false,
-          message: "Missing required fields: price, variantId, optionId",
+          message: "Missing required fields: price, optionId",
         });
       }
 
@@ -1458,24 +1635,40 @@ export class ProductController {
         });
       }
 
+      // Find variant that contains this option
+      let foundVariant = null;
+      for (const variant of product.variants) {
+        if (variant.options.some((o: any) => o._id.toString() === optionId)) {
+          foundVariant = variant;
+          break;
+        }
+      }
+      
+      if (!foundVariant) {
+        return res.status(404).json({
+          success: false,
+          message: "Option not found",
+        });
+      }
+      
+      const variantId = (foundVariant as any)._id.toString();
+
       // Find existing offer block for this user
       const existingOffer = product.offers.find(
         (offer) => offer.userId.toString() === userId.toString()
       );
 
-      // Check if user has already made 3 offers for this variant+option
+      // Check if user has already made 3 offers for this option
       const variantOffers =
         existingOffer?.userOffers.filter(
-          (o) =>
-            o.variantId.toString() === variantId &&
-            o.optionId.toString() === optionId
+          (o) => o.optionId.toString() === optionId
         ) || [];
 
       if (variantOffers.length === 3) {
         return res.status(400).json({
           success: false,
           message:
-            "Maximum number of offers reached for this variant and option",
+            "Maximum number of offers reached for this option",
         });
       }
 
@@ -1527,7 +1720,7 @@ export class ProductController {
         case: "new-offer",
         type: "offer",
         title: `New offer made for ${product.name}`,
-        message: `Offer of ${price} made for ${product.name} (variant: ${variantId}, option: ${optionId})`,
+        message: `Offer of ${price} made for ${product.name} (option: ${optionId})`,
         data: {
           redirectUrl: "/",
           entityId: product._id,
@@ -2289,10 +2482,18 @@ export const relistItemForAuction = async (req: Request, res: Response) => {
       product.inventory.listing.auction.endTime = endTime;
       product.inventory.listing.auction.isStarted = false;
       product.inventory.listing.auction.isExpired = false;
+      product.inventory.listing.auction.relistCount += 1;
       product.inventory.listing.auction.priorityScore =
         100 / (product.inventory.listing.auction.relistCount + 1);
-      product.inventory.listing.auction.relistCount += 1;
+
+      await product.save();
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Product relisted successfully",
+      product
+    })
   } catch (error: any) {
     console.error(error);
     // add logger
@@ -2405,5 +2606,43 @@ export const getFeaturedProducts = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+export const triggerAuctionBuyNow = async(req: Request, res: Response) => {
+  try {
+    const { productId } = req.params
+    const { price } = req.body
+
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    if (product.inventory.listing.type !== "auction") {
+      return res.status(404).json({
+        message: "Chosen product can't be relisted",
+        success: false,
+      });
+    }
+
+    if (product.inventory.listing.auction?.buyNowPrice !== price) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid price",
+      })
+      return;
+    }
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "An error occured while trying to buy item"
+    })
+  }
+}
 
 

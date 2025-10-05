@@ -1,10 +1,14 @@
 import mongoose, {Types} from "mongoose";
 
 
+
 export interface WishlistItem {
-    productId: Types.ObjectId;
-    addedAt: Date;
-    priceWhenAdded: number;
+  productId: string;
+  price: number;
+  name: string;
+  images: string[];
+  variantId?: string;
+  optionId?: string;
 }
 
 export interface IWishlist {

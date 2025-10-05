@@ -1,5 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { IWallet } from "../models/wallet.model";
+import { IUser } from "./user.type";
 
 interface Subscription {
   currentPlan: Types.ObjectId;

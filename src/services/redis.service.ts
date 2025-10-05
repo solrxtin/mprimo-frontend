@@ -303,7 +303,7 @@ class RedisService {
         const existingItem: CartItem = JSON.parse(cartItemRaw);
         newItem = {
           ...existingItem,
-          quantity: Number(existingItem.quantity) + quantity,
+          quantity: quantity,
           price, // Optionally update price in case it's changed
           name,
           images,
@@ -372,12 +372,30 @@ class RedisService {
   }
 
   // ==================== WISHLIST ====================
-  async addToWishlist(userId: string, productId: string) {
+  async addToWishlist(
+    userId: string,
+    productId: string,
+    price: number,
+    name: string,
+    images: string[],
+    variantId?: string,
+    optionId?: string
+  ) {
     if (!this.isConnected) return;
 
     try {
       const wishlistKey = `wishlist:${userId}`;
-      await this.redisClient.sadd(wishlistKey, productId);
+      const wishlistItem = {
+        productId,
+        name,
+        images,
+        price,
+        variantId: variantId || "",
+        optionId: optionId || undefined,
+        addedAt: new Date(),
+      };
+
+      await this.redisClient.hset(wishlistKey, productId, JSON.stringify(wishlistItem));
     } catch (error) {
       logger.error("Error adding to wishlist:", error);
     }
@@ -388,8 +406,13 @@ class RedisService {
 
     try {
       const wishlistKey = `wishlist:${userId}`;
-      const wishlist = await this.redisClient.smembers(wishlistKey);
-      return wishlist;
+      const wishlistItems = await this.redisClient.hgetall(wishlistKey);
+      return Object.values(wishlistItems)
+        .map((item) => JSON.parse(item))
+        .sort(
+          (a, b) =>
+            new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+        );
     } catch (error) {
       logger.error("Error getting wishlist:", error);
       return [];
@@ -401,7 +424,7 @@ class RedisService {
 
     try {
       const wishlistKey = `wishlist:${userId}`;
-      await this.redisClient.srem(wishlistKey, productId);
+      await this.redisClient.hdel(wishlistKey, productId);
     } catch (error) {
       logger.error("Error removing from wishlist:", error);
     }

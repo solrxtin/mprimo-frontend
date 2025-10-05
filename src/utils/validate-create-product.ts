@@ -210,9 +210,7 @@ export const validateProductData = async (productData: any) => {
           }
 
           if (!option.salePrice || option.salePrice < 0.01) {
-            throw new Error(
-              `Option sale price must be at least 0.01 for ${option.value}`
-            );
+            option.salePrice = option.price;
           }
 
           if (option.quantity === undefined || option.quantity < 0) {

@@ -11,6 +11,8 @@ import { IVendor } from "../types/vendor.type";
 import Notification from "../models/notification.model";
 import { socketService } from "..";
 import Vendor from "../models/vendor.model";
+import { PipelineStage } from "mongoose";
+import { CurrencyService } from "./currency.service";
 
 function isMongoError(error: any): error is MongoError {
   return error.code !== undefined && typeof error.code === "number";
@@ -21,7 +23,8 @@ export class ProductService {
     query: any = {},
     page = 1,
     limit = 10,
-    sort: any = { createdAt: -1 }
+    userCurrency: string,
+    sort: any = { createdAt: -1 },
   ) {
     const skip = (page - 1) * limit;
 
@@ -39,9 +42,13 @@ export class ProductService {
 
     const [products, total] = await Promise.all([
       ProductModel.find(filter)
-        .populate("vendorId", "name email")
+        .populate({
+          path: "vendorId",
+          populate: { path: "userId", model: "User" },
+        })
         .populate("category.main")
         .populate("category.sub")
+        .populate("country")
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -49,8 +56,37 @@ export class ProductService {
       ProductModel.countDocuments(filter),
     ]);
 
+    const enrichedProducts = await Promise.all(
+      products.map(async (product) => {
+        let priceInfo;
+        const vendorCurrency = (product.country as any).currency || "USD";
+        if (product.inventory.listing.type === "instant") {
+          const defaultOPtion =
+            product.variants
+              .flatMap((v) => v.options)
+              .find((o) => o.isDefault) || product.variants[0].options[0];
+          priceInfo = await CurrencyService.getProductPriceForUser(
+            defaultOPtion.salePrice,
+            vendorCurrency, // 👈 vendor's currency
+            userCurrency // 👈 user's preferred currency
+          );
+        } else {
+          priceInfo = await CurrencyService.getProductPriceForUser(
+            product.inventory.listing.auction?.startBidPrice || 0,
+            vendorCurrency, // 👈 vendor's currency
+            userCurrency // 👈 user's preferred currency
+          );
+        }
+
+        return {
+          ...product,
+          priceInfo, // 👈 attach converted price details
+        };
+      })
+    );
+
     return {
-      products,
+      products: enrichedProducts,
       pagination: {
         page,
         limit,
@@ -64,14 +100,178 @@ export class ProductService {
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
 
     return ProductModel.find({ _id: { $in: objectIds } })
-      .populate("vendorId", "name email")
+      .populate({
+        path: "vendorId",
+        populate: { path: "userId", model: "User" },
+      })
       .populate("category.main")
       .populate("category.sub");
   }
 
+  static async getBestDeals(
+    page: number,
+    limit: number,
+    minDiscount: number = 5
+  ) {
+    const skip = (page - 1) * limit;
+
+    // Simplified pipeline - remove the 15% discount requirement temporarily
+    const pipeline: PipelineStage[] = [
+      { $match: { status: "active" } },
+      { $unwind: "$variants" },
+      { $unwind: "$variants.options" },
+      {
+        $match: {
+          "variants.options.salePrice": { $exists: true, $ne: null, $gt: 0 },
+          "variants.options.price": { $gt: 0 },
+          $expr: {
+            $lt: ["$variants.options.salePrice", "$variants.options.price"],
+          },
+        },
+      },
+      {
+        $addFields: {
+          discountPercentage: {
+            $multiply: [
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      "$variants.options.price",
+                      "$variants.options.salePrice",
+                    ],
+                  },
+                  "$variants.options.price",
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      },
+      { $match: { discountPercentage: { $gte: minDiscount } } },
+      { $sort: { discountPercentage: -1 } },
+      {
+        $group: {
+          _id: "$_id",
+          vendorId: { $first: "$vendorId" },
+          name: { $first: "$name" },
+          slug: { $first: "$slug" },
+          brand: { $first: "$brand" },
+          description: { $first: "$description" },
+          condition: { $first: "$condition" },
+          images: { $first: "$images" },
+          rating: { $first: "$rating" },
+          status: { $first: "$status" },
+          category: { $first: "$category" },
+          variants: { $first: "$variants" },
+          discountPercentage: { $first: "$discountPercentage" },
+          createdAt: { $first: "$createdAt" },
+          updatedAt: { $first: "$updatedAt" },
+        },
+      },
+      {
+        $group: {
+          _id: "$category.path",
+          bestDeal: { $first: "$$ROOT" },
+          maxDiscount: { $max: "$discountPercentage" },
+        },
+      },
+      { $replaceRoot: { newRoot: "$bestDeal" } },
+      { $sort: { discountPercentage: -1 } },
+      {
+        $lookup: {
+          from: "vendors",
+          localField: "vendorId",
+          foreignField: "_id",
+          as: "vendor",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category.main",
+          foreignField: "_id",
+          as: "mainCategory",
+        },
+      },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const products = await ProductModel.aggregate(pipeline);
+
+    const totalPipeline = [
+      { $match: { status: "active" } },
+      { $unwind: "$variants" },
+      { $unwind: "$variants.options" },
+      {
+        $match: {
+          "variants.options.salePrice": { $exists: true, $ne: null, $gt: 0 },
+          "variants.options.price": { $gt: 0 },
+          $expr: {
+            $lt: ["$variants.options.salePrice", "$variants.options.price"],
+          },
+        },
+      },
+      {
+        $addFields: {
+          discountPercentage: {
+            $multiply: [
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      "$variants.options.price",
+                      "$variants.options.salePrice",
+                    ],
+                  },
+                  "$variants.options.price",
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      },
+      { $match: { discountPercentage: { $gte: minDiscount } } },
+      {
+        $group: {
+          _id: "$_id",
+          category: { $first: "$category" },
+          discountPercentage: { $first: "$discountPercentage" },
+        },
+      },
+      {
+        $group: {
+          _id: "$category.path",
+          bestDeal: { $first: "$$ROOT" },
+        },
+      },
+      {
+        $count: "total",
+      },
+    ];
+
+    const total = await ProductModel.aggregate(totalPipeline);
+
+    return {
+      products,
+      pagination: {
+        page,
+        limit,
+        total: total[0]?.total || 0,
+        pages: Math.ceil((total[0]?.total || 0) / limit),
+      },
+    };
+  }
+
   static async getProductsByVendorId(vendorId: string): Promise<ProductType[]> {
     return ProductModel.find({ vendorId })
-      .populate("vendorId", "name email")
+      .populate({
+        path: "vendorId",
+        populate: { path: "userId", model: "User" },
+      })
       .populate("category.main")
       .populate("category.sub");
   }
@@ -80,7 +280,10 @@ export class ProductService {
     return ProductModel.find({ status: "active" })
       .sort({ "analytics.views": -1 })
       .limit(count)
-      .populate("vendorId", "name email")
+      .populate({
+        path: "vendorId",
+        populate: { path: "userId", model: "User" },
+      })
       .populate("category.main");
   }
 
@@ -99,12 +302,18 @@ export class ProductService {
       status: "active",
     })
       .limit(count)
-      .populate("vendorId", "name email");
+      .populate({
+        path: "vendorId",
+        populate: { path: "userId", model: "User" },
+      });
   }
 
   static async getProductById(id: string): Promise<ProductType> {
     const product = await ProductModel.findById(id)
-      .populate("vendorId", "name email")
+      .populate({
+        path: "vendorId",
+        populate: { path: "userId", model: "User" },
+      })
       .populate("category.main")
       .populate("category.sub");
 
@@ -116,7 +325,10 @@ export class ProductService {
 
   static async getProductBySlug(slug: string): Promise<ProductType> {
     const product = await ProductModel.findOne({ slug })
-      .populate("vendorId", "name email")
+      .populate({
+        path: "vendorId",
+        populate: { path: "userId", model: "User" },
+      })
       .populate("category.main")
       .populate("category.sub");
 
@@ -126,7 +338,7 @@ export class ProductService {
     return product;
   }
 
-  static async getProductsByCategory(categoryId: string, page = 1, limit = 10) {
+  static async getProductsByCategory(categoryId: string, page = 1, limit = 10, userCurrency: string) {
     // Find the category and its descendants
     const category = await CategoryModel.findById(categoryId);
     if (!category) {
@@ -142,7 +354,7 @@ export class ProductService {
       ],
     };
 
-    return this.getProducts(query, page, limit);
+    return this.getProducts(query, page, limit, userCurrency);
   }
 
   static async updateProduct(
@@ -179,7 +391,10 @@ export class ProductService {
       updateData,
       { new: true, runValidators: true }
     )
-      .populate("vendorId", "name email")
+      .populate({
+        path: "vendorId",
+        populate: { path: "userId", model: "User" },
+      })
       .populate("category.main")
       .populate("category.sub");
 
@@ -367,11 +582,17 @@ export class ProductService {
   }
 
   static async searchProducts(
+    userCurrency: string,
     query: string,
     filters: any = {},
     page = 1,
     limit = 10
   ) {
+    // If no query provided, just return products with filters
+    if (!query || query.trim() === "") {
+      return this.getProducts(filters, page, limit, userCurrency);
+    }
+
     // Get category IDs that match the search query
     const categories = await CategoryModel.find({
       $or: [
@@ -386,13 +607,14 @@ export class ProductService {
       $or: [
         { name: { $regex: query, $options: "i" } },
         { description: { $regex: query, $options: "i" } },
+        { brand: { $regex: query, $options: "i" } },
         { "category.main": { $in: categoryIds } },
         { "category.sub": { $in: categoryIds } },
       ],
       ...filters,
     };
 
-    return this.getProducts(searchQuery, page, limit);
+    return this.getProducts(searchQuery, page, limit, userCurrency);
   }
 
   static async addReview(

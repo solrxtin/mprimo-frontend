@@ -8,6 +8,8 @@ const wishlistSchema = new mongoose.Schema<IWishlist>(
     items: [
       {
         productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+        variantId: { type: String },
+        optionId: { type: String },
         addedAt: { type: Date, default: Date.now },
         priceWhenAdded: { type: Number, required: true }
       },
