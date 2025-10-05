@@ -1,24 +1,49 @@
-"use client"
+"use client";
 
-
-import Header from '@/components/Home/Header';
-import { Sidebar } from '@/components/SideBar';
-import { ReactNode } from 'react';
+import Header from "@/components/Home/Header";
+import { Sidebar } from "@/components/SideBar";
+import LogoutModal from "@/components/users/LogOutPromptModal";
+import { useLogoutUser } from "@/hooks/mutations";
+import { useRouter } from "next/navigation";
+import { ReactNode, useState } from "react";
+import { toast } from "react-toastify";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  return (
-   <div className="min-h-screen font-roboto bg-gray-50">
+  const router = useRouter();
+  const logoutMutation = useLogoutUser();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
+  const closeLogoutModal = () => {
+    setIsLogoutModalOpen(false);
+  };
+
+  const openLogoutModal = () => {
+    setIsLogoutModalOpen(true);
+  };
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        toast.success("Logout Successfull");
+        closeLogoutModal();
+        router.push("/home");
+      },
+    });
+  };
+  return (
+    <div className="min-h-screen font-roboto bg-gray-50">
       <div className="flex">
         <div className="hidden lg:block">
-          <Sidebar />
+          <Sidebar openLogoutModal={openLogoutModal} />
         </div>
 
-        <main className="flex-1 p-6">
-        {children}
-      </main>
-
-    </div>
+        <main className="flex-1 p-6">{children}</main>
+        <LogoutModal
+          isOpen={isLogoutModalOpen}
+          onClose={closeLogoutModal}
+          logout={handleLogout}
+          isLoading={logoutMutation.isPending}
+        />
+      </div>
     </div>
   );
 }
