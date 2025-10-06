@@ -886,9 +886,12 @@ export const signupVendor = async (req: Request, res: Response) => {
     await SubscriptionService.initializeVendorSubscription(
       vendor._id.toString()
     );
+    const rawCountry = req.headers["cf-ipcountry"];
+    const reqCountry = Array.isArray(rawCountry) ? rawCountry[0] : rawCountry || "US";
+
     const userData = {
       email: businessEmail,
-      country: country,
+      country: reqCountry,
       businessType: "company",
       companyName: businessName,
     } as const;

@@ -241,6 +241,7 @@ export class ProductController {
           query,
           Number(page),
           Number(limit),
+          req.preferences?.currency || "USD",
           sortQuery
         ),
         ProductService.getBrandsForCategory({
@@ -286,7 +287,8 @@ export class ProductController {
         return;
       }
       const vendorProducts = await ProductService.getProductsByVendorId(
-        vendorId
+        vendorId,
+        req.preferences?.currency || "USD"
       );
       res.json({
         success: true,
@@ -379,7 +381,7 @@ export class ProductController {
         });
       } catch (error) {
         // Fallback to database if Redis fails
-        product = await ProductService.getProductBySlug(req.params.slug);
+        product = await ProductService.getProductBySlug(req.params.slug, req.preferences?.currency || "USD");
       }
 
       if (!product) {
@@ -799,7 +801,11 @@ export class ProductController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-      const results = await ProductService.getBestDeals(page, limit);
+      const results = await ProductService.getBestDeals(
+        page,
+        limit,
+        req.preferences?.currency || "USD"
+      );
       res.status(200).json(results);
     } catch (error) {
       next(error);
@@ -890,7 +896,10 @@ export class ProductController {
         // Extract product IDs
         productIds = topProducts.filter((_, index) => index % 2 === 0);
         // Fetch full product details
-        const products = await ProductService.getProductsByIds(productIds);
+        const products = await ProductService.getProductsByIds(
+          productIds,
+          req.preferences?.currency || "USD"
+        );
 
         return res.json({
           success: true,
@@ -899,7 +908,10 @@ export class ProductController {
       }
 
       // Fallback to database if Redis doesn't have data
-      const products = await ProductService.getTopProducts(count);
+      const products = await ProductService.getTopProducts(
+        count,
+        req.preferences?.currency || "USD"
+      );
 
       res.json({
         success: true,
@@ -929,7 +941,10 @@ export class ProductController {
 
       // If Redis has data, return it
       if (relatedIds && relatedIds.length > 0) {
-        const products = await ProductService.getProductsByIds(relatedIds);
+        const products = await ProductService.getProductsByIds(
+          relatedIds,
+          req.preferences?.currency || "USD"
+        );
 
         return res.json({
           success: true,
@@ -938,7 +953,11 @@ export class ProductController {
       }
 
       // Fallback to database if Redis doesn't have data
-      const products = await ProductService.getSimilarProducts(id, count);
+      const products = await ProductService.getSimilarProducts(
+        id,
+        count,
+        req.preferences?.currency || "USD"
+      );
 
       res.json({
         success: true,
