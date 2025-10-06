@@ -10,6 +10,7 @@ import {
   ProductController,
   rejectCounterOffer,
   rejectOffer,
+  relistItemForAuction,
 } from "../controllers/product.controller";
 import { verifyToken } from "../middlewares/verify-token.middleware";
 import { authorizeRole } from "../middlewares/authorize-role.middleware";
@@ -112,6 +113,17 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.getTopProducts(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get(
+  "/best-deals",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.getBestDeals(req, res, next);
     } catch (error) {
       next(error);
     }
@@ -356,6 +368,15 @@ router.get(
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     await ProductController.getProduct(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get product variant dimensions
+router.get("/:id/variants", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await ProductController.getVariantDimensions(req, res, next);
   } catch (error) {
     next(error);
   }
@@ -712,5 +733,8 @@ router.post(
     }
   }
 );
+
+// Relist item for auction
+router.post("/auctions/:productId/relist", verifyToken, authorizeRole(["business"]), relistItemForAuction)
 
 export default router;

@@ -2,14 +2,9 @@ import {Cart} from "../models/cart.model";
 import { WishList } from "../models/cart.model";
 import redisService from "./redis.service";
 import { LoggerService } from "./logger.service";
-import { CartItem } from "../types/cart.type";
+import { CartItem, WishlistItem } from "../types/cart.type";
 
 const logger = LoggerService.getInstance();
-
-interface WishlistItem {
-  productId: string;
-  priceWhenAdded: number;
-}
 
 export class CartService {
   // Cart Methods
@@ -150,11 +145,20 @@ export class CartService {
           "items.productId"
         );
         if (dbWishlist && dbWishlist.items.length > 0) {
-          // Sync to Redis
+          // Sync to Redis with full product details
           for (const item of dbWishlist.items) {
-            await redisService.addToWishlist(userId, item.productId.toString());
+            const product = item.productId as any;
+            await redisService.addToWishlist(
+              userId,
+              product._id.toString(),
+              item.price,
+              product.name,
+              product.images,
+              item.variantId,
+              item.optionId
+            );
           }
-          wishlist = dbWishlist.items.map((item) => item.productId.toString());
+          wishlist = await redisService.getWishlist(userId);
         }
       }
 
@@ -167,7 +171,15 @@ export class CartService {
 
   static async addToWishlist(userId: string, item: WishlistItem) {
     try {
-      await redisService.addToWishlist(userId, item.productId);
+      await redisService.addToWishlist(
+        userId,
+        item.productId,
+        item.price,
+        item.name,
+        item.images,
+        item.variantId,
+        item.optionId
+      );
 
       await WishList.findOneAndUpdate(
         { userId },
@@ -175,7 +187,9 @@ export class CartService {
           $push: {
             items: {
               productId: item.productId,
-              priceWhenAdded: item.priceWhenAdded,
+              priceWhenAdded: item.price,
+              variantId: item.variantId,
+              optionId: item.optionId,
               addedAt: new Date(),
             },
           },
@@ -185,6 +199,7 @@ export class CartService {
 
       return true;
     } catch (error) {
+      console.error(error);
       logger.error("Error adding to wishlist:", error);
       return false;
     }
