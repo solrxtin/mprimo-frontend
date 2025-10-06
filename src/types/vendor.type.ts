@@ -29,7 +29,7 @@ export interface IVendor {
   kycStatus: "pending" | "verified" | "rejected";
   verificationDocuments: VerificationDocument[];
   stripeAccountId?: string;
-  stripeVerificationStatus: "pending" | "verified" | "rejected";
+  stripeVerificationStatus: string;
   businessInfo?: {
     name: string;
     registrationnumber: string;

@@ -12,8 +12,13 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
       credentials: "include"
     });
   
+    // Skip refresh for auth pages (signup, login, register)
+    const isAuthPage = window.location.pathname.includes('/login') || 
+                      window.location.pathname.includes('/sign-up') || 
+                      window.location.pathname.includes('/register');
+    
     // If unauthorized (401) or forbidden (403), try refreshing token
-    if ((response.status === 401 || response.status === 403) && !isRefreshing) {
+    if ((response.status === 401 || response.status === 403) && !isRefreshing && !isAuthPage) {
       isRefreshing = true;
       
       try {

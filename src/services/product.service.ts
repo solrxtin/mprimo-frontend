@@ -19,12 +19,60 @@ function isMongoError(error: any): error is MongoError {
 }
 
 export class ProductService {
+  private static async enrichProductsWithPriceInfo(
+    products: any[],
+    userCurrency: string
+  ) {
+    return Promise.all(
+      products.map(async (product) => {
+        let priceInfo;
+        const vendorCurrency = (product.country as any)?.currency || "USD";
+        if (product.inventory?.listing?.type === "instant") {
+          const defaultOption =
+            product.variants
+              ?.flatMap((v: any) => v.options)
+              ?.find((o: any) => o.isDefault) ||
+            product.variants?.[0]?.options?.[0];
+          if (defaultOption) {
+            priceInfo = await CurrencyService.getProductPriceForUser(
+              defaultOption.salePrice || defaultOption.price,
+              vendorCurrency,
+              userCurrency
+            );
+          }
+        } else {
+          priceInfo = await CurrencyService.getProductPriceForUser(
+            product.inventory?.listing?.auction?.startBidPrice || 0,
+            vendorCurrency,
+            userCurrency
+          );
+        }
+
+        // Remove sensitive user data
+        if (product.vendorId?.userId) {
+          product.vendorId.userId = {
+            _id: product.vendorId.userId._id,
+            profile: {
+              firstName: product.vendorId.userId.profile?.firstName,
+              lastName: product.vendorId.userId.profile?.lastName,
+            },
+          };
+        }
+
+        return {
+          ...product,
+          priceInfo,
+        };
+      })
+    );
+  }
+
   static async getProducts(
     query: any = {},
     page = 1,
     limit = 10,
     userCurrency: string,
-    sort: any = { createdAt: -1 },
+    sort: any = { createdAt: -1 }
   ) {
     const skip = (page - 1) * limit;
 
@@ -44,7 +92,11 @@ export class ProductService {
       ProductModel.find(filter)
         .populate({
           path: "vendorId",
-          populate: { path: "userId", model: "User" },
+          populate: {
+            path: "userId",
+            model: "User",
+            select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+          },
         })
         .populate("category.main")
         .populate("category.sub")
@@ -56,33 +108,9 @@ export class ProductService {
       ProductModel.countDocuments(filter),
     ]);
 
-    const enrichedProducts = await Promise.all(
-      products.map(async (product) => {
-        let priceInfo;
-        const vendorCurrency = (product.country as any).currency || "USD";
-        if (product.inventory.listing.type === "instant") {
-          const defaultOPtion =
-            product.variants
-              .flatMap((v) => v.options)
-              .find((o) => o.isDefault) || product.variants[0].options[0];
-          priceInfo = await CurrencyService.getProductPriceForUser(
-            defaultOPtion.salePrice,
-            vendorCurrency, // 👈 vendor's currency
-            userCurrency // 👈 user's preferred currency
-          );
-        } else {
-          priceInfo = await CurrencyService.getProductPriceForUser(
-            product.inventory.listing.auction?.startBidPrice || 0,
-            vendorCurrency, // 👈 vendor's currency
-            userCurrency // 👈 user's preferred currency
-          );
-        }
-
-        return {
-          ...product,
-          priceInfo, // 👈 attach converted price details
-        };
-      })
+    const enrichedProducts = await this.enrichProductsWithPriceInfo(
+      products,
+      userCurrency
     );
 
     return {
@@ -96,21 +124,33 @@ export class ProductService {
     };
   }
 
-  static async getProductsByIds(ids: string[]): Promise<ProductType[]> {
+  static async getProductsByIds(
+    ids: string[],
+    userCurrency: string = "USD"
+  ): Promise<ProductType[]> {
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
 
-    return ProductModel.find({ _id: { $in: objectIds } })
+    const products = await ProductModel.find({ _id: { $in: objectIds } })
       .populate({
         path: "vendorId",
-        populate: { path: "userId", model: "User" },
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
       })
       .populate("category.main")
-      .populate("category.sub");
+      .populate("category.sub")
+      .populate("country")
+      .lean();
+
+    return this.enrichProductsWithPriceInfo(products, userCurrency);
   }
 
   static async getBestDeals(
     page: number,
     limit: number,
+    userCurrency: string = "USD",
     minDiscount: number = 5
   ) {
     const skip = (page - 1) * limit;
@@ -199,7 +239,8 @@ export class ProductService {
       { $limit: limit },
     ];
 
-    const products = await ProductModel.aggregate(pipeline);
+    const rawProducts = await ProductModel.aggregate(pipeline);
+    const products = await this.enrichProductsWithPriceInfo(rawProducts, "USD");
 
     const totalPipeline = [
       { $match: { status: "active" } },
@@ -266,37 +307,60 @@ export class ProductService {
     };
   }
 
-  static async getProductsByVendorId(vendorId: string): Promise<ProductType[]> {
-    return ProductModel.find({ vendorId })
+  static async getProductsByVendorId(
+    vendorId: string,
+    userCurrency: string = "USD"
+  ): Promise<ProductType[]> {
+    const products = await ProductModel.find({ vendorId })
       .populate({
         path: "vendorId",
-        populate: { path: "userId", model: "User" },
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
       })
       .populate("category.main")
-      .populate("category.sub");
+      .populate("category.sub")
+      .populate("country")
+      .lean();
+
+    return this.enrichProductsWithPriceInfo(products, userCurrency);
   }
 
-  static async getTopProducts(count = 10): Promise<ProductType[]> {
-    return ProductModel.find({ status: "active" })
+  static async getTopProducts(
+    count = 10,
+    userCurrency: string = "USD"
+  ): Promise<ProductType[]> {
+    const products = await ProductModel.find({ status: "active" })
       .sort({ "analytics.views": -1 })
       .limit(count)
       .populate({
         path: "vendorId",
-        populate: { path: "userId", model: "User" },
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
       })
-      .populate("category.main");
+      .populate("category.main")
+      .populate("country")
+      .lean();
+
+    return this.enrichProductsWithPriceInfo(products, userCurrency);
   }
 
   static async getSimilarProducts(
     productId: string,
-    count = 5
+    count = 5,
+    userCurrency: string = "USD"
   ): Promise<ProductType[]> {
     const product = await ProductModel.findById(productId);
     if (!product) {
       throw createError(404, "Product not found");
     }
 
-    return ProductModel.find({
+    const products = await ProductModel.find({
       _id: { $ne: productId },
       "category.main": product.category.main,
       status: "active",
@@ -304,41 +368,82 @@ export class ProductService {
       .limit(count)
       .populate({
         path: "vendorId",
-        populate: { path: "userId", model: "User" },
-      });
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
+      })
+      .populate("country")
+      .lean();
+
+    return this.enrichProductsWithPriceInfo(products, userCurrency);
   }
 
-  static async getProductById(id: string): Promise<ProductType> {
+  static async getProductById(
+    id: string,
+    userCurrency: string = "USD"
+  ): Promise<ProductType> {
     const product = await ProductModel.findById(id)
       .populate({
         path: "vendorId",
-        populate: { path: "userId", model: "User" },
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
       })
       .populate("category.main")
-      .populate("category.sub");
+      .populate("category.sub")
+      .populate("country")
+      .lean();
 
     if (!product) {
       throw createError(404, "Product not found");
     }
-    return product;
+
+    const enrichedProducts = await this.enrichProductsWithPriceInfo(
+      [product],
+      userCurrency
+    );
+    return enrichedProducts[0];
   }
 
-  static async getProductBySlug(slug: string): Promise<ProductType> {
+  static async getProductBySlug(
+    slug: string,
+    userCurrency: string = "USD"
+  ): Promise<ProductType> {
     const product = await ProductModel.findOne({ slug })
       .populate({
         path: "vendorId",
-        populate: { path: "userId", model: "User" },
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
       })
       .populate("category.main")
-      .populate("category.sub");
+      .populate("category.sub")
+      .populate("country")
+      .lean();
 
     if (!product) {
       throw createError(404, "Product not found");
     }
-    return product;
+
+    const enrichedProducts = await this.enrichProductsWithPriceInfo(
+      [product],
+      userCurrency
+    );
+    return enrichedProducts[0];
   }
 
-  static async getProductsByCategory(categoryId: string, page = 1, limit = 10, userCurrency: string) {
+  static async getProductsByCategory(
+    categoryId: string,
+    page = 1,
+    limit = 10,
+    userCurrency: string
+  ) {
     // Find the category and its descendants
     const category = await CategoryModel.findById(categoryId);
     if (!category) {
@@ -393,7 +498,11 @@ export class ProductService {
     )
       .populate({
         path: "vendorId",
-        populate: { path: "userId", model: "User" },
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
       })
       .populate("category.main")
       .populate("category.sub");

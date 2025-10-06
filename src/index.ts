@@ -37,7 +37,7 @@ import vendorPayoutRoutes from "./routes/vendor-payout.routes";
 import disputeChatRoutes from "./routes/dispute-chat.routes";
 import bannerRoutes from "./routes/banner.routes";
 import checkoutRoutes from "./routes/checkout.routes";
-import verificationRoutes from "./routes/stripe-verification.routes";
+import verificationRoutes from "./routes/vendor-verification.routes";
 import advertisementRoutes from "./routes/advertisement.routes";
 
 
