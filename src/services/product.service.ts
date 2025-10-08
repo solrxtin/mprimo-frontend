@@ -573,17 +573,17 @@ export class ProductService {
           option.quantity = Math.max(0, option.quantity + change);
           
           // Log inventory change
-          await InventoryLog.create({
-            productId: product._id,
-            variantSku: variantId,
-            changeType: operation === "add" ? "restock" : "sale",
-            quantityBefore,
-            quantityAfter: option.quantity,
-            quantityChanged: Math.abs(change),
-            reason,
-            orderId,
-            userId: vendor.userId
-          });
+          // await InventoryLog.create({
+          //   productId: product._id,
+          //   variantSku: variantId,
+          //   changeType: operation === "add" ? "restock" : "sale",
+          //   quantityBefore,
+          //   quantityAfter: option.quantity,
+          //   quantityChanged: Math.abs(change),
+          //   reason,
+          //   orderId,
+          //   userId: vendor.userId
+          // });
           
           updated = true;
           break;
@@ -923,32 +923,32 @@ export class ProductService {
     return product;
   }
 
-  static async getInventoryHistory(
-    productId: string,
-    variantSku?: string,
-    page = 1,
-    limit = 20
-  ) {
-    const query: any = { productId };
-    if (variantSku) query.variantSku = variantSku;
+  // static async getInventoryHistory(
+  //   productId: string,
+  //   variantSku?: string,
+  //   page = 1,
+  //   limit = 20
+  // ) {
+  //   const query: any = { productId };
+  //   if (variantSku) query.variantSku = variantSku;
 
-    const skip = (page - 1) * limit;
-    const [logs, total] = await Promise.all([
-      InventoryLog.find(query)
-        .populate('userId', 'profile.firstName profile.lastName email')
-        .populate('orderId', '_id')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      InventoryLog.countDocuments(query)
-    ]);
+  //   const skip = (page - 1) * limit;
+  //   // const [logs, total] = await Promise.all([
+  //   //   InventoryLog.find(query)
+  //   //     .populate('userId', 'profile.firstName profile.lastName email')
+  //   //     .populate('orderId', '_id')
+  //   //     .sort({ createdAt: -1 })
+  //   //     .skip(skip)
+  //   //     .limit(limit)
+  //   //     .lean(),
+  //   //   InventoryLog.countDocuments(query)
+  //   // ]);
 
-    return {
-      logs,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
-    };
-  }
+  //   return {
+  //     logs,
+  //     pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+  //   };
+  // }
 
   static async getCategoryTree(filters: {
     category?: string;

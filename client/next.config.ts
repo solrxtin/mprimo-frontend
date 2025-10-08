@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
         pathname: "/**",
       },
     ],
+    domains: ['via.placeholder.com'], // ✅ Add your image host here
   },
 };
 

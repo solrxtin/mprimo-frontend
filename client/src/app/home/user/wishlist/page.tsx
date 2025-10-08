@@ -3,102 +3,78 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Home, ShoppingCart } from "lucide-react"
+import { ShoppingCart, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
-import Header from "@/components/Home/Header"
 import { useRouter } from "next/navigation"
+import { useWishlistSync } from "@/hooks/useWishlistSync"
+import { useCartStore } from "@/stores/cartStore"
+import { useWishlist } from "@/hooks/useWishlist"
+import { Wishlist } from "@/types/wishlist.type"
 
-interface WishlistItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  originalPrice?: number
-  discount?: string
-  status: "Available" | "Ongoing" | "Unavailable"
-  image: string
-  badge?: string
-}
 
-const wishlistItems: WishlistItem[] = [
-  {
-    id: "1",
-    name: "Men Minimalist Large Capacity Laptop Backpack",
-    description: "Refurbished",
-    price: 45000,
-    discount: "-50%",
-    status: "Available",
-  image: "/images/tv.png",     badge: "Buy Now",
-  },
-  {
-    id: "2",
-    name: "iMosi QX7 Smart Watch 1.85 inch Smart Watch",
-    description: "New",
-    price: 45000,
-    discount: "Starting",
-    status: "Ongoing",
-  image: "/images/tv.png",     badge: "Auction",
-  },
-  {
-    id: "3",
-    name: "MOVSSOU E7 Noise Cancellation Headphone",
-    description: "Used",
-    price: 105000,
-    status: "Unavailable",
-  image: "/images/tv.png",     badge: "Offer",
-  },
-  {
-    id: "4",
-    name: "Men Minimalist Large Capacity Laptop Backpack",
-    description: "Refurbished",
-    price: 45000,
-    discount: "-50%",
-    status: "Available",
-  image: "/images/tv.png",     badge: "Buy Now",
-  },
-  {
-    id: "5",
-    name: "iMosi QX7 Smart Watch 1.85 inch Smart Watch",
-    description: "New",
-    price: 45000,
-    discount: "Starting",
-    status: "Ongoing",
-  image: "/images/tv.png",     badge: "Auction",
-  },
-  {
-    id: "6",
-    name: "MOVSSOU E7 Noise Cancellation Headphone",
-    description: "Used",
-    price: 105000,
-    status: "Unavailable",
-  image: "/images/tv.png",     badge: "Offer",
-  },
-]
 
 export default function WishlistPage() {
-  const [items, setItems] = useState(wishlistItems)
-  const [currentPage, setCurrentPage] = useState(1)
   const router = useRouter()
+  const { addToCart } = useCartStore()
+  
+  useWishlistSync()
+  
+  const { 
+    wishlist, 
+    wishlistCount, 
+    isLoading, 
+    removeFromWishlist, 
+    isRemovingFromWishlist 
+  } = useWishlist()
 
-  const removeItem = (id: string) => {
-    setItems(items.filter((item) => item.id !== id))
+
+
+  console.log("testing wishlist",wishlist )
+
+  const handleRemoveItem = (productId: string) => {
+    removeFromWishlist(productId)
   }
 
-  const addToCart = (id: string) => {
-    // Add to cart logic here
-    console.log("Added to cart:", id)
+  const handleAddToCart = (item: any) => {
+    const cartItem = {
+      productId: item.productId._id,
+      name: item.name,
+      price: item.price,
+      image: item.productId.images[0] || '/placeholder.svg',
+      quantity: 1
+    }
+    addToCart(cartItem)
   }
 
-  const removeAll = () => {
-    setItems([])
+  const handleRemoveAll = () => {
+    wishlist.forEach(item => {
+      removeFromWishlist(item.productId)
+    })
   }
-    const manualBreadcrumbs: BreadcrumbItem[] = [
-    { label: "My-Wishlist", href: "/home/my-cart" },
-    // { label: "Auction", href: null},
-    // { label: "Laptops", href: "/prod
-    ]
+
+  const getProductPrice = (item: Wishlist) => {
+    return item.price 
+  }
+
+  const getSalePrice = (item: any) => {
+    return item.price
+  }
+
+  const getDiscount = (item: any) => {
+    const price = getProductPrice(item)
+    const salePrice = getSalePrice(item)
+    if (salePrice && salePrice < price) {
+      const discount = Math.round(((price - salePrice) / price) * 100)
+      return `-${discount}%`
+    }
+    return null
+  }
+  const manualBreadcrumbs: BreadcrumbItem[] = [
+    { label: "Home", href: "/home" },
+    { label: "My Wishlist", href: null },
+  ]
     const handleBreadcrumbClick = (
     item: BreadcrumbItem,
     e: React.MouseEvent<HTMLAnchorElement>
@@ -140,13 +116,14 @@ export default function WishlistPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center space-x-2 mb-4 sm:mb-0">
-            <h1 className="text-2xl font-bold">My Wishlist</h1>
-            <span className="text-gray-600">{items.length} Items</span>
+            <h1 className="text-2xl font-bold">My Wishlist hello</h1>
+            <span className="text-gray-600">{wishlistCount} Items</span>
           </div>
           <Button
             variant="link"
             className="text-blue-600 hover:text-blue-800 p-0 h-auto font-normal"
-            onClick={removeAll}
+            onClick={handleRemoveAll}
+            disabled={isRemovingFromWishlist}
           >
             Remove All
           </Button>
@@ -162,49 +139,75 @@ export default function WishlistPage() {
             <div className="col-span-3">Actions</div>
           </div>
 
+          {/* Loading State */}
+          {isLoading && (
+            <div className="p-8 text-center text-gray-500">
+              <Heart className="w-8 h-8 mx-auto mb-2 animate-pulse" />
+              <p>Loading your wishlist...</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && wishlist.length === 0 && (
+            <div className="p-8 text-center text-gray-500">
+              <Heart className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium mb-2">Your wishlist is empty</h3>
+              <p className="mb-4">Save items you love to your wishlist</p>
+              <Button 
+                onClick={() => router.push('/home')}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Start Shopping
+              </Button>
+            </div>
+          )}
+
           {/* Items */}
           <div className="divide-y">
-            {items.map((item) => (
-              <div key={item.id} className="p-4">
+            {wishlist.map((item) => (
+              <div key={item._id} className="p-4">
                 {/* Mobile Layout */}
                 <div className="md:hidden space-y-3">
                   <div className="flex space-x-3">
                     <div className="relative">
                       <Image
-                        src={item.image || "/placeholder.svg"}
+                        src={item.images?.[0] || "/placeholder.svg"}
                         alt={item.name}
                         width={60}
                         height={60}
                         className="rounded-lg object-cover"
                       />
-                      {item.badge && (
-                        <Badge className="absolute -bottom-1 -right-1 text-xs px-1 py-0 h-5 bg-orange-100 text-orange-800 hover:bg-orange-100">
-                          {item.badge}
+                      {getDiscount(item) && (
+                        <Badge className="absolute -bottom-1 -right-1 text-xs px-1 py-0 h-5 bg-red-100 text-red-800 hover:bg-red-100">
+                          {getDiscount(item)}
                         </Badge>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-sm leading-tight">{item.name}</h3>
-                      <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">Added {new Date(item.addedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold">₦ {item.price.toLocaleString()}</span>
-                      {item.discount && (
-                        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">
-                          {item.discount}
-                        </Badge>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        {getSalePrice(item) ? (
+                          <>
+                            <span className="font-bold text-red-600">₦ {getSalePrice(item).toLocaleString()}</span>
+                            <span className="text-sm text-gray-500 line-through">₦ {getProductPrice(item).toLocaleString()}</span>
+                          </>
+                        ) : (
+                          <span className="font-bold">₦ {getProductPrice(item).toLocaleString()}</span>
+                        )}
+                      </div>
                     </div>
-                    <span className={`text-sm ${getStatusColor(item.status)}`}>{item.status}</span>
+                    <span className="text-sm text-green-600">Available</span>
                   </div>
                   <div className="flex space-x-2">
                     <Button
                       size="sm"
                       className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      onClick={() => addToCart(item.id)}
-                      disabled={item.status === "Unavailable"}
+                      onClick={() => handleAddToCart(item)}
                     >
                       <ShoppingCart className="w-4 h-4 mr-1" />
                       Add To Cart
@@ -213,7 +216,8 @@ export default function WishlistPage() {
                       size="sm"
                       variant="outline"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => handleRemoveItem(item.productId)}
+                      disabled={isRemovingFromWishlist}
                     >
                       Remove
                     </Button>
@@ -225,40 +229,46 @@ export default function WishlistPage() {
                   <div className="col-span-5 flex items-center space-x-3">
                     <div className="relative">
                       <Image
-                        src={item.image || "/placeholder.svg"}
+                        src={item.images?.[0] || "/placeholder.svg"}
                         alt={item.name}
                         width={80}
                         height={80}
                         className="rounded-lg object-cover"
                       />
-                      {item.badge && (
-                        <Badge className="absolute -bottom-1 -right-1 text-xs px-2 py-1 bg-orange-100 text-orange-800 hover:bg-orange-100">
-                          {item.badge}
+                      {getDiscount(item) && (
+                        <Badge className="absolute -bottom-1 -right-1 text-xs px-2 py-1 bg-red-100 text-red-800 hover:bg-red-100">
+                          {getDiscount(item)}
                         </Badge>
                       )}
                     </div>
                     <div>
                       <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-500">{item.description}</p>
+                      <p className="text-sm text-gray-500">Added {new Date(item.addedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="col-span-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-bold">₦ {item.price.toLocaleString()}</span>
-                      {item.discount && (
-                        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">{item.discount}</Badge>
+                    <div className="flex items-center space-x-2 whitespace-nowrap">
+                      {getSalePrice(item) ? (
+                        <>
+                          <span className="font-bold text-red-600">₦ {getSalePrice(item).toLocaleString()}</span>
+                          {/* <span className="text-sm text-gray-500 line-through">₦ {getProductPrice(item).toLocaleString()}</span> */}
+                        </>
+                      ) : (
+                        <span className="font-bold">₦ {getProductPrice(item).toLocaleString()}</span>
+                      )}
+                      {getDiscount(item) && (
+                        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{getDiscount(item)}</Badge>
                       )}
                     </div>
                   </div>
                   <div className="col-span-2">
-                    <span className={getStatusColor(item.status)}>{item.status}</span>
+                    <span className="text-green-600">Available</span>
                   </div>
                   <div className="col-span-3 flex space-x-2">
                     <Button
                       size="sm"
                       className="bg-blue-600 hover:bg-blue-700"
-                      onClick={() => addToCart(item.id)}
-                      disabled={item.status === "Unavailable"}
+                      onClick={() => handleAddToCart(item)}
                     >
                       <ShoppingCart className="w-4 h-4 mr-1" />
                       Add To Cart
@@ -266,7 +276,8 @@ export default function WishlistPage() {
                     <Button
                       size="sm"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => handleRemoveItem(item.productId)}
+                      disabled={isRemovingFromWishlist}
                     >
                       Remove
                     </Button>

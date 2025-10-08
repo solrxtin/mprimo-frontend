@@ -47,8 +47,8 @@ export const useWishlist = () => {
   });
 
   useEffect(() => {
-    if (wishlistData?.data?.items) {
-      setItems(wishlistData.data.items);
+    if (wishlistData?.data) {
+      setItems(wishlistData?.data);
     }
   }, [wishlistData, setItems]);
 

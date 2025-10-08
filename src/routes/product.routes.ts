@@ -72,28 +72,28 @@ router.get(
 );
 
 // Get search suggestions
-router.get(
-  "/search/suggestions",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.getSearchSuggestions(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// router.get(
+//   "/search/suggestions",
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.getSearchSuggestions(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
-// Advanced search
-router.get(
-  "/search/advanced",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.advancedSearch(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// // Advanced search
+// router.get(
+//   "/search/advanced",
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.advancedSearch(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
 // Get products by categoryId
 router.get(
@@ -448,58 +448,58 @@ router.post(
 );
 
 // Bulk update variants
-router.patch(
-  "/:id/variants/bulk",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.bulkUpdateVariants(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// router.patch(
+//   "/:id/variants/bulk",
+//   (req: Request, res: Response, next: NextFunction) => {
+//     verifyToken(req, res, next);
+//   },
+//   (req: Request, res: Response, next: NextFunction) => {
+//     authorizeRole(["business", "admin"])(req, res, next);
+//   },
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.bulkUpdateVariants(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
-// Get inventory history
-router.get(
-  "/:id/inventory/history",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.getInventoryHistory(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// // Get inventory history
+// router.get(
+//   "/:id/inventory/history",
+//   (req: Request, res: Response, next: NextFunction) => {
+//     verifyToken(req, res, next);
+//   },
+//   (req: Request, res: Response, next: NextFunction) => {
+//     authorizeRole(["business", "admin"])(req, res, next);
+//   },
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.getInventoryHistory(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
-// Get reorder alerts
-router.get(
-  "/inventory/reorder-alerts",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.getReorderAlerts(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// // Get reorder alerts
+// router.get(
+//   "/inventory/reorder-alerts",
+//   (req: Request, res: Response, next: NextFunction) => {
+//     verifyToken(req, res, next);
+//   },
+//   (req: Request, res: Response, next: NextFunction) => {
+//     authorizeRole(["business", "admin"])(req, res, next);
+//   },
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.getReorderAlerts(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
 // Cart Routes
 router.get(

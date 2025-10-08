@@ -1,15 +1,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { ProductType } from "@/types/product.type";
-import { WishlistItem } from "@/types/wishlist.type";
+import { Wishlist, WishlistItem } from "@/types/wishlist.type";
 
 interface WishlistState {
-  items: WishlistItem[];
+  items: Wishlist[];
   isLoading: boolean;
 
   // Actions
-  setItems: (items: WishlistItem[]) => void;
-  addItem: (item: WishlistItem) => void;
+  setItems: (items: Wishlist[]) => void;
+  addItem: (item: Wishlist) => void;
   removeItem: (productId: string) => void;
   clearWishlist: () => void;
   setLoading: (loading: boolean) => void;
@@ -29,7 +29,7 @@ export const useWishlistStore = create<WishlistState>()(
       
       addItem: (item) => {
         const { items } = get();
-        const existingItem = items.find((existingItem) => existingItem.productId._id === item.productId._id);
+        const existingItem = items.find((existingItem) => existingItem.productId === item.productId);
         if (!existingItem) {
           set({ items: [...items, item] });
         }
@@ -37,7 +37,7 @@ export const useWishlistStore = create<WishlistState>()(
 
       removeItem: (productId) => {
         const { items } = get();
-        const updatedItems = items.filter((item) => item.productId._id !== productId);
+        const updatedItems = items.filter((item) => item.productId !== productId);
         set({ items: updatedItems });
       },
 
@@ -53,7 +53,7 @@ export const useWishlistStore = create<WishlistState>()(
 
       isInWishlist: (productId) => {
         const { items } = get();
-        return items.some((item) => item.productId?._id === productId);
+        return items.some((item) => item.productId === productId);
       },
     }),
     {
