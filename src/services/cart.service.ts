@@ -12,13 +12,11 @@ export class CartService {
     try {
       let cart: CartItem[] = await redisService.getCart(userId);
 
-      console.log("Cart from Redis:", cart);
-
       if (!cart || cart.length === 0) {
         const dbCart = await Cart.findOne({ userId }).populate(
           "items.productId"
         );
-        console.log("Cart from DB:", dbCart);
+        
         if (dbCart && dbCart.items.length > 0) {
           const items: CartItem[] = dbCart.items.map((item: any) => ({
             productId: item.productId.toString(),
@@ -70,7 +68,7 @@ export class CartService {
       );
 
       // Add to MongoDB
-      const cart = await Cart.findOneAndUpdate(
+      await Cart.findOneAndUpdate(
         { userId },
         {
           $push: {
@@ -87,7 +85,8 @@ export class CartService {
         { upsert: true }
       );
 
-      return cart;
+      // Return the complete cart with all items
+      return await this.getCart(userId);
     } catch (error) {
       console.error(error);
       logger.error("Error adding to cart:", error);
@@ -170,31 +169,39 @@ export class CartService {
 
   static async addToWishlist(userId: string, item: WishlistItem) {
     try {
-      await redisService.addToWishlist(
+      const existing = await WishList.findOne({
         userId,
-        item.productId,
-        item.price,
-        item.name,
-        item.images,
-        item.variantId,
-        item.optionId
-      );
+        "items.productId": item.productId,
+      });
 
-      await WishList.findOneAndUpdate(
-        { userId },
-        {
-          $push: {
-            items: {
-              productId: item.productId,
-              priceWhenAdded: item.price,
-              variantId: item.variantId,
-              optionId: item.optionId,
-              addedAt: new Date(),
+      if (!existing) {
+        await WishList.findOneAndUpdate(
+          { userId },
+          {
+            $push: {
+              items: {
+                productId: item.productId,
+                priceWhenAdded: item.price,
+                variantId: item.variantId,
+                optionId: item.optionId,
+                addedAt: new Date(),
+              },
             },
           },
-        },
-        { upsert: true }
-      );
+          { upsert: true }
+        );
+
+        await redisService.addToWishlist(
+          userId,
+          item.productId,
+          item.price,
+          item.name,
+          item.images,
+          item.variantId,
+          item.optionId,
+          item.vendorCurrency
+        );
+      }
 
       return true;
     } catch (error) {

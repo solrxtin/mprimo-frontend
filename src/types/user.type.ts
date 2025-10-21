@@ -14,6 +14,12 @@ export interface ICart {
   lastUpdated: Date;
 }
 
+interface Activity {
+  activity: string;
+  createdAt: string;
+}
+
+
 export interface IUser extends Document {
   _id: Types.ObjectId;
   _doc: Document;
@@ -125,4 +131,6 @@ export interface IUser extends Document {
       billingAddressId?: Types.ObjectId;
     }>;
   };
+  activities?: Activity[];
+
 }

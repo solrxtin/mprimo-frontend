@@ -4658,9 +4658,18 @@ export class VenodrManagenentController {
       }
 
       if (existingAdvert.adType === "featured") {
+        const { featuredCategoryId } = req.body;
+
+        if (!featuredCategoryId) {
+          return res.status(400).json({
+            success: false,
+            message: "Featured category ID is required for featured ads",
+          });
+        }
         await Product.findByIdAndUpdate(existingAdvert.productId, {
           isFeatured: true,
           featuredExpiry: endDate,
+          featuredCategory: featuredCategoryId
         });
       }
 

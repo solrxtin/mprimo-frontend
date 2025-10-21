@@ -13,10 +13,12 @@ import {
   relistItemForAuction,
 } from "../controllers/product.controller";
 import { verifyToken } from "../middlewares/verify-token.middleware";
+import { optionalAuth } from "../middlewares/optional-auth.middleware";
 import { authorizeRole } from "../middlewares/authorize-role.middleware";
 import { ProductService } from "../services/product.service";
 import { uploadImage, uploadImageToCloudinary } from "../config/multer.config";
 import { standardRateLimit } from "../middlewares/enhanced-rate-limit.middleware";
+
 
 const router = Router();
 
@@ -73,7 +75,7 @@ router.get(
 
 // Get products by categoryId
 router.get(
-  "/category/:categoryId",
+  "/categories/:categoryId",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.getProductsByCategory(req, res, next);
@@ -85,7 +87,7 @@ router.get(
 
 // Get top products
 router.get(
-  "/topProducts",
+  "/top-products",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.getTopProducts(req, res, next);
@@ -95,6 +97,7 @@ router.get(
   }
 );
 
+// Best deals
 router.get(
   "/best-deals",
   async (req: Request, res: Response, next: NextFunction) => {
@@ -136,6 +139,9 @@ router.get(
     }
   }
 );
+
+// Recommended products
+router.get("/user/recommendations", verifyToken, ProductController.getUserRecommendations);
 
 // Get product reviews
 router.get(
@@ -341,7 +347,11 @@ router.get(
 );
 
 // Get single product
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id", 
+   (req: Request, res: Response, next: NextFunction) => {
+    optionalAuth(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
   try {
     await ProductController.getProduct(req, res, next);
   } catch (error) {
@@ -360,6 +370,7 @@ router.get("/:id/variants", async (req: Request, res: Response, next: NextFuncti
 
 router.get(
   "/slug/:slug",
+  optionalAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.getProductBySlug(req, res, next);

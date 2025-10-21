@@ -108,8 +108,13 @@ app.use(
   session({
     secret: process.env.SECRET!,
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: process.env.NODE_ENV === "production" }, // Set to `true` in production if using HTTPS
+    saveUninitialized: false,
+    cookie: { 
+      secure: false, // Set to false for development
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
+    }
   })
 );
 

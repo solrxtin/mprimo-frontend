@@ -31,12 +31,10 @@ class RedisService {
 
     this.redisClient.on("error", (err) => {
       logger.error("Redis Client Error", err);
-      console.error("Redis Client Error", err);
     });
 
     this.redisClient.on("connect", () => {
       logger.info("Connected to Redis");
-      console.log("Connected to Redis");
       this.isConnected = true;
     });
 
@@ -91,6 +89,14 @@ class RedisService {
         id && mongoose.Types.ObjectId.isValid(id)
           ? await ProductModel.findById(id)
               .populate({
+                path: "vendorId",
+                populate: {
+                  path: "userId",
+                  model: "User",
+                  select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+                },
+              })
+              .populate({
                 path: "category.main",
                 select: "name slug",
               })
@@ -103,6 +109,14 @@ class RedisService {
                 select: "name currency",
               })
           : await ProductModel.findOne({ slug })
+              .populate({
+                path: "vendorId",
+                populate: {
+                  path: "userId",
+                  model: "User",
+                  select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+                },
+              })
               .populate({
                 path: "category.main",
                 select: "name slug",
@@ -137,8 +151,6 @@ class RedisService {
 
       return product;
     } catch (error) {
-      console.log("I got called");
-      console.error(error);
       logger.error("Redis cache error:", error);
       return id
         ? await ProductModel.findById(id)
@@ -208,10 +220,23 @@ class RedisService {
       // Track user views
       if (eventType === "view" && userId) {
         const userViewKey = `user:views:${userId.toString()}`;
-        const viewData = JSON.stringify({ entityId, timestamp: Date.now() });
+        
+        // Check if this product was already viewed recently (within last 5 views)
+        const recentViews = await this.redisClient.lrange(userViewKey, 0, 49);
+        const alreadyViewed = recentViews.some(view => {
+          try {
+            const parsed = JSON.parse(view);
+            return parsed.entityId === entityId;
+          } catch {
+            return false;
+          }
+        });
 
-        await this.redisClient.lpush(userViewKey, viewData);
-        await this.redisClient.ltrim(userViewKey, 0, 49); // Keep only the 50 most recent views
+        if (!alreadyViewed) {
+          const viewData = JSON.stringify({ entityId, timestamp: Date.now() });
+          await this.redisClient.lpush(userViewKey, viewData);
+          await this.redisClient.ltrim(userViewKey, 0, 49); // Keep only the 50 most recent views
+        }
       }
     } catch (error) {
       logger.error("Error tracking event:", error);
@@ -224,8 +249,7 @@ class RedisService {
   ): Promise<Array<{ entityId: string; timestamp: number }>> {
     const userViewKey = `user:views:${userId.toString()}`;
     const rawViews = await this.redisClient.lrange(userViewKey, 0, limit - 1);
-
-    return rawViews
+    const parsedViews = rawViews
       .map((view) => {
         try {
           return JSON.parse(view);
@@ -236,6 +260,7 @@ class RedisService {
       .filter(
         (entry): entry is { entityId: string; timestamp: number } => !!entry
       );
+    return parsedViews;
   }
 
   // ==================== REAL-TIME INVENTORY ====================
@@ -379,7 +404,8 @@ class RedisService {
     name: string,
     images: string[],
     variantId?: string,
-    optionId?: string
+    optionId?: string,
+    vendorCurrency?: string
   ) {
     if (!this.isConnected) return;
 
@@ -392,10 +418,15 @@ class RedisService {
         price,
         variantId: variantId || "",
         optionId: optionId || undefined,
+        vendorCurrency: vendorCurrency || "USD",
         addedAt: new Date(),
       };
 
-      await this.redisClient.hset(wishlistKey, productId, JSON.stringify(wishlistItem));
+      await this.redisClient.hset(
+        wishlistKey,
+        productId,
+        JSON.stringify(wishlistItem)
+      );
     } catch (error) {
       logger.error("Error adding to wishlist:", error);
     }
