@@ -8,6 +8,7 @@ import Product from "../models/product.model";
 import Order from "../models/order.model";
 import { OrderService } from "../services/order.service";
 import FAQ from "../models/faq.model";
+import { ProductService } from "../services/product.service";
 
 export const addAddress = async (req: Request, res: Response) => {
   try {
@@ -87,7 +88,7 @@ export const getUserAddress = async (req: Request, res: Response) => {
       message: "An error occurred while trying to fetch addresses",
     });
   }
-}
+};
 
 export const modifyAddress = async (req: Request, res: Response) => {
   try {
@@ -228,16 +229,49 @@ export const getUserNotifications = async (req: Request, res: Response) => {
 export const getUserRecentViews = async (req: Request, res: Response) => {
   try {
     const { userId } = req;
-    const limit = req.body.limit || 10;
-    const recentViews = await redisService.getRecentUserViews(userId, limit);
+    const limit = req.query.limit || req.body.limit || 10;
+
+    const userViews = await redisService.getRecentUserViews(
+      userId,
+      Number(limit)
+    );
+    // Extract just the entityId values for the MongoDB query
+    const productIds = userViews.map((view) => view.entityId);
+
+    if (productIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No recent views found",
+        products: [],
+      });
+    }
+
+    const products = await Product.find({ _id: { $in: productIds } })
+      .limit(Number(limit))
+      .select(
+        "description name inventory images variants condition rating reviews vendorId category country"
+      )
+      .populate({
+        path: "vendorId",
+        select: "accountType",
+      })
+      .populate("category.main")
+      .populate("category.sub")
+      .populate("country")
+      .lean();
+
+    const viewedProducts = await ProductService.enrichProductsWithPriceInfo(
+      products,
+      req
+    );
 
     res.status(200).json({
       success: true,
       message: "User's recent views fetched successfully",
-      recentViews,
+      recentViews: viewedProducts,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in getUserRecentViews:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred while trying to fetch user's recent views",
@@ -249,7 +283,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
   try {
     const { userId } = req;
     const user = await User.findOne({ _id: userId }).select(
-      "profile email addresses"
+      "-password -socialLogins -resetPasswordToken -verificationToken -twoFactorAuth.secret -twoFactorAuth.backupCodes"
     );
     const shippingDefaultAddress = user?.addresses?.find(
       (addr) => addr.type === "shipping" && addr.isDefault
@@ -260,7 +294,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
       success: true,
       message: "User profile fetched successfully",
       user,
-      fiatWallet: fiatWallet?.balance,
+      fiatWallet,
       shippingDefaultAddress,
     });
   } catch (error) {
@@ -272,29 +306,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
   }
 };
 
-export const getUserRecommendations = async (req: Request, res: Response) => {
-  const userId = req.params.userId;
 
-  try {
-    const recommendedIds = await redisService.getUserRecommendations(
-      new mongoose.Types.ObjectId(userId)
-    );
-
-    // Optional: ensure IDs are valid ObjectId instances
-    const objectIds = recommendedIds.map(
-      (id) => new mongoose.Types.ObjectId(id)
-    );
-
-    const detailedProducts = await Product.find({
-      _id: { $in: objectIds },
-    }).limit(recommendedIds.length || 10);
-
-    res.status(200).json({ products: detailedProducts });
-  } catch (error) {
-    console.error("Error fetching recommendations:", error);
-    res.status(500).json({ error: "Could not fetch recommendations." });
-  }
-};
 
 export const getUserOrders = async (
   req: Request,
@@ -506,9 +518,8 @@ export const getFAQs = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Get FAQs Error:", error);
     res.status(500).json({ success: false, message: "Error fetching FAQs" });
-  } 
+  }
 };
-
 
 export const getUserOffersForAProduct = async (req: Request, res: Response) => {
   try {
@@ -516,7 +527,9 @@ export const getUserOffersForAProduct = async (req: Request, res: Response) => {
     const { productId } = req.params;
 
     if (!productId) {
-      return res.status(400).json({ success: false, message: "Product ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Product ID is required" });
     }
 
     const product = await Product.findOne(
@@ -525,10 +538,14 @@ export const getUserOffersForAProduct = async (req: Request, res: Response) => {
     );
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "No offers found for this product" });
+      return res
+        .status(404)
+        .json({ success: false, message: "No offers found for this product" });
     }
 
-    const userOfferBlock = product.offers.find((o) => String(o.userId) === String(userId));
+    const userOfferBlock = product.offers.find(
+      (o) => String(o.userId) === String(userId)
+    );
 
     res.status(200).json({
       success: true,
@@ -541,19 +558,28 @@ export const getUserOffersForAProduct = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Get User Offers Error:", error);
-    res.status(500).json({ success: false, message: "Error fetching user offers" });
+    res
+      .status(500)
+      .json({ success: false, message: "Error fetching user offers" });
   }
 };
 
-
-export const getUserOffersGrouped = async(req: Request, res: Response, next: NextFunction) => {
+export const getUserOffersGrouped = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.userId;
 
-    const products = await Product.find({ "offers.userId": userId }).select("name slug offers");
+    const products = await Product.find({ "offers.userId": userId }).select(
+      "name slug offers"
+    );
 
     const groupedOffers = products.map((product) => {
-      const offerBlock = product.offers.find((o) => String(o.userId) === String(userId));
+      const offerBlock = product.offers.find(
+        (o) => String(o.userId) === String(userId)
+      );
       return {
         productId: product._id,
         name: product.name,
@@ -567,25 +593,4 @@ export const getUserOffersGrouped = async(req: Request, res: Response, next: Nex
   } catch (error) {
     next(error);
   }
-}
-
-export const getUserCards = async (req: Request, res: Response) => {
-  try {
-    const userId = req.userId;
-    const user = await User.findById(userId).select("paymentInformation");
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      cards: user.paymentInformation?.cards || [],
-      defaultGateway: user.paymentInformation?.defaultGateway,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: "Error fetching cards" });
-  }
 };
-

@@ -492,6 +492,10 @@ const productSchema = new mongoose.Schema<ProductType>(
     featuredExpiry: {
       type: Date,
     },
+    featuredCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FeaturedProductCategory",
+    },
   },
   {
     timestamps: true,

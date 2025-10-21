@@ -46,6 +46,11 @@ type VariantOptionType = {
   quantity: number;
   isDefault?: boolean;
   dimensions?: Record<string, string>; // {"Color": "Black", "Size": "Small"}
+  displayPrice?: number;
+  displaySalePrice?: number;
+  currencySymbol?: string;
+  exchangeRate?: number;
+  displayCurrency?: string;
 };
 
 type VariantType = {
@@ -134,4 +139,5 @@ export type ProductType = {
   updatedAt?: Date;
   isFeatured: boolean;
   featuredExpiry?: Date;
+  featuredCategory?: Types.ObjectId;
 };

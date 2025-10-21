@@ -19,20 +19,23 @@ function isMongoError(error: any): error is MongoError {
 }
 
 export class ProductService {
-  private static async enrichProductsWithPriceInfo(
+  static async enrichProductsWithPriceInfo(
     products: any[],
-    userCurrency: string
+    req: any
   ) {
+    const userCurrency = req.preferences?.currency || "USD";
     return Promise.all(
-      products.map(async (product) => {
+      products.map(async (doc) => {
+        const product = doc.toObject ? doc.toObject() : doc;
         let priceInfo;
         const vendorCurrency = (product.country as any)?.currency || "USD";
         if (product.inventory?.listing?.type === "instant") {
+          const variants = Array.isArray(product.variants) ? product.variants : [product.variants].filter(Boolean);
           const defaultOption =
-            product.variants
-              ?.flatMap((v: any) => v.options)
+            variants
+              ?.flatMap((v: any) => v?.options || [])
               ?.find((o: any) => o.isDefault) ||
-            product.variants?.[0]?.options?.[0];
+            variants?.[0]?.options?.[0];
           if (defaultOption) {
             priceInfo = await CurrencyService.getProductPriceForUser(
               defaultOption.salePrice || defaultOption.price,
@@ -40,9 +43,24 @@ export class ProductService {
               userCurrency
             );
           }
-        } else {
+        } else if (product.inventory?.listing?.type === "auction") {
+          const auction = product.inventory.listing.auction;
+          let auctionPrice = auction?.startBidPrice || 0;
+          
+          // Determine price based on auction state
+          if (auction?.isExpired && auction?.finalPrice) {
+            auctionPrice = auction.finalPrice;
+          } else if (auction?.isStarted && product.bids?.length > 0) {
+            // Use current highest bid
+            const highestBid = product.bids.find((bid: any) => bid.isWinning);
+            auctionPrice = highestBid?.currentAmount || auction?.startBidPrice || 0;
+          } else if (auction?.buyNowPrice) {
+            // Show buy now price if available
+            auctionPrice = auction.buyNowPrice;
+          }
+          
           priceInfo = await CurrencyService.getProductPriceForUser(
-            product.inventory?.listing?.auction?.startBidPrice || 0,
+            auctionPrice,
             vendorCurrency,
             userCurrency
           );
@@ -62,6 +80,13 @@ export class ProductService {
         return {
           ...product,
           priceInfo,
+          auctionState: product.inventory?.listing?.type === "auction" ? {
+            isStarted: product.inventory.listing.auction?.isStarted,
+            isExpired: product.inventory.listing.auction?.isExpired,
+            hasReservePrice: !!product.inventory.listing.auction?.reservePrice,
+            reservePriceMet: product.inventory.listing.auction?.reservePriceMet,
+            hasBuyNow: !!product.inventory.listing.auction?.buyNowPrice,
+          } : undefined,
         };
       })
     );
@@ -71,7 +96,7 @@ export class ProductService {
     query: any = {},
     page = 1,
     limit = 10,
-    userCurrency: string,
+    req: any,
     sort: any = { createdAt: -1 }
   ) {
     const skip = (page - 1) * limit;
@@ -103,14 +128,13 @@ export class ProductService {
         .populate("country")
         .sort(sort)
         .skip(skip)
-        .limit(limit)
-        .lean(),
+        .limit(limit),
       ProductModel.countDocuments(filter),
     ]);
 
     const enrichedProducts = await this.enrichProductsWithPriceInfo(
       products,
-      userCurrency
+      req
     );
 
     return {
@@ -126,7 +150,7 @@ export class ProductService {
 
   static async getProductsByIds(
     ids: string[],
-    userCurrency: string = "USD"
+    req: any
   ): Promise<ProductType[]> {
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
 
@@ -144,13 +168,13 @@ export class ProductService {
       .populate("country")
       .lean();
 
-    return this.enrichProductsWithPriceInfo(products, userCurrency);
+    return this.enrichProductsWithPriceInfo(products, req);
   }
 
   static async getBestDeals(
     page: number,
     limit: number,
-    userCurrency: string = "USD",
+    req: any,
     minDiscount: number = 5
   ) {
     const skip = (page - 1) * limit;
@@ -194,21 +218,16 @@ export class ProductService {
       {
         $group: {
           _id: "$_id",
-          vendorId: { $first: "$vendorId" },
-          name: { $first: "$name" },
-          slug: { $first: "$slug" },
-          brand: { $first: "$brand" },
-          description: { $first: "$description" },
-          condition: { $first: "$condition" },
-          images: { $first: "$images" },
-          rating: { $first: "$rating" },
-          status: { $first: "$status" },
-          category: { $first: "$category" },
-          variants: { $first: "$variants" },
+          product: { $first: "$$ROOT" },
           discountPercentage: { $first: "$discountPercentage" },
-          createdAt: { $first: "$createdAt" },
-          updatedAt: { $first: "$updatedAt" },
         },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ["$product", { discountPercentage: "$discountPercentage" }]
+          }
+        }
       },
       {
         $group: {
@@ -240,7 +259,7 @@ export class ProductService {
     ];
 
     const rawProducts = await ProductModel.aggregate(pipeline);
-    const products = await this.enrichProductsWithPriceInfo(rawProducts, "USD");
+    const products = await this.enrichProductsWithPriceInfo(rawProducts, req);
 
     const totalPipeline = [
       { $match: { status: "active" } },
@@ -309,7 +328,7 @@ export class ProductService {
 
   static async getProductsByVendorId(
     vendorId: string,
-    userCurrency: string = "USD"
+    req: any
   ): Promise<ProductType[]> {
     const products = await ProductModel.find({ vendorId })
       .populate({
@@ -325,12 +344,12 @@ export class ProductService {
       .populate("country")
       .lean();
 
-    return this.enrichProductsWithPriceInfo(products, userCurrency);
+    return this.enrichProductsWithPriceInfo(products, req);
   }
 
   static async getTopProducts(
     count = 10,
-    userCurrency: string = "USD"
+    req: any
   ): Promise<ProductType[]> {
     const products = await ProductModel.find({ status: "active" })
       .sort({ "analytics.views": -1 })
@@ -347,13 +366,13 @@ export class ProductService {
       .populate("country")
       .lean();
 
-    return this.enrichProductsWithPriceInfo(products, userCurrency);
+    return this.enrichProductsWithPriceInfo(products, req);
   }
 
   static async getSimilarProducts(
     productId: string,
     count = 5,
-    userCurrency: string = "USD"
+    req: any
   ): Promise<ProductType[]> {
     const product = await ProductModel.findById(productId);
     if (!product) {
@@ -375,9 +394,11 @@ export class ProductService {
         },
       })
       .populate("country")
+      .populate("category.main")
+      .populate("category.sub")
       .lean();
 
-    return this.enrichProductsWithPriceInfo(products, userCurrency);
+    return this.enrichProductsWithPriceInfo(products, req);
   }
 
   static async getProductById(
@@ -414,14 +435,8 @@ export class ProductService {
     userCurrency: string = "USD"
   ): Promise<ProductType> {
     const product = await ProductModel.findOne({ slug })
-      .populate({
-        path: "vendorId",
-        populate: {
-          path: "userId",
-          model: "User",
-          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
-        },
-      })
+      .populate("vendorId")
+      .populate("vendorId.userId", "_id profile.firstName profile.lastName email")
       .populate("category.main")
       .populate("category.sub")
       .populate("country")

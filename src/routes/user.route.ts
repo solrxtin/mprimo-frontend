@@ -1,6 +1,6 @@
 import Router, { NextFunction, Request, Response } from "express"
 import { verifyToken } from "../middlewares/verify-token.middleware";
-import { getUserOrders, getUserAddress, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, getUserRecommendations, addCard, removeCard, setDefaultCard, getUserCards, updateNotificationPreferences } from "../controllers/user.controller";
+import { getUserOrders, getUserAddress, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, addCard, removeCard, setDefaultCard, updateNotificationPreferences } from "../controllers/user.controller";
 
 
 
@@ -16,7 +16,6 @@ router.get("/notifications", verifyToken, getUserNotifications)
 router.patch("/notifications/preferences", verifyToken, updateNotificationPreferences)
 router.get("/recent-views", verifyToken, getUserRecentViews)
 router.get("/profile", verifyToken, getUserProfile)
-router.get("/recommendations", verifyToken, getUserRecommendations)
 
 router.get(
   "/orders",

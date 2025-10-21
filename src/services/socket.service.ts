@@ -52,7 +52,6 @@ export class SocketService {
 
   private setupEventHandlers(): void {
     this.io.on("connection", (socket) => {
-      console.log(`Client connected: ${socket.id}`);
 
       socket.on("authenticate", ({ userId }) => {
         const uid = userId.toString();
@@ -99,21 +98,44 @@ export class SocketService {
 
       // Handle custom messages
       socket.on("send_message", async (payload) => {
+        console.log('Send message payload:', payload);
         const { senderId, receiverId, message, chatId } = payload;
       
         try {
-          if (!chatId) return
-          if (!senderId || !receiverId || !message) {
+          if (!chatId) {
+            console.error("No chatId provided");
+            socket.emit("error", { message: "Chat ID is required" });
+            return;
+          }
+          
+          if (!senderId || !message) {
+            console.error("Missing required fields: senderId or message");
             this.emitToRoom(chatId, "error", { message: "Missing required fields" });
+            return;
+          }
+          
+          // Get chat to find receiverId if not provided
+          const chat = await Chat.findById(chatId);
+          if (!chat) {
+            console.error("Chat not found");
+            socket.emit("error", { message: "Chat not found" });
+            return;
+          }
+          
+          // Find receiverId from chat participants
+          const actualReceiverId = receiverId || chat.participants.find(p => !p.equals(senderId));
+          
+          if (!actualReceiverId) {
+            console.error("Could not determine receiver");
+            this.emitToRoom(chatId, "error", { message: "Could not determine receiver" });
             return;
           }
       
           const isFlagged = containsSensitiveInfo(message);
           const flaggedReason = isFlagged ? "Contains sensitive information" : "";
       
-          const chat = await Chat.findById(chatId);
-          const isChatArchivedByReceiver = chat?.archivedBy?.get(receiverId.toString()) === true;
-          const isReceiverOnline = this.userSockets.has(receiverId.toString());
+          const isChatArchivedByReceiver = chat?.archivedBy?.get(actualReceiverId.toString()) === true;
+          const isReceiverOnline = this.userSockets.has(actualReceiverId.toString());
           const io = this.getIO();
       
           if (isFlagged) {
@@ -124,7 +146,7 @@ export class SocketService {
           const newMessage = {
             chatId,
             senderId,
-            receiverId,
+            receiverId: actualReceiverId,
             text: message,
             isFlagged,
             flaggedReason,
@@ -132,12 +154,13 @@ export class SocketService {
           };
       
           const persistedMessage = await Message.create(newMessage);
+
           this.emitToRoom(chatId, "persisted-message", persistedMessage);
       
           if (!isReceiverOnline && !isChatArchivedByReceiver) {
-            console.log(`Receiver ${receiverId} is offline, sending notification`);
+            console.log(`Receiver ${actualReceiverId} is offline, sending notification`);
             const notification: INotification = {
-              userId: receiverId,
+              userId: actualReceiverId,
               title: `New message from ${senderId}`,
               message,
               type: "chat",

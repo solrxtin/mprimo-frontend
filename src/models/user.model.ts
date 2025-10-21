@@ -293,6 +293,12 @@ const userSchema = new mongoose.Schema<IUser>(
       type: [String],
       default: [], // Can override/extend base role
     },
+    activities: [
+      {
+        activity: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true,

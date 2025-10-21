@@ -9,6 +9,7 @@ export interface WishlistItem {
   images: string[];
   variantId?: string;
   optionId?: string;
+  vendorCurrency?: string;
 }
 
 export interface IWishlist {

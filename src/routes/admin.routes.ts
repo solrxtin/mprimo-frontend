@@ -8,6 +8,7 @@ import * as paymentOptionsController from "../controllers/payment-options.contro
 import { CategoryController } from "../controllers/category.controller";
 import * as refundController from "../controllers/refund.controller";
 import * as vendorPayoutController from "../controllers/vendor-payout.controller";
+import { FeatureProductController } from "../controllers/feature-product.controller";
 
 const router = Router();
 
@@ -152,7 +153,14 @@ router.get("/promotions", verifyToken, requirePermission([PERMISSIONS.MANAGE_SET
 router.put("/promotions/:promotionId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.updatePromotion);
 router.delete("/promotions/:promotionId", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), VenodrManagenentController.deletePromotion);
 
+// Feature Product Routes
+router.post("/products/:productId/feature", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), FeatureProductController.featureProduct);
+router.delete("/products/:productId/feature", verifyToken, requirePermission([PERMISSIONS.FULL_ACCESS]), FeatureProductController.unfeatureProduct);
+
 // Reports Routes
 router.get("/reports/orders", verifyToken, requirePermission([PERMISSIONS.VIEW_REPORTS]), VenodrManagenentController.generateOrderReport);
+
+// Product Management
+
 
 export default router;

@@ -24,6 +24,7 @@ export const getSupportedCountries = async (req: Request, res: Response) => {
   }
 };
 
+
 export const getCountryDetails = async (req: Request, res: Response) => {
   try {
     const { countryCode } = req.params;
