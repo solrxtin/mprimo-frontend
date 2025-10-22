@@ -83,6 +83,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
 
   const saleType = productData?.inventory?.listing?.type;
   const acceptOffer = productData?.inventory?.listing?.instant?.acceptOffer;
+
+  
   const handleAddToCart = async () => {
     if (!productData) return;
 

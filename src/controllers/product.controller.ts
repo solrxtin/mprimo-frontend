@@ -22,6 +22,7 @@ import Order from "../models/order.model";
 import { SubscriptionService } from "../services/subscription.service";
 import { VariantCombinationUtil } from "../utils/variant-combinations.util";
 import { IUser } from "../types/user.type";
+import User from "../models/user.model";
 
 export class ProductController {
   static async createProduct(req: Request, res: Response, next: NextFunction) {

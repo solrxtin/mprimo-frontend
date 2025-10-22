@@ -3,7 +3,6 @@
 import type React from "react";
 
 import ProductInfo from "./(component)/ProductInfo";
-import Header from "@/components/Home/Header";
 import ProductDetailsTabs from "./(component)/MoreDeatilsTab";
 import ReviewsPage from "./(component)/Review";
 import { useParams } from "next/navigation";

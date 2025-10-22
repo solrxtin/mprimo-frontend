@@ -2,14 +2,18 @@ import { useProductListing } from "@/contexts/ProductLisitngContext";
 import { useCategories } from "@/hooks/queries";
 import { useCountries } from "@/hooks/useCountries";
 
-
 export const useProductMapper = () => {
   const { productDetails } = useProductListing();
   const { data: categoriesData } = useCategories();
   const categories = categoriesData?.categories || [];
-  const { data:countries } = useCountries()
+  const { data: countries } = useCountries();
 
-  const country = countries?.find((country) => country.name === productDetails.shippingDetails?.productLocation)
+  console.log('Mapping product details:', productDetails);
+
+  const country = countries?.find(
+    (country) =>
+      country.name === productDetails.shippingDetails?.productLocation
+  );
 
   // Find category IDs by name
   const findCategoryIdByName = (name: string) => {
@@ -18,6 +22,8 @@ export const useProductMapper = () => {
   };
 
   const mapProductDetailsToSchema = () => {
+    console.log('Raw product details for mapping:', productDetails);
+    
     // Get main category ID
     const mainCategoryId = findCategoryIdByName(productDetails.category);
 
@@ -48,6 +54,8 @@ export const useProductMapper = () => {
 
     // Use the path from the deepest category, or an empty array if not found
     const categoryPath = deepestCategory?.path || [];
+    
+    console.log('Category mapping:', { mainCategoryId, subCategoryIds, categoryPath });
 
     return {
       name: productDetails.productName,
@@ -76,15 +84,6 @@ export const useProductMapper = () => {
               ? {
                   acceptOffer: Boolean(
                     productDetails.pricingInformation?.instantSale?.acceptOffer
-                  ),
-                  price: Number(
-                    productDetails.pricingInformation?.instantSale?.price
-                  ),
-                  salePrice: Number(
-                    productDetails.pricingInformation?.instantSale?.salePrice
-                  ),
-                  quantity: Number(
-                    productDetails.pricingInformation?.storeQuantity
                   ),
                 }
               : undefined,
@@ -118,30 +117,32 @@ export const useProductMapper = () => {
         },
       },
       images: productDetails.images || [],
-      specifications: productDetails.productSpecifications 
+      specifications: productDetails.productSpecifications
         ? Array.isArray(productDetails.productSpecifications)
           ? productDetails.productSpecifications.map((spec: any) => ({
               key: spec.key || spec.name,
               value: String(spec.value),
             }))
-          : Object.entries(productDetails.productSpecifications).map(([key, value]) => ({
-              key,
-              value: String(value),
-            }))
+          : Object.entries(productDetails.productSpecifications).map(
+              ([key, value]) => ({
+                key,
+                value: String(value),
+              })
+            )
         : [],
       shipping: {
-        weight: Number(productDetails.shippingDetails?.productWeight),
-        unit: productDetails.shippingDetails?.weightUnit as "kg" | "lbs",
+        weight: Number(productDetails.shippingDetails?.productWeight) || 0,
+        unit: (productDetails.shippingDetails?.weightUnit as "kg" | "lbs") || "kg",
         dimensions: {
           length: Number(
             productDetails.shippingDetails?.productDimensions?.length
-          ),
+          ) || 0,
           width: Number(
             productDetails.shippingDetails?.productDimensions?.width
-          ),
+          ) || 0,
           height: Number(
             productDetails.shippingDetails?.productDimensions?.height
-          ),
+          ) || 0,
         },
         restrictions: ["none"],
       },
@@ -151,8 +152,13 @@ export const useProductMapper = () => {
         options: variant.options.map((option: any, optionIndex: number) => ({
           value: option.value,
           price: Number(option.price),
+          salePrice: Number(option.salePrice || option.price),
           quantity: Number(option.quantity),
-          sku: option.sku || `${variant.name?.substring(0, 3).toUpperCase() || 'VAR'}-${option.value?.substring(0, 3).toUpperCase() || 'OPT'}-${Date.now()}`,
+          sku:
+            option.sku ||
+            `${variant.name?.substring(0, 3).toUpperCase() || "VAR"}-${
+              option.value?.substring(0, 3).toUpperCase() || "OPT"
+            }-${Date.now()}`,
           isDefault: option.isDefault || optionIndex === 0,
         })),
       })),

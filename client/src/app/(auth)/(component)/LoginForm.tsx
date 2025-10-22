@@ -34,7 +34,6 @@ const LoginForm = ({ setAuthState, close }: LoginProps) => {
   const { setUser } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
   const { setVendor } = useProductStore();
-  const router = useRouter();
   const { mutate: loginUser, isPending } = useLoginUser();
 
   const validateForm = () => {

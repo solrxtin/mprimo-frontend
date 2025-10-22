@@ -5,7 +5,6 @@ import {
   Menu,
   Heart,
   ChevronDown,
-
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,8 @@ import { useSearchSuggestions } from "@/hooks/useSearch";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SearchSuggestion } from "@/types/search.types";
 import { useWishlist } from "@/hooks/useWishlist";
+import { useUserStore } from "@/stores/useUserStore";
+import { useRouter } from "next/navigation";
 
 const Header = () => {
   const [isSell, setIsSell] = useState(false);
@@ -36,14 +37,21 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
   const cartLength = useCartLength();
+  const router = useRouter();
+
   const { wishlistCount } = useWishlist();
   const { openModal } = useAuthModalStore();
+  const { user } = useUserStore();
 
   const debouncedQuery = useDebounce(searchQuery, 300);
   const { data: suggestionsData } = useSearchSuggestions(debouncedQuery, 5);
 
   const handleSellClick = () => {
-    setIsSell(!isSell);
+    if (!user) {
+      setIsSell(!isSell);
+    } else {
+      router.push("/vendor/dashboard");
+    }
   };
   const handlecloseModal = () => {
     setIsSell(false);
@@ -199,41 +207,43 @@ const Header = () => {
                 Search
               </button>
             </div>
-            
-            {showSuggestions && searchQuery &&  (
+
+            {showSuggestions && searchQuery && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-2xl mx-auto">
                 <div className="py-2">
-                  { suggestionsData?.suggestions && suggestionsData.suggestions.map((suggestion) => (
-                    <Link
-                      key={suggestion._id}
-                      href={`/home/product-details/${suggestion.slug}`}
-                      onClick={() => handleSuggestionClick(suggestion)}
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer"
-                    >
-                      <div className="w-10 h-10 bg-gray-100 rounded flex-shrink-0">
-                        {suggestion.images?.[0] && (
-                          <img
-                            src={suggestion.images[0]}
-                            alt={suggestion.name}
-                            className="w-full h-full object-cover rounded"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {suggestion.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {suggestion.category?.main?.name}
-                        </p>
-                      </div>
-                      {suggestion.variants?.[0]?.options?.[0]?.price && (
-                        <div className="text-sm font-semibold text-gray-900">
-                          ₦{suggestion.variants[0].options[0].price.toLocaleString()}
+                  {suggestionsData?.suggestions &&
+                    suggestionsData.suggestions.map((suggestion) => (
+                      <Link
+                        key={suggestion._id}
+                        href={`/home/product-details/${suggestion.slug}`}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <div className="w-10 h-10 bg-gray-100 rounded flex-shrink-0">
+                          {suggestion.images?.[0] && (
+                            <img
+                              src={suggestion.images[0]}
+                              alt={suggestion.name}
+                              className="w-full h-full object-cover rounded"
+                            />
+                          )}
                         </div>
-                      )}
-                    </Link>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {suggestion.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {suggestion.category?.main?.name}
+                          </p>
+                        </div>
+                        {suggestion.variants?.[0]?.options?.[0]?.price && (
+                          <div className="text-sm font-semibold text-gray-900">
+                            ₦
+                            {suggestion.variants[0].options[0].price.toLocaleString()}
+                          </div>
+                        )}
+                      </Link>
+                    ))}
                 </div>
               </div>
             )}
@@ -315,44 +325,46 @@ const Header = () => {
                 Search
               </button>
             </div>
-            
+
             {showSuggestions && searchQuery && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                 <div className="py-2">
-                  {suggestionsData?.suggestions && suggestionsData.suggestions.map((suggestion) => (
-                    <Link
-                      key={suggestion._id}
-                      href={`/home/product-details/${suggestion.slug}`}
-                      onClick={() => {
-                        handleSuggestionClick(suggestion);
-                        setIsSearchOpen(false);
-                      }}
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer"
-                    >
-                      <div className="w-8 h-8 bg-gray-100 rounded flex-shrink-0">
-                        {suggestion.images?.[0] && (
-                          <img
-                            src={suggestion.images[0]}
-                            alt={suggestion.name}
-                            className="w-full h-full object-cover rounded"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {suggestion.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {suggestion.category?.main?.name}
-                        </p>
-                      </div>
-                      {suggestion.variants?.[0]?.options?.[0]?.price && (
-                        <div className="text-xs font-semibold text-gray-900">
-                          ₦{suggestion.variants[0].options[0].price.toLocaleString()}
+                  {suggestionsData?.suggestions &&
+                    suggestionsData.suggestions.map((suggestion) => (
+                      <Link
+                        key={suggestion._id}
+                        href={`/home/product-details/${suggestion.slug}`}
+                        onClick={() => {
+                          handleSuggestionClick(suggestion);
+                          setIsSearchOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <div className="w-8 h-8 bg-gray-100 rounded flex-shrink-0">
+                          {suggestion.images?.[0] && (
+                            <img
+                              src={suggestion.images[0]}
+                              alt={suggestion.name}
+                              className="w-full h-full object-cover rounded"
+                            />
+                          )}
                         </div>
-                      )}
-                    </Link>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {suggestion.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {suggestion.category?.main?.name}
+                          </p>
+                        </div>
+                        {suggestion.variants?.[0]?.options?.[0]?.price && (
+                          <div className="text-xs font-semibold text-gray-900">
+                            ₦
+                            {suggestion.variants[0].options[0].price.toLocaleString()}
+                          </div>
+                        )}
+                      </Link>
+                    ))}
                 </div>
               </div>
             )}
@@ -360,7 +372,7 @@ const Header = () => {
         )}
       </div>
 
-      <Modal2 isOpen={isSell} onClose={handlecloseModal}>
+      {/* <Modal2 isOpen={isSell} onClose={handlecloseModal}>
         <div className="inline-block overflow-hidden text-left pb-4 px-4 sm:px-6 lg:px-7 relative align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-[90vw] sm:max-w-[620px] sm:w-full">
           <div className="py-4 flex justify-between items-center">
             <h3 className="text-lg sm:text-xl md:text-2xl flex-1 text-center text-gray-700 font-semibold">
@@ -401,7 +413,7 @@ const Header = () => {
             />
           </div>
         </div>
-      </Modal2>
+      </Modal2> */}
 
       <AuthenticationModal isOpen={isSell} close={handlecloseModal} />
     </header>

@@ -1,10 +1,23 @@
-import Router, { NextFunction, Request, Response } from "express"
+import Router, { NextFunction, Request, Response } from "express";
 import { verifyToken } from "../middlewares/verify-token.middleware";
-import { getUserOrders, getUserAddress, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, addCard, removeCard, setDefaultCard, updateNotificationPreferences } from "../controllers/user.controller";
+import {
+  getUserOrders,
+  getUserAddress,
+  getUserOffersForAProduct,
+  getUserOffersGrouped,
+  addAddress,
+  modifyAddress,
+  deleteAddress,
+  getUserNotifications,
+  getUserRecentViews,
+  getUserProfile,
+  addCard,
+  removeCard,
+  setDefaultCard,
+  updateNotificationPreferences,
+} from "../controllers/user.controller";
 
-
-
-const router = Router()
+const router = Router();
 
 // Address management
 router.post("/address", verifyToken, addAddress);
@@ -12,10 +25,14 @@ router.get("/address", verifyToken, getUserAddress);
 router.patch("/address", verifyToken, modifyAddress);
 router.delete("/address", verifyToken, deleteAddress);
 
-router.get("/notifications", verifyToken, getUserNotifications)
-router.patch("/notifications/preferences", verifyToken, updateNotificationPreferences)
-router.get("/recent-views", verifyToken, getUserRecentViews)
-router.get("/profile", verifyToken, getUserProfile)
+router.get("/notifications", verifyToken, getUserNotifications);
+router.patch(
+  "/notifications/preferences",
+  verifyToken,
+  updateNotificationPreferences
+);
+router.get("/recent-views", verifyToken, getUserRecentViews);
+router.get("/profile", verifyToken, getUserProfile);
 
 router.get(
   "/orders",
@@ -54,10 +71,9 @@ router.get(
 );
 
 // Card management
-router.get("/cards", verifyToken, getUserCards);
+// router.get("/cards", verifyToken, getUserCards);
 router.post("/card", verifyToken, addCard);
 router.patch("/card", verifyToken, setDefaultCard);
 router.delete("/card/:last4", verifyToken, removeCard);
 
-
-export default router
+export default router;

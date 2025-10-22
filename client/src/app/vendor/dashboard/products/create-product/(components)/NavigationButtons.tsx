@@ -9,6 +9,7 @@ import { useProductMapper } from "./SubmitProduct";
 import { useDeleteDraft } from "@/hooks/mutations";
 import { useProductStore } from "@/stores/useProductStore";
 import { useRouter } from "next/navigation";
+import { ClipLoader } from "react-spinners";
 
 type NavigationButtonsProps = {
   onNext?: () => boolean | Promise<boolean>;
@@ -17,6 +18,7 @@ type NavigationButtonsProps = {
   nextDisabled?: boolean;
   currentAttributePage?: number;
   totalAttributePages?: number;
+  isLoading?: boolean;
 };
 
 export default function NavigationButtons({
@@ -35,7 +37,7 @@ export default function NavigationButtons({
   const { draftId } = useProductListing();
   const deleteDraftMutation = useDeleteDraft();
   const { listedProducts, setListedProducts } = useProductStore();
-  const router = useRouter()
+  const router = useRouter();
 
   const handleBack = () => {
     if (onBack) {
@@ -59,7 +61,6 @@ export default function NavigationButtons({
       setStep(step + 1);
     }
   };
-
 
   const handleSubmitClick = async () => {
     try {
@@ -127,11 +128,15 @@ export default function NavigationButtons({
           }`}
         >
           <span>
-            {isLastStep
-              ? createProductMutation.isPending
-                ? "Publishing..."
-                : "Publish Product"
-              : "Next"}
+            {isLastStep ? (
+              createProductMutation.isPending ? (
+                <ClipLoader size={20} color="white" />
+              ) : (
+                "Publish Product"
+              )
+            ) : (
+              "Next"
+            )}
           </span>
           <ArrowRight
             size={16}

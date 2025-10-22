@@ -65,7 +65,7 @@ const ShippingDetails = (props: Props) => {
 
   const validateShippingDetails = () => {
     const newErrors: { [key: string]: string } = {};
-    console.log("Validating with local state:", shippingDetails);
+    // console.log("Validating with local state:", shippingDetails);
     
     if (!shippingDetails.productLocation || shippingDetails.productLocation === "") {
       newErrors.productLocation = "Shipping location is required";
