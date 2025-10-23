@@ -141,7 +141,7 @@ const SeoAndMetaSettings = (props: Props) => {
           helperText="Shown on search engine result."
         />
       </div>
-      {isMobileOrTablet && (
+      {/* {isMobileOrTablet && ( */}
         <div className="mt-4">
           <NavigationButtons 
             onSaveDraft={props.onSaveDraft}
@@ -150,7 +150,7 @@ const SeoAndMetaSettings = (props: Props) => {
             nextDisabled={createProductMutation.isPending}
           />
         </div>
-      )}
+      {/* )} */}
     </div>
   );
 };

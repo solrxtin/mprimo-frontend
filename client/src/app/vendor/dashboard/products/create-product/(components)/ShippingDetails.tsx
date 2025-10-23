@@ -105,7 +105,6 @@ const ShippingDetails = (props: Props) => {
   React.useEffect(() => {
     const handleValidateEvent = () => {
       const newErrors: { [key: string]: string } = {};
-      console.log("Validating with current state:", shippingDetails);
       
       if (!shippingDetails.productLocation || shippingDetails.productLocation === "") {
         newErrors.productLocation = "Shipping location is required";
@@ -116,9 +115,11 @@ const ShippingDetails = (props: Props) => {
       if (deepest?.productWeightRequired && (!shippingDetails.weightUnit || shippingDetails.weightUnit === "")) {
         newErrors.weightUnit = "Weight unit is required";
       }
-      if ((shippingDetails.productDimensions?.length || shippingDetails.productDimensions?.width || shippingDetails.productDimensions?.height) && 
-          (!shippingDetails.productDimensions?.length || !shippingDetails.productDimensions?.width || !shippingDetails.productDimensions?.height) && deepest?.productDimensionsRequired) {
-        newErrors.productDimensions = "Please enter the length, width, and height of the product"
+      if (deepest?.productDimensionsRequired && 
+          (!shippingDetails.productDimensions?.length || 
+           !shippingDetails.productDimensions?.width || 
+           !shippingDetails.productDimensions?.height)) {
+        newErrors.productDimensions = "Please enter the length, width, and height of the product";
       }
       if (!shippingDetails.warranty?.status || shippingDetails.warranty?.status === "") {
         newErrors.warrantyStatus = "Warranty status is required";
@@ -138,14 +139,11 @@ const ShippingDetails = (props: Props) => {
       
       if (isValid) {
         updateProductDetails("shippingDetails", shippingDetails);
-        document.dispatchEvent(
-          new CustomEvent("shippingValidated", { detail: { isValid: true } })
-        );
-      } else {
-        document.dispatchEvent(
-          new CustomEvent("shippingValidated", { detail: { isValid: false } })
-        );
       }
+      
+      document.dispatchEvent(
+        new CustomEvent("shippingValidated", { detail: { isValid } })
+      );
     };
 
     document.addEventListener("validateShipping", handleValidateEvent);
@@ -153,7 +151,7 @@ const ShippingDetails = (props: Props) => {
     return () => {
       document.removeEventListener("validateShipping", handleValidateEvent);
     };
-  }, []);
+  }, [shippingDetails, deepest]);
 
   return (
     <div className="p-4 border border-gray-400 rounded-lg w-full">

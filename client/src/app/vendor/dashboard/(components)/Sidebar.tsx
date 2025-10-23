@@ -1,6 +1,6 @@
 "use client";
 import { toastConfigError } from "@/app/config/toast.config";
-import { useLogoutUser } from "@/hooks/mutations";
+import LogoutModal from "@/components/users/LogOutPromptModal";
 import { useProductStore } from "@/stores/useProductStore";
 import { useUserStore } from "@/stores/useUserStore";
 import {
@@ -42,9 +42,14 @@ const navItems = [
 type Props = {
   isOpen?: boolean;
   onClose?: () => void;
+  openLogoutModal: () => void;
 };
 
-export default function Sidebar({ isOpen = true, onClose }: Props) {
+export default function Sidebar({
+  isOpen = true,
+  onClose,
+  openLogoutModal,
+}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPath, setLoadingPath] = useState("");
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
@@ -55,8 +60,7 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
 
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useUserStore();
-  const { mutate: logoutUser, isPending } = useLogoutUser();
+  const { user } = useUserStore();
 
   const handleClick = (link: string) => {
     // Set loading state
@@ -66,12 +70,11 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
     router.push(link);
 
     // Close sidebar after 2 seconds on mobile
-  if (window.innerWidth < 768 && onClose) {
-    setTimeout(() => {
-      onClose();
-    }, 2000);
-  }
-
+    if (window.innerWidth < 768 && onClose) {
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    }
   };
 
   // Handle tap on tablet
@@ -106,18 +109,18 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
     setLastTapped(null);
   }, [pathname]);
 
-  const handleLogoutClicked = () => {
-    logoutUser(undefined, {
-      onSuccess: (data) => {
-        logout();
-        useProductStore.getState().clearProductStore();
-      },
-      onError: (error) => {
-        console.error("Logout failed:", error);
-        toast.error(error.message, toastConfigError);
-      },
-    });
-  };
+  // const handleLogoutClicked = () => {
+  //   logoutUser(undefined, {
+  //     onSuccess: (data) => {
+  //       // logout();
+  //       useProductStore.getState().clearProductStore();
+  //     },
+  //     onError: (error) => {
+  //       console.error("Logout failed:", error);
+  //       toast.error(error.message, toastConfigError);
+  //     },
+  //   });
+  // };
 
   return (
     <div
@@ -204,14 +207,9 @@ export default function Sidebar({ isOpen = true, onClose }: Props) {
       <div className="absolute bottom-10 left-5">
         <button
           className="flex gap-x-2 items-center cursor-pointer active:bg-gray-200 p-2 rounded transition-colors duration-150"
-          onClick={handleLogoutClicked}
+          onClick={openLogoutModal}
         >
-          {!isPending ? (
-            <LogOut />
-          ) : (
-            <div className="animate-spin h-5 w-5 border-2 border-t-transparent border-blue-500 rounded-full" />
-          )}
-          <p className="md:hidden lg:inline">Log Out</p>
+          <LogOut /> <p className="md:hidden lg:inline">Log Out</p>
         </button>
       </div>
     </div>
