@@ -1,5 +1,6 @@
 import { useWishlist } from "@/hooks/useWishlist";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
+import { useWishlistStore } from "@/stores/useWishlistStore";
 import { ProductType } from "@/types/product.type";
 import { User } from "@/types/user.type";
 import { Heart } from "lucide-react";
@@ -20,6 +21,9 @@ const Wishlist = ({ user, productData, price }: WishlistCompnent) => {
     isInWishlist,
     isAddingToWishlist,
   } = useWishlist();
+
+  const { items } = useWishlistStore();
+
   return (
     <button
       onClick={() => {
@@ -35,15 +39,19 @@ const Wishlist = ({ user, productData, price }: WishlistCompnent) => {
         }
       }}
       disabled={isAddingToWishlist}
-      className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
+      className={`p-1 rounded-sm transition-colors disabled:opacity-50 cursor-pointer ${
+        isInWishlist(productData?._id!)
+          ? "hover:bg-red-100 bg-red-50"
+          : "hover:bg-gray-100 bg-gray-50"
+      }`}
       aria-label="Add to wishlist"
     >
       <Heart
         size={24}
         className={`${
           isInWishlist(productData?._id!)
-            ? "text-red-500 fill-current"
-            : "text-gray-400"
+            ? "text-red-400"
+            : "text-gray-300"
         } transition-colors`}
       />
     </button>

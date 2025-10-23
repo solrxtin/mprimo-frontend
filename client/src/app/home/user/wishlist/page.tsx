@@ -8,74 +8,59 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
 import { useRouter } from "next/navigation"
-import { useWishlistSync } from "@/hooks/useWishlistSync"
-import { useCartStore } from "@/stores/cartStore"
 import { useWishlist } from "@/hooks/useWishlist"
-import { Wishlist } from "@/types/wishlist.type"
-
-
+import { useCartStore } from "@/stores/cartStore"
 
 export default function WishlistPage() {
+  const [currentPage, setCurrentPage] = useState(1)
   const router = useRouter()
+  const { wishlist, isLoading, removeFromWishlist, wishlistCount, clearWishlist } = useWishlist()
   const { addToCart } = useCartStore()
-  
-  useWishlistSync()
-  
-  const { 
-    wishlist, 
-    wishlistCount, 
-    isLoading, 
-    removeFromWishlist, 
-    isRemovingFromWishlist 
-  } = useWishlist()
-
-
-
-  console.log("testing wishlist",wishlist )
 
   const handleRemoveItem = (productId: string) => {
     removeFromWishlist(productId)
   }
 
-  const handleAddToCart = (item: any) => {
-    const cartItem = {
-      productId: item.productId._id,
+  const handleAddToCart = async (item: any) => {
+    const product = {
+      _id: item.productId,
       name: item.name,
-      price: item.price,
-      image: item.productId.images[0] || '/placeholder.svg',
-      quantity: 1
+      images: item.images,
+      price: item.price
     }
-    addToCart(cartItem)
+    await addToCart(product, 1)
   }
 
-  const handleRemoveAll = () => {
-    wishlist.forEach(item => {
-      removeFromWishlist(item.productId)
-    })
+  if (isLoading) {
+    return (
+      <div className="min-h-screen font-roboto">
+        <div className="mx-auto pt-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg border p-4">
+                <div className="flex space-x-3">
+                  <div className="w-20 h-20 bg-gray-200 rounded-lg"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  const getProductPrice = (item: Wishlist) => {
-    return item.price 
-  }
-
-  const getSalePrice = (item: any) => {
-    return item.price
-  }
-
-  const getDiscount = (item: any) => {
-    const price = getProductPrice(item)
-    const salePrice = getSalePrice(item)
-    if (salePrice && salePrice < price) {
-      const discount = Math.round(((price - salePrice) / price) * 100)
-      return `-${discount}%`
-    }
-    return null
-  }
   const manualBreadcrumbs: BreadcrumbItem[] = [
-    { label: "Home", href: "/home" },
-    { label: "My Wishlist", href: null },
+    { label: "My-Wishlist", href: "/home/my-cart" },
   ]
-    const handleBreadcrumbClick = (
+
+  console.log("Wishlist items:", wishlist);
+  
+  const handleBreadcrumbClick = (
     item: BreadcrumbItem,
     e: React.MouseEvent<HTMLAnchorElement>
   ): void => {
@@ -86,24 +71,8 @@ export default function WishlistPage() {
     }
   };
 
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Available":
-        return "text-green-600"
-      case "Ongoing":
-        return "text-green-600"
-      case "Unavailable":
-        return "text-red-600"
-      default:
-        return "text-gray-600"
-    }
-  }
-
   return (
    <>
-
-
       <div className="min-h-screen font-roboto">
         <div className=" mx-auto pt-4">
           {/* Breadcrumb */}
@@ -116,14 +85,13 @@ export default function WishlistPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center space-x-2 mb-4 sm:mb-0">
-            <h1 className="text-2xl font-bold">My Wishlist hello</h1>
+            <h1 className="text-2xl font-bold">My Wishlist</h1>
             <span className="text-gray-600">{wishlistCount} Items</span>
           </div>
           <Button
             variant="link"
             className="text-blue-600 hover:text-blue-800 p-0 h-auto font-normal"
-            onClick={handleRemoveAll}
-            disabled={isRemovingFromWishlist}
+            onClick={() => clearWishlist()}
           >
             Remove All
           </Button>
@@ -164,8 +132,16 @@ export default function WishlistPage() {
 
           {/* Items */}
           <div className="divide-y">
-            {wishlist.map((item) => (
-              <div key={item._id} className="p-4">
+            {wishlist.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <p>Your wishlist is empty</p>
+                <Link href="/home" className="text-blue-600 hover:underline mt-2 inline-block">
+                  Continue Shopping
+                </Link>
+              </div>
+            ) : (
+              wishlist.map((item: any) => (
+              <div key={item.productId} className="p-4">
                 {/* Mobile Layout */}
                 <div className="md:hidden space-y-3">
                   <div className="flex space-x-3">
@@ -177,29 +153,15 @@ export default function WishlistPage() {
                         height={60}
                         className="rounded-lg object-cover"
                       />
-                      {getDiscount(item) && (
-                        <Badge className="absolute -bottom-1 -right-1 text-xs px-1 py-0 h-5 bg-red-100 text-red-800 hover:bg-red-100">
-                          {getDiscount(item)}
-                        </Badge>
-                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-sm leading-tight">{item.name}</h3>
-                      <p className="text-xs text-gray-500 mt-1">Added {new Date(item.addedAt).toLocaleDateString()}</p>
+                      <p className="text-sm text-gray-500 mt-1">Added {new Date(item.addedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className="flex items-center space-x-2">
-                        {getSalePrice(item) ? (
-                          <>
-                            <span className="font-bold text-red-600">₦ {getSalePrice(item).toLocaleString()}</span>
-                            <span className="text-sm text-gray-500 line-through">₦ {getProductPrice(item).toLocaleString()}</span>
-                          </>
-                        ) : (
-                          <span className="font-bold">₦ {getProductPrice(item).toLocaleString()}</span>
-                        )}
-                      </div>
+                      <span className="font-bold">{`${item.priceInfo.currencySymbol}${item.priceInfo.displayPrice.toLocaleString()}`}</span>
                     </div>
                     <span className="text-sm text-green-600">Available</span>
                   </div>
@@ -217,7 +179,6 @@ export default function WishlistPage() {
                       variant="outline"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
                       onClick={() => handleRemoveItem(item.productId)}
-                      disabled={isRemovingFromWishlist}
                     >
                       Remove
                     </Button>
@@ -235,30 +196,15 @@ export default function WishlistPage() {
                         height={80}
                         className="rounded-lg object-cover"
                       />
-                      {getDiscount(item) && (
-                        <Badge className="absolute -bottom-1 -right-1 text-xs px-2 py-1 bg-red-100 text-red-800 hover:bg-red-100">
-                          {getDiscount(item)}
-                        </Badge>
-                      )}
                     </div>
                     <div>
                       <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-500">Added {new Date(item.addedAt).toLocaleDateString()}</p>
+                      <p className="text-xs text-gray-500">Added {new Date(item.addedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="col-span-2">
-                    <div className="flex items-center space-x-2 whitespace-nowrap">
-                      {getSalePrice(item) ? (
-                        <>
-                          <span className="font-bold text-red-600">₦ {getSalePrice(item).toLocaleString()}</span>
-                          {/* <span className="text-sm text-gray-500 line-through">₦ {getProductPrice(item).toLocaleString()}</span> */}
-                        </>
-                      ) : (
-                        <span className="font-bold">₦ {getProductPrice(item).toLocaleString()}</span>
-                      )}
-                      {getDiscount(item) && (
-                        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{getDiscount(item)}</Badge>
-                      )}
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold">{`${item.priceInfo.currencySymbol}${item.priceInfo.displayPrice.toLocaleString()}`}</span>
                     </div>
                   </div>
                   <div className="col-span-2">
@@ -277,39 +223,31 @@ export default function WishlistPage() {
                       size="sm"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
                       onClick={() => handleRemoveItem(item.productId)}
-                      disabled={isRemovingFromWishlist}
                     >
                       Remove
                     </Button>
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
-        {/* Pagination */}
-        <div className="flex justify-center items-center space-x-2 mt-6">
-          <Button variant="ghost" size="sm" disabled>
-            Prev
-          </Button>
-          <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-            1
-          </Button>
-          <Button variant="ghost" size="sm">
-            2
-          </Button>
-          <Button variant="ghost" size="sm">
-            3
-          </Button>
-          <span className="text-gray-500">...</span>
-          <Button variant="ghost" size="sm">
-            10
-          </Button>
-          <Button variant="ghost" size="sm">
-            Next
-          </Button>
-        </div>
+        {/* Pagination - Only show if there are items */}
+        {wishlist.length > 0 && (
+          <div className="flex justify-center items-center space-x-2 mt-6">
+            <Button variant="ghost" size="sm" disabled>
+              Prev
+            </Button>
+            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+              1
+            </Button>
+            <Button variant="ghost" size="sm">
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </div>
     </>

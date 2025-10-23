@@ -1,7 +1,12 @@
 import React, { JSX, useState } from 'react';
 import { Star, ChevronDown } from 'lucide-react';
+import { ProductType } from '@/types/product.type';
 
-export default function ReviewsPage() {
+type ReviewsProps = {
+  product: ProductType;
+};
+
+export default function ReviewsPage({product}: ReviewsProps) {
   const [selectedTimeFilter, setSelectedTimeFilter] = useState('All time');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -80,6 +85,10 @@ const renderOverallStars = (rating: RenderOverallStarsProps['rating']): JSX.Elem
         </div>
     );
 };
+
+  if (product?.inventory?.listing.type !== "auction") {
+    return null;
+  }
 
   return (
     <div className="md:px-[42px] lg:px-[80px] px-4  mt-5 md:mt-7 lg:mt-8  ">

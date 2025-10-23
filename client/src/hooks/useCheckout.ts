@@ -7,6 +7,7 @@ export const useCreateOrder = () => {
     mutationFn: (data: CheckoutData) => checkoutService.createOrder(data),
     onSuccess: (data) => {
       toast.success('Order placed successfully!');
+      return data
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to place order');

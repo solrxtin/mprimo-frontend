@@ -102,7 +102,7 @@ export const useCartStore = create<CartState>()(
               variantId: selectedVariant?.variantId,
               optionId: selectedVariant?.optionId
             });
-                toast.success("Product Added to Cart Successfully", toastConfigSuccess);
+            toast.success("Product Added to Cart Successfully", toastConfigSuccess);
             
             // Reload cart from backend to get updated state
             await get().loadCart();
@@ -267,6 +267,9 @@ export const useCartStore = create<CartState>()(
           return;
         }
 
+        const { isLoading } = get();
+        if (isLoading) return; // Prevent multiple simultaneous requests
+
         set({ isLoading: true, error: null });
 
         try {
@@ -288,13 +291,15 @@ export const useCartStore = create<CartState>()(
               optionValue: '',
               price: item.price
             } : undefined,
-            addedAt: item.addedAt || new Date().toISOString()
+            addedAt: item.addedAt || new Date().toISOString(),
+            priceInfo: item.priceInfo
           }));
 
           const summary = calculateCartSummary(items);
           set({ items, summary });
         } catch (error) {
-          set({ error: error instanceof Error ? error.message : 'Failed to load cart' });
+          // Don't set error for guest users or auth failures
+          console.warn('Failed to load cart:', error);
         } finally {
           set({ isLoading: false });
         }
@@ -307,10 +312,12 @@ export const useCartStore = create<CartState>()(
 
         try {
           if (items.length > 0) {
-            // Sync local cart items to backend
-            await cartService.syncCart(items);
+            // Merge local cart items with backend cart
+            await cartService.mergeCart(items);
+            // Clear local items after successful merge
+            set({ items: [] });
           }
-          // Load cart from backend (this will replace local items)
+          // Load cart from backend (this will get the merged cart)
           await get().loadCart();
         } catch (error) {
           set({ error: error instanceof Error ? error.message : 'Failed to sync cart' });

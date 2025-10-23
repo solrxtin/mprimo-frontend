@@ -31,7 +31,8 @@ const BASE_URL = 'http://localhost:5800/api/v1';
 export const cartService = {
   async getCart(): Promise<CartResponse> {
     const response = await fetchWithAuth(`${BASE_URL}/products/cart/user`);
-    return response.json();
+    const data = await response.json();
+    return data;
   },
 
   
@@ -77,5 +78,23 @@ export const cartService = {
     }
     
     return this.getCart();
+  },
+
+  async mergeCart(items: any[]): Promise<CartResponse> {
+    // Format cart items to match backend expectations
+    const cart = items.map(item => ({
+      productId: item.product._id,
+      optionId: item.selectedVariant?.optionId,
+      quantity: item.quantity,
+      price: item.selectedVariant?.price || 0,
+      name: item.product.name,
+      images: item.product.images || []
+    }));
+
+    const response = await fetchWithAuth(`${BASE_URL}/products/cart/merge`, {
+      method: 'POST',
+      body: JSON.stringify({ cart })
+    });
+    return response.json();
   }
 };

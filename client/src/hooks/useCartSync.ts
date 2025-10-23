@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useCartStore } from '@/stores/cartStore';
 import { useUserStore } from '@/stores/useUserStore';
 
@@ -6,14 +6,21 @@ export const useCartSync = () => {
   const { user } = useUserStore();
   const isLoggedIn = !!user;
   const { syncCartOnLogin, loadCart } = useCartStore();
+  const syncedRef = useRef(false);
+  const prevUserRef = useRef(user);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      // When user logs in, sync local cart with backend
-      syncCartOnLogin();
-    } else {
-      // When user logs out, load from local storage only
-      loadCart();
+    const userChanged = prevUserRef.current !== user;
+    prevUserRef.current = user;
+
+    if (isLoggedIn && userChanged && !syncedRef.current) {
+      syncedRef.current = true;
+      syncCartOnLogin().catch(console.error);
+    } else if (!isLoggedIn && userChanged) {
+      syncedRef.current = false;
+      loadCart().catch(console.warn);
     }
-  }, [isLoggedIn, syncCartOnLogin, loadCart]);
+  }, [user, isLoggedIn, syncCartOnLogin, loadCart]);
+
+  return { isLoggedIn };
 };

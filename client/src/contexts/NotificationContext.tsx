@@ -21,8 +21,9 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [notifications, setNotifications] = useState<INotification[]>([]);
-  const { data: userNotifications } = useUserNotifications();
   const { user } = useUserStore();
+  const { data: userNotifications } = useUserNotifications(!!user?._id);
+  
   
   // Use the initialized socket from socketService
   useEffect(() => {

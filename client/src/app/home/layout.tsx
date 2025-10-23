@@ -19,7 +19,7 @@ const Homepage = ({ children }: HomepageProps) => {
   useCartSync();
 
   return (
-    <div className="font-roboto" style={{ fontFamily: 'var(--font-roboto)' }}>
+    <div className="font-roboto min-h-screen" style={{ fontFamily: 'var(--font-roboto)' }}>
      <Header />
      {children}
      <Footer />

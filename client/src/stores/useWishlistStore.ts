@@ -26,10 +26,12 @@ export const useWishlistStore = create<WishlistState>()(
       isLoading: false,
 
       setItems: (items) => set({ items }),
-      
+
       addItem: (item) => {
         const { items } = get();
-        const existingItem = items.find((existingItem) => existingItem.productId === item.productId);
+        const existingItem = items.find(
+          (existingItem) => existingItem.productId._id === item.productId._id
+        );
         if (!existingItem) {
           set({ items: [...items, item] });
         }
@@ -37,7 +39,9 @@ export const useWishlistStore = create<WishlistState>()(
 
       removeItem: (productId) => {
         const { items } = get();
-        const updatedItems = items.filter((item) => item.productId !== productId);
+        const updatedItems = items.filter(
+          (item) => item.productId._id !== productId
+        );
         set({ items: updatedItems });
       },
 
@@ -53,7 +57,9 @@ export const useWishlistStore = create<WishlistState>()(
 
       isInWishlist: (productId) => {
         const { items } = get();
-        return items.some((item) => item.productId === productId);
+        return items.some(
+          (item) => String(item.productId) === String(productId)
+        );
       },
     }),
     {
@@ -63,7 +69,8 @@ export const useWishlistStore = create<WishlistState>()(
           const value = localStorage.getItem(name);
           return value ? JSON.parse(value) : null;
         },
-        setItem: (name, value) => localStorage.setItem(name, JSON.stringify(value)),
+        setItem: (name, value) =>
+          localStorage.setItem(name, JSON.stringify(value)),
         removeItem: (name) => localStorage.removeItem(name),
       },
     }

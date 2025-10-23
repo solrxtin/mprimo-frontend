@@ -23,6 +23,8 @@ export interface CartValidationResponse {
       total: number;
       currency: string;
     };
+    paymentMethods: any[];
+    userWallet: any;
     canProceed: boolean;
   };
 }
@@ -74,7 +76,8 @@ export const checkoutService = {
     });
   },
 
-  async validateCart(): Promise<CartValidationResponse> {
+  // : Promise<CartValidationResponse>
+  async validateCart() {
     const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/validate', {
       method: 'POST',
     });

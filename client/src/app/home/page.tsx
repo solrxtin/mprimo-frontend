@@ -1,5 +1,6 @@
 "use client"
 
+import AuctionedProduct from "@/components/Home/AuctionedProduct";
 import BestDeals from "@/components/Home/BestDeals";
 import ShopCategoriesComponent from "@/components/Home/ByCategory";
 import ComputerAccessories from "@/components/Home/ComputerAccessories";
@@ -8,7 +9,6 @@ import FeaturedProducts from "@/components/Home/FeaturedProduct";
 import MarketplaceSection from "@/components/Home/Hero";
 import CustomerReviews from "@/components/Home/Review";
 import { AllProduct } from "@/utils/config";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useQuery } from "@tanstack/react-query";
 import React from "react";
 
@@ -19,7 +19,7 @@ type HomepageProps = {
 const Page = ({ children }: HomepageProps) => {
 
 const fetchAllProducts = async () => {
-  const response = await fetchWithAuth(`${AllProduct}?page=2`);
+  const response = await fetch(`${AllProduct}?page=2`);
   if (!response.ok) {
     throw new Error('Failed to fetch user subscriptions');
   }
@@ -40,13 +40,11 @@ const useAllProducts =  useQuery({
 
   return (
     <div className="font-roboto " >
-     
       <MarketplaceSection product={useAllProducts.data} />
       <BestDeals />
-
-      
       <ShopCategoriesComponent />
       <FeaturedProducts />
+      <AuctionedProduct />
       <ComputerAccessories />
       <CustomerReviews />
       <Cta />

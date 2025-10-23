@@ -106,7 +106,7 @@ const MarketplaceSection = ({ product }: MarketplaceSectionProps) => {
   ];
 
   return (
-    <div className="container-responsive section-spacing">
+    <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-10 lg:py-15">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Carousel Section */}
