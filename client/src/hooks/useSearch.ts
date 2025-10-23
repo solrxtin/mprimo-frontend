@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
+
 import { SearchSuggestionsResponse } from "@/types/search.types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5800";
@@ -12,7 +12,7 @@ export const useSearchSuggestions = (query: string, limit: number = 5) => {
         return { success: true, suggestions: [] };
       }
       
-      const response = await fetchWithAuth(
+      const response = await fetch(
         `${API_BASE}/api/v1/products/search/suggestions?q=${encodeURIComponent(query)}&limit=${limit}`
       );
       

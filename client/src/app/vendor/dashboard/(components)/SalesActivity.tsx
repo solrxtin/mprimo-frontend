@@ -51,7 +51,7 @@ const SalesActivity = () => {
     null
   );
   const socket = useSocket();
-  const { data: userNotifications } = useUserNotifications();
+  const { data: userNotifications } = useUserNotifications(true);
 
   useEffect(() => {
     if (!userNotifications) return;

@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 
 export default function Cta() {
   return (
-    <section className="relative bg-gradient-to-r from-blue-600 to-blue-500 overflow-hidden">
-      <div className="md:px-[42px] lg:px-[80px] px-4x">
+    <section className="w-full bg-gradient-to-r from-blue-600 to-blue-500 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left Content */}
-          <div className="text-white py-8 md:py-14 lg:py-18 ">
+          <div className="text-white py-8 md:py-14 lg:py-18">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight mb-4 md:mb-6">
               Enjoy Maximum Shopping Experience Today
             </h1>

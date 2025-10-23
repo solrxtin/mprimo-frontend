@@ -1,6 +1,9 @@
+import { useUserStore } from "@/stores/useUserStore";
+
 let isRefreshing = false;
 
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const {user} = useUserStore.getState();
     const headers = {
       ...options.headers,
       "Content-Type": "application/json",
@@ -13,7 +16,7 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     });
   
     // If unauthorized (401) or forbidden (403), try refreshing token
-    if ((response.status === 401 || response.status === 403) && !isRefreshing) {
+    if ((response.status === 401 || response.status === 403) && !isRefreshing && user?._id) {
       isRefreshing = true;
       
       try {
@@ -32,15 +35,21 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
           });
         } else {
           isRefreshing = false;
-          // Only redirect if we're not already on login page
-          if (!window.location.pathname.includes('/login')) {
+          // Only redirect if we're on a protected route
+          const protectedRoutes = ['/vendor', '/home/user', '/home/dashboard'];
+          const isProtectedRoute = protectedRoutes.some(route => window.location.pathname.startsWith(route));
+          
+          if (isProtectedRoute && !window.location.pathname.includes('/login')) {
             window.location.href = "/login";
           }
           return Promise.reject("Authentication failed. Please log in again.");
         }
       } catch (error) {
         isRefreshing = false;
-        if (!window.location.pathname.includes('/login')) {
+        const protectedRoutes = ['/vendor', '/home/user', '/home/dashboard'];
+        const isProtectedRoute = protectedRoutes.some(route => window.location.pathname.startsWith(route));
+        
+        if (isProtectedRoute && !window.location.pathname.includes('/login')) {
           window.location.href = "/login";
         }
         return Promise.reject("Authentication error. Please log in again.");

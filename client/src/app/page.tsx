@@ -39,7 +39,7 @@ export default function Home() {
   return (
     <div>
       <Homepage />
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 gap-y-4 bg-gray-100">
+      {/* <div className="flex flex-col items-center justify-center min-h-screen p-4 gap-y-4 bg-gray-100">
         {!user ? (
           <Link href="/sign-up">
             <button className="bg-blue-500 text-white px-4 py-2 rounded-md cursor-pointer hover:bg-blue-400">
@@ -54,7 +54,7 @@ export default function Home() {
             Logout
           </button>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }

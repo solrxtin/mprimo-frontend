@@ -27,10 +27,15 @@ type InventoryType = {
       startBidPrice?: number;
       reservePrice?: number;
       buyNowPrice?: number;
-      startTime?: Date;
-      endTime?: Date;
+      startTime?: string;
+      endTime?: string;
       quantity?: number;
       bidIncrement?: number;
+      isStarted?: boolean;
+      isExpired?: boolean;
+      reservePriceMet?: boolean;
+      priorityScore?: number;
+      relistCount?: number;
     };
   };
 };
@@ -50,6 +55,8 @@ type VariantOptionType = {
   value: string;
   price: number;
   salePrice?: number;
+  displayPrice?: number;
+  currencySymbol?: string;
   quantity: number;
   _id: string;
 };
@@ -142,6 +149,12 @@ export type ProductType = {
   createdAt?: string;
   updatedAt?: string;
   price?: string;
+  priceInfo?: {
+    originalPrice: number;
+    displayPrice: number;
+    currencySymbol: string;
+    displayCurrency: string;
+  };
 };
 
 export type ProductProps = {
@@ -326,6 +339,14 @@ export interface CartItem {
     price: number;
   };
   addedAt: string;
+  priceInfo?: {
+    currencySymbol: string;
+    displayCurrency: string;
+    displayPrice: number;
+    exchangeRate: number;
+    originalPrice: number;
+    originalCurrency: string;
+  }
 }
 
 export interface CartSummary {

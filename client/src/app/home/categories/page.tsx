@@ -20,7 +20,7 @@ import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
 import { useCategories } from "@/hooks/queries";
 import { Category } from "@/types/product.type";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
+
 import { useQuery } from "@tanstack/react-query";
 
 const categories = Object.values(categoriesConfig);
@@ -54,7 +54,7 @@ export default function CategoriesPage() {
 
   // Fetch categories
   const fetchCategories = async () => {
-    const response = await fetchWithAuth('http://localhost:5800/api/v1/categories?');
+    const response = await fetch('http://localhost:5800/api/v1/categories?');
     if (!response.ok) {
       throw new Error('Failed to fetch categories');
     }

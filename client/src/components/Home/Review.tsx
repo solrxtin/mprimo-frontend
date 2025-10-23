@@ -52,11 +52,10 @@ export default function CustomerReviews() {
   }
 
   return (
-    <section className=" px-4 py-8 md:py-14 lg:py-18">
-      <div className="">
-        <div className="text-center mb-12 lg:mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">Customer Reviews</h2>
-        </div>
+    <section className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-14 lg:py-18">
+      <div className="text-center mb-12 lg:mb-16">
+        <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">Customer Reviews</h2>
+      </div>
 
         <div className="relative ">
           <div className="flex items-center justify-center">
@@ -152,7 +151,6 @@ export default function CustomerReviews() {
             ))}
           </div>
         </div>
-      </div>
     </section>
   )
 }

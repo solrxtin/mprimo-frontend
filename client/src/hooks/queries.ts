@@ -1,6 +1,7 @@
 
 // Example query using TanStack Query (React Query)
 import { toastConfigError } from '@/app/config/toast.config';
+import { useUserStore } from '@/stores/useUserStore';
 import { AllProduct, AProduct, AProductBySlug } from '@/utils/config';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -35,7 +36,7 @@ export const useGoogleLogin = () => {
 
 // Fetch categories
 const fetchCategories = async () => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/categories');
+  const response = await fetch('http://localhost:5800/api/v1/categories');
   if (!response.ok) {
     throw new Error('Failed to fetch categories');
   }
@@ -53,6 +54,29 @@ export const useCategories = () => {
     retry: 1
   });
 };
+
+
+// Fetch best deals
+const fetchBestDeals = async () => {
+  const response = await fetch('http://localhost:5800/api/v1/products/best-deals');
+  if (!response.ok) {
+    throw new Error('Failed to fetch best deals');
+  }
+  const data = await response.json();
+  return data.products;
+};
+
+export const useBestDeals = () => {
+  return useQuery({
+    queryKey: ['bestDeals'],
+    queryFn: fetchBestDeals,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
+};
+
 
 const fetchUserSubscriptions = async () => {
   const response = await fetchWithAuth('http://localhost:5800/api/v1/push/user');
@@ -74,7 +98,7 @@ export const useUserSubscriptions = () => {
 };
 
 const fetchProductBySlug = async (slug: string) => {
-  const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/slug/${slug}`);
+  const response = await fetch(`http://localhost:5800/api/v1/products/slug/${slug}`);
   if (!response.ok) {
     throw new Error('Failed to fetch product');
   }
@@ -94,7 +118,8 @@ export const useFetchProductBySlug = (slug: string) => {
 };
 
 const fetchProductById = async (productId: string) => {
-  const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/${productId}`);
+  const user = useUserStore.getState().user;
+  const response = user?._id ? await fetchWithAuth(`http://localhost:5800/api/v1/products/${productId}`) : await fetch(`http://localhost:5800/api/v1/products/${productId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch product');
   }
@@ -138,6 +163,59 @@ export const useFetchProductAnalytics = (
     retry: 1,
   });
 };
+
+const fetchAllProducts = async () => {
+  const response = await fetch('http://localhost:5800/api/v1/products?page=1&limit=50');
+  if (!response.ok) {
+    throw new Error('Failed to fetch products');
+  }
+  const data = await response.json();
+  return data.products;
+};
+
+export const useFetchAllProducts = () => {
+  return useQuery({
+    queryKey: ['allProducts'],
+    queryFn: fetchAllProducts,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
+interface AuctionQueryDataType {
+  page?: number;
+  limit?: number;
+  status?: string;
+  categoryId?: string;
+}
+
+const fetchProductsOnAuction = async (queryData: AuctionQueryDataType) => {
+  const params = new URLSearchParams();
+
+  if (queryData.page !== undefined) params.append('page', queryData.page.toString());
+  if (queryData.limit !== undefined) params.append('limit', queryData.limit.toString());
+  if (queryData.status) params.append('status', queryData.status);
+  if (queryData.categoryId) params.append('categoryId', queryData.categoryId);
+
+  const response = await fetch(`http://localhost:5800/api/v1/products/auctions?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch products on auction');
+  }
+  const data = await response.json();
+  console.log("Products on auction data:", data);
+  return data.products;
+};
+
+
+export const useProductsOnAuction = (queryData: AuctionQueryDataType) => {
+  return useQuery({
+    queryKey: ['productsOnAuction', queryData],
+    queryFn: () => fetchProductsOnAuction(queryData),
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};
+
 
 
 const fetchVendorProducts = async (vendorId: string) => {
@@ -187,10 +265,11 @@ const fetchUserNotifications = async() => {
   return data.notifications;
 };
 
-export const useUserNotifications = () => {
+export const useUserNotifications = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ['userNotifications'],
     queryFn: fetchUserNotifications,
+    enabled: enabled,
     refetchOnWindowFocus: false,
     retry: 1,
   });
@@ -327,10 +406,12 @@ export const useFetchVendorOrderMetrics = (vendorId: string) => {
 
 
 export const fetchAProducts = async (slug:string) => {
-  const response = await fetchWithAuth(`${AProductBySlug}${slug}`);
+  const response = await fetch(`${AProductBySlug}${slug}`);
   if (!response.ok) {
     throw new Error('Failed to fetch products');
   }
   const data = await response.json();
   return data;
 };
+
+

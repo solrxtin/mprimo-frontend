@@ -15,59 +15,26 @@ const ShopCategoriesComponent = () => {
     categoryData?.data?.categories?.filter((item: any) => item.level === 1) ||
     [];
 
-  const navCategories = [
-    "All Products",
-    "Electronics",
-    "Fashion",
-    "Furniture",
-    "Headphones",
-    "Smart Phones",
-  ];
-
-  const categoryCards = [
-    {
-      id: 1,
-      title: "Smart Phones",
-      image: "/api/placeholder/300/200",
-      bgColor: "bg-gradient-to-br from-slate-100 to-slate-200",
-    },
-    {
-      id: 2,
-      title: "Home Furnitures",
-      image: "/api/placeholder/300/200",
-      bgColor: "bg-gradient-to-br from-gray-50 to-gray-150",
-    },
-    {
-      id: 3,
-      title: "Fashion",
-      image: "/api/placeholder/300/200",
-      bgColor: "bg-gradient-to-br from-slate-50 to-slate-150",
-    },
-    {
-      id: 4,
-      title: "Laptop/Computer",
-      image: "/api/placeholder/300/200",
-      bgColor: "bg-gradient-to-br from-gray-100 to-gray-200",
-    },
-    {
-      id: 5,
-      title: "Smart Tv",
-      image: "/api/placeholder/300/200",
-      bgColor: "bg-gradient-to-br from-slate-100 to-slate-200",
-    },
-  ];
+  // const navCategories = [
+  //   "All Products",
+  //   "Electronics",
+  //   "Fashion",
+  //   "Furniture",
+  //   "Headphones",
+  //   "Smart Phones",
+  // ];
 
   const nextSlide = () => {
     setCurrentSlide(
-      (prev) => (prev + 1) % Math.max(1, categoryCards.length - 2)
+      (prev) => (prev + 1) % Math.max(1, categories.length - 2)
     );
   };
 
   const prevSlide = () => {
     setCurrentSlide(
       (prev) =>
-        (prev - 1 + Math.max(1, categoryCards.length - 2)) %
-        Math.max(1, categoryCards.length - 2)
+        (prev - 1 + Math.max(1, categories.length - 2)) %
+        Math.max(1, categories.length - 2)
     );
   };
 
@@ -128,9 +95,9 @@ const ShopCategoriesComponent = () => {
   };
 
   return (
-    <div className="md:px-[42px] lg:px-[80px] px-4 py-8 md:py-14 lg:py-18 ">
+    <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-10 lg:py-15">
       {/* Header Section */}
-      <div className="flex flex-row lg:items-center justify-between mb-8 ">
+      <div className="flex flex-row lg:items-center justify-between mb-8">
         <h2 className="text-base md:text-xl lg:text-4xl font-semibold text-gray-900">
           Shop by Categories
         </h2>
@@ -164,7 +131,7 @@ const ShopCategoriesComponent = () => {
       </div>
 
       {/* Category Cards Carousel */}
-      <div className="relative mb-12">
+      <div className="relative">
         {/* Navigation Arrows - Desktop */}
         <button
           onClick={prevSlide}
@@ -221,7 +188,7 @@ const ShopCategoriesComponent = () => {
 
         {/* Mobile Navigation Dots */}
         <div className="flex lg:hidden justify-center mt-6 gap-2">
-          {Array.from({ length: Math.max(1, categoryCards.length - 2) }).map(
+          {Array.from({ length: Math.max(1, categories.length - 2) }).map(
             (_, index) => (
               <button
                 key={index}

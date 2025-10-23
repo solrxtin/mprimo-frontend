@@ -20,7 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
-import { useCreateOrder, useCreatePaymentIntent } from "@/hooks/useCheckout";
+import { useCreateOrder, useCreatePaymentIntent, useValidateCart } from "@/hooks/useCheckout";
 import { toast } from "react-hot-toast";
 
 export default function CheckoutPage() {
@@ -40,6 +40,7 @@ export default function CheckoutPage() {
   const { items: cartItems, summary: cartSummary, clearCart } = useCartStore();
   const createOrderMutation = useCreateOrder();
   const createPaymentIntentMutation = useCreatePaymentIntent();
+ 
 
   const subtotal = cartSummary.subtotal;
   const shipping = 50000;
@@ -79,7 +80,7 @@ export default function CheckoutPage() {
       const validatedItems = cartItems.map((item) => ({
         productId: item.product._id!,
         quantity: item.quantity,
-        price: item.selectedVariant?.price || item.product.price || 0,
+        price: Number(item.selectedVariant?.price ?? item.product.price ?? 0),
         variantId: item.selectedVariant?.optionId,
       }));
 
@@ -122,7 +123,7 @@ export default function CheckoutPage() {
       // Create order
       const result = await createOrderMutation.mutateAsync(orderData);
 
-      if (result?.success) {
+      if (result.success) {
         setOrderId(result.data._id);
         await clearCart();
         setShowSuccess(true);
@@ -163,7 +164,7 @@ export default function CheckoutPage() {
   return (
     <>
       <div className="min-h-screen font-roboto bg-gray-50 body-padding">
-        <div className=" mx-auto pt-4">
+        <div className="max-w-7xl px-6 md:px-8  mx-auto pt-4">
           {/* Breadcrumb */}
           <Breadcrumbs
             items={manualBreadcrumbs}

@@ -11,8 +11,8 @@ const Footer: React.FC = () => {
   };
 
   return ( 
-    <footer className="bg-gradient-to-t from-[#B4CCFF] to-[#EDF2FB] py-10 md:py-16 md:px-[42px] lg:px-[80px] px-4">
-      <div className="max-w-7xl mx-auto">
+    <footer className="w-full bg-gradient-to-t from-[#B4CCFF] to-[#EDF2FB]">
+      <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-10 md:py-16">
         {/* Newsletter Section */}
         <div className="mb-16">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">

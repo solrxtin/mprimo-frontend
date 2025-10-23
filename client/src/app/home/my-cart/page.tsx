@@ -18,6 +18,8 @@ import { useCartSync } from "@/hooks/useCartSync";
 import { useValidateCart } from "@/hooks/useCheckout";
 import { CartValidationModal } from "@/components/CartValidationModal";
 import { CartValidationResponse } from "@/utils/checkoutService";
+import { cartService } from "@/utils/cartService";
+import CartSidebar from "./(components)/CartSidebar";
 
 export default function CartPage() {
   const {
@@ -35,7 +37,6 @@ export default function CartPage() {
   const isLoggedIn = !!user;
   const { openModal } = useAuthModalStore();
 
-  console.log("the carts", cartItem);
 
   useCartSync();
 
@@ -45,17 +46,14 @@ export default function CartPage() {
     }
   }, [isLoggedIn, loadCart]);
 
+
   const [showBidModal, setShowBidModal] = useState(false);
   const [selectedAuctionItem, setSelectedAuctionItem] = useState<any>(null);
   const [showValidationModal, setShowValidationModal] = useState(false);
-  const [validationData, setValidationData] = useState<CartValidationResponse | null>(null);
-  
-  const { refetch: validateCart, isLoading: isValidating } = useValidateCart();
+  const [validationData, setValidationData] =
+    useState<CartValidationResponse | null>(null);
 
- 
   const buyItems = cartItem || [];
-
-
 
   const removeAll = async () => {
     await clearCart();
@@ -78,7 +76,6 @@ export default function CartPage() {
     await updateQuantity(productId, newQuantity, variantKey);
   };
 
-
   const router = useRouter();
 
   const manualBreadcrumbs: BreadcrumbItem[] = [
@@ -94,8 +91,6 @@ export default function CartPage() {
       router.push(item?.href);
     }
   };
-
- 
 
   const BuyNow = () => {
     const subtotal = cartSummary.subtotal;
@@ -130,13 +125,13 @@ export default function CartPage() {
                       <div className="flex justify-between items-start">
                         <Link
                           href={{
-                            pathname: "/home/product-details/[slug]",
+                            pathname: "/home/product-details/[id]",
                             query: {
-                              slug: item?.product.slug,
+                              id: item?.product._id,
                               productData: JSON.stringify(item?.product), // Pass full product data
                             },
                           }}
-                          as={`/home/product-details/${item?.product.slug}`} // Clean URL in browser
+                          as={`/home/product-details/${item?.product._id}`} // Clean URL in browser
                           className=""
                         >
                           {" "}
@@ -144,7 +139,8 @@ export default function CartPage() {
                             <div className="relative">
                               <Image
                                 src={
-                                  item?.product?.images?.[0] || "/placeholder.svg"
+                                  item?.product?.images?.[0] ||
+                                  "/placeholder.svg"
                                 }
                                 alt={item?.product?.name || "product image"}
                                 width={60}
@@ -166,8 +162,8 @@ export default function CartPage() {
                               </p>
                               <div className="flex items-center space-x-2 mt-2">
                                 <span className="font-bold text-sm">
-                                  ₦{" "}
-                                  {item.selectedVariant?.price.toLocaleString()}
+                                  {item?.priceInfo?.displayCurrency}{" "}
+                                  {item?.priceInfo?.displayPrice.toLocaleString()}
                                 </span>
                                 {/* {item.badge && (
                                 <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">
@@ -213,9 +209,16 @@ export default function CartPage() {
                             <Plus className="w-3 h-3" />
                           </Button>
                         </div>
-                        <div className="font-bold text-sm">
-                          ₦ {(item.selectedVariant?.price ?? 0) * item.quantity}
-                        </div>
+                        {item?.priceInfo?.exchangeRate && (
+                          <div className="font-bold text-sm">
+                            {item?.priceInfo?.displayCurrency}{" "}
+                            {(
+                              (item.selectedVariant?.price ?? 0) *
+                              item.priceInfo.exchangeRate *
+                              item.quantity
+                            ).toFixed(2)}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -232,13 +235,13 @@ export default function CartPage() {
                         </Button>
                         <Link
                           href={{
-                            pathname: "/home/product-details/[slug]",
+                            pathname: "/home/product-details/[id]",
                             query: {
-                              slug: item?.product.slug,
+                              id: item?.product._id,
                               productData: JSON.stringify(item?.product), // Pass full product data
                             },
                           }}
-                          as={`/home/product-details/${item?.product.slug}`} // Clean URL in browser
+                          as={`/home/product-details/${item?.product._id}`} // Clean URL in browser
                           className="flex items-center space-x-3"
                         >
                           {" "}
@@ -252,7 +255,6 @@ export default function CartPage() {
                               height={80}
                               className="rounded-lg object-cover"
                             />
-                            
                           </div>
                           <div>
                             <h3 className="font-medium">
@@ -267,9 +269,16 @@ export default function CartPage() {
                       <div className="col-span-2">
                         <div className="flex items-center space-x-2">
                           <span className="font-bold">
-                            ₦ {item.selectedVariant?.price.toLocaleString()}
+                            {item?.priceInfo?.exchangeRate && (
+                              <div className="font-bold text-sm">
+                                {item?.priceInfo?.currencySymbol}
+                                {(
+                                  (item.selectedVariant?.price ?? 0) *
+                                  item.priceInfo.exchangeRate
+                                ).toFixed(2)}
+                              </div>
+                            )}
                           </span>
-                         
                         </div>
                       </div>
                       <div className="col-span-2">
@@ -299,11 +308,16 @@ export default function CartPage() {
                           </Button>
                         </div>
                       </div>
-                      <div className="col-span-2">
-                        <span className="font-bold">
-                          ₦ {(item.selectedVariant?.price ?? 0) * item.quantity}
-                        </span>
-                      </div>
+                      {item?.priceInfo?.exchangeRate && (
+                        <div className="font-bold text-sm">
+                          {item?.priceInfo?.currencySymbol}
+                          {(
+                            (item.selectedVariant?.price ?? 0) *
+                            item.priceInfo.exchangeRate *
+                            item.quantity
+                          ).toFixed(2)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -312,74 +326,54 @@ export default function CartPage() {
           </div>
 
           {/* Cart Total Sidebar */}
-          <div className="lg:col-span-1">
-            <div>
-              <div className="">
-                <h3 className="font-semibold text-center text-lg mb-4">
-                  Cart Total
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span>Sub Total:</span>
-                    <span>₦ {cartSummary.subtotal.toLocaleString()}</span>
-                  </div>
-                  {/* <div className="flex justify-between">
-                    <span>Shipping:</span>
-                    <span>₦ {shipping.toLocaleString()}</span>
-                  </div> */}
-                  {/* <div className="flex justify-between">
-                    <span>Discount:</span>
-                    <span>₦ {discount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax:</span>
-                    <span>₦ {tax.toLocaleString()}</span>
-                  </div> */}
-                  <hr />
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>TOTAL:</span>
-                    <span>₦ {total.toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="space-y-3 mt-6">
-                  <Button
-                    onClick={async () => {
-                      if (!user) {
-                        openModal();
-                        return;
-                      }
-                      
-                      const result = await validateCart();
-                      if (result.data) {
-                        setValidationData(result.data);
-                        setShowValidationModal(true);
-                      }
-                    }}
-                    disabled={isValidating}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isValidating ? 'Validating...' : 'Checkout'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full bg-secondary text-black border-orange-200 hover:bg-orange-200"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <CartSidebar
+            user={user} 
+
+            setShowValidationModal={setShowValidationModal}
+            openModal={openModal}
+            setValidationData={setValidationData}
+          />
         </div>
       </div>
     );
   };
 
+  if (!isLoading && buyItems && buyItems.length < 1) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-14 lg:py-18 font-roboto body-padding">
+          <div className="pt-4">
+            {/* Breadcrumb */}
+            <Breadcrumbs
+              items={manualBreadcrumbs}
+              onItemClick={handleBreadcrumbClick}
+              className="mb-4"
+            />
+          </div>
+          <div className="flex flex-col items-center justify-center h-full mt-15">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-2">Your cart is empty</h1>
+              <p className="text-gray-600 mb-4">
+                Looks like you haven't added anything to your cart yet.
+              </p>
+              <Button
+                variant="outline"
+                className="text-blue-600 hover:text-blue-800"
+                onClick={() => router.push("/home")}
+              >
+                Continue Shopping
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <div className="min-h-screen font-roboto bg-gray-50 body-padding">
-        <div className=" mx-auto pt-4">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-14 lg:py-18 font-roboto body-padding">
+        <div className="pt-4">
           {/* Breadcrumb */}
           <Breadcrumbs
             items={manualBreadcrumbs}
@@ -418,17 +412,17 @@ export default function CartPage() {
             auctionItem={selectedAuctionItem}
           />
         )}
-        
+
         <CartValidationModal
           isOpen={showValidationModal}
           onClose={() => setShowValidationModal(false)}
           validationData={validationData}
           onProceed={() => {
             setShowValidationModal(false);
-            router.push('/home/checkout');
+            router.push("/home/checkout");
           }}
         />
       </div>
-    </>
+    </div>
   );
 }

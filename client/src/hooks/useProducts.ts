@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
+
 import { API_BASE_URL } from '@/utils/config';
 
 interface ProductFilters {
@@ -24,7 +24,7 @@ const fetchProducts = async (filters: ProductFilters) => {
     }
   });
 
-  const response = await fetchWithAuth(`${API_BASE_URL}/products?${params.toString()}`);
+  const response = await fetch(`${API_BASE_URL}/products/get-products?${params.toString()}`);
   if (!response.ok) {
     throw new Error('Failed to fetch products');
   }
@@ -41,7 +41,7 @@ export const useProducts = (filters: ProductFilters) => {
 };
 
 const fetchCategoryBySlug = async (slug: string) => {
-  const response = await fetchWithAuth(`${API_BASE_URL}/categories/slug/${slug}`);
+  const response = await fetch(`${API_BASE_URL}/categories/slug/${slug}`);
   if (!response.ok) {
     throw new Error('Failed to fetch category');
   }
@@ -60,7 +60,7 @@ export const useCategoryBySlug = (slug: string) => {
 
 const fetchCategoryTree = async (parentId?: string) => {
   const params = parentId ? `?parentId=${parentId}` : '';
-  const response = await fetchWithAuth(`${API_BASE_URL}/categories/tree${params}`);
+  const response = await fetch(`${API_BASE_URL}/categories/tree${params}`);
   if (!response.ok) {
     throw new Error('Failed to fetch category tree');
   }

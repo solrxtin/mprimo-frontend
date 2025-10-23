@@ -59,7 +59,7 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 p-4 space-y-2">
+    <div className="w-64 bg-white border-r h-full  border-gray-200 p-4 space-y-2 relative">
       {navigation.map((item) => {
         // Construct full path
         const fullPath = BASE_PATH + item.href;
@@ -71,7 +71,7 @@ export function Sidebar() {
             key={item.name}
             onClick={() => handleClick(fullPath)}
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal hover:cursor-pointer",
               isActive
                 ? "bg-blue-100 text-blue-700 border-l-4 border-blue-700"
                 : "text-gray-700 hover:bg-gray-100"
@@ -85,7 +85,7 @@ export function Sidebar() {
       <Button
         variant="ghost"
         onClick={openLogoutModal}
-        className="w-full justify-start text-left font-normal text-gray-700 hover:bg-gray-100 mt-8"
+        className="w-full justify-start text-left font-normal  hover:bg-gray-100 mt-8 cursor-pointer"
       >
         <LogOut className="mr-3 h-4 w-4" />
         Logout{" "}

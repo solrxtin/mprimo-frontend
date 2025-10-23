@@ -10,11 +10,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
    <div className="min-h-screen font-roboto bg-gray-50">
 
       <div className="flex">
-        <div className="hidden lg:block">
+        <div className="hidden lg:block h-screen">
           <Sidebar />
         </div>
 
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 max-w-6xl mx-auto">
         {children}
       </main>
 

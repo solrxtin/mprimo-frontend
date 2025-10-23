@@ -57,12 +57,17 @@ const userApi = {
   },
 
   getRecentViews: async (limit = 10): Promise<{ recentViews: RecentView[] }> => {
-    const response = await fetchWithAuth(`${API_BASE}/users/recent-views`, {
-      method: 'POST',
-      body: JSON.stringify({ limit }),
-    });
+    const response = await fetchWithAuth(`${API_BASE}/users/recent-views` + `?limit=${limit}`);
     if (!response.ok) throw new Error('Failed to fetch recent views');
-    return response.json();
+    const data = await response.json();
+    return data;
+  },
+
+  getRecomendations: async (limit = 10) => {
+    const response = await fetchWithAuth(`${API_BASE}/products/user/recommendations` + `?limit=${limit}`);
+    if (!response.ok) throw new Error('Failed to fetch recent views');
+    const data = await response.json();
+    return data;
   },
 
   addCard: async (cardData: {
@@ -118,18 +123,29 @@ const userApi = {
   },
 };
 
-export const useUserProfile = () => {
+export const useUserProfile = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ['userProfile'],
     queryFn: userApi.getProfile,
+    enabled: enabled,
     staleTime: 5 * 60 * 1000,
   });
 };
 
-export const useRecentViews = (limit = 10) => {
+export const useRecentViews = (limit = 10, enabled: boolean = true) => {
   return useQuery({
     queryKey: ['recentViews', limit],
     queryFn: () => userApi.getRecentViews(limit),
+    enabled: enabled,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+export const useRecomendations = (limit = 10, enabled: boolean = false) => {
+  return useQuery({
+    queryKey: ['recomendations', limit],
+    queryFn: () => userApi.getRecomendations(limit),
+    enabled: enabled,
     staleTime: 2 * 60 * 1000,
   });
 };
@@ -191,10 +207,11 @@ export const useUpdateNotificationPreferences = () => {
   });
 };
 
-export const useUserCards = () => {
+export const useUserCards = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ['userCards'],
     queryFn: userApi.getCards,
+    enabled: enabled,
     staleTime: 5 * 60 * 1000,
   });
 };

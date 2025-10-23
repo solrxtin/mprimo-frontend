@@ -1,79 +1,70 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
-import { Heart, Star, ChevronRight, ArrowRight } from "lucide-react";
+import { Heart, Star, ChevronRight, ArrowRight, Loader2 } from "lucide-react";
+import { useBestDeals } from "@/hooks/queries";
+import { ProductType } from "@/types/product.type";
+import Link from "next/link";
 
-interface Product {
-  id: number;
-  name: string;
-  image: string;
-  rating: number;
-  reviewCount: number;
-  price: number;
-  originalPrice?: number;
-  discount: number;
-  condition: "Brand New" | "Used" | "Refurbished";
-  category: "Wholesale" | "Personal";
-  description?: string;
-}
-
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Samsung Q7F QLED 4K 75 Inches Smart TV",
-    image: "/images/tv.png",
-    rating: 5.0,
-    reviewCount: 28673,
-    price: 1700000,
-    discount: 0,
-    condition: "Used",
-    category: "Personal",
-    description:
-      "Samsung Q7F QLED 4K Vision Smart TV brings next level picture and sound quality, powered by the advanced Q4 AI Processor for you to enjoy",
-  },
-  {
-    id: 2,
-    name: "JBL Boombox 3 Wi-Fi, Black; WLAN and Bluetooth Loudspeaker",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Refurbished",
-    category: "Wholesale",
-  },
-  {
-    id: 3,
-    name: "Bardefu Multi-Function Blender & Grinder Blender",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Brand New",
-    category: "Personal",
-  },
-  {
-    id: 4,
-    name: "Hisense Premium Steel Side-by-Side Refrigerator System",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 30,
-    condition: "Used",
-    category: "Wholesale",
-  },
-  {
-    id: 5,
-    name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
-    image: "/images/tv.png",
-    rating: 4.5,
-    reviewCount: 28,
-    price: 125000,
-    discount: 60,
-    condition: "Brand New",
-    category: "Personal",
-  },
-];
+// const products: Product[] = [
+//   {
+//     id: 1,
+//     name: "Samsung Q7F QLED 4K 75 Inches Smart TV",
+//     image: "/images/tv.png",
+//     rating: 5.0,
+//     reviewCount: 28673,
+//     price: 1700000,
+//     discount: 0,
+//     condition: "Used",
+//     category: "Personal",
+//     description:
+//       "Samsung Q7F QLED 4K Vision Smart TV brings next level picture and sound quality, powered by the advanced Q4 AI Processor for you to enjoy",
+//   },
+//   {
+//     id: 2,
+//     name: "JBL Boombox 3 Wi-Fi, Black; WLAN and Bluetooth Loudspeaker",
+//     image: "/images/tv.png",
+//     rating: 4.5,
+//     reviewCount: 28,
+//     price: 125000,
+//     discount: 30,
+//     condition: "Refurbished",
+//     category: "Wholesale",
+//   },
+//   {
+//     id: 3,
+//     name: "Bardefu Multi-Function Blender & Grinder Blender",
+//     image: "/images/tv.png",
+//     rating: 4.5,
+//     reviewCount: 28,
+//     price: 125000,
+//     discount: 30,
+//     condition: "Brand New",
+//     category: "Personal",
+//   },
+//   {
+//     id: 4,
+//     name: "Hisense Premium Steel Side-by-Side Refrigerator System",
+//     image: "/images/tv.png",
+//     rating: 4.5,
+//     reviewCount: 28,
+//     price: 125000,
+//     discount: 30,
+//     condition: "Used",
+//     category: "Wholesale",
+//   },
+//   {
+//     id: 5,
+//     name: "LG WV101412B Series 10 12kg Front Load Washing Machine",
+//     image: "/images/tv.png",
+//     rating: 4.5,
+//     reviewCount: 28,
+//     price: 125000,
+//     discount: 60,
+//     condition: "Brand New",
+//     category: "Personal",
+//   },
+// ];
 
 const CountdownTimer = () => {
   const [timeLeft, setTimeLeft] = useState({
@@ -158,183 +149,230 @@ const ProductCard = ({
   product,
   isLarge = false,
 }: {
-  product: Product;
+  product: ProductType;
   isLarge?: boolean;
 }) => {
   const [isLiked, setIsLiked] = useState(false);
 
-  const formatPrice = (price: number) => {
-    return `₦ ${price.toLocaleString()}`;
-  };
-
   return (
-    <div
-      className={`group bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-        isLarge ? "p-4 sm:p-5 md:p-6" : "p-3 sm:p-4"
-      } border border-[#ADADAD4D] relative touch-manipulation`}
+    <Link
+      href={{
+        pathname: "/home/product-details/[id]",
+        query: {
+          slug: product?.slug,
+          productData: JSON.stringify(product),
+        },
+      }}
+      as={`/home/product-details/${product?._id}`}
     >
-      {/* Discount Badge */}
-      {product.discount > 0 && (
-        <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-yellow-400 text-black px-2 py-1 rounded text-xs sm:text-sm font-normal z-10">
-          -{product.discount}%
-        </div>
-      )}
+      <div
+        className={`group bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
+          isLarge ? "p-4 sm:p-5 md:p-6 h-full" : "p-3 sm:p-4"
+        } border border-[#ADADAD4D] relative touch-manipulation ${
+          isLarge ? "flex flex-col" : ""
+        }`}
+      >
+        {/* Product Image */}
+        <div className="relative mb-3 sm:mb-4">
+          <div
+            className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg ${
+              isLarge ? "h-48 sm:h-64" : "h-24 md:h-34"
+            } flex items-center justify-center overflow-hidden`}
+          >
+            <img
+              src={product?.images?.[0] || "/images/tv.png"}
+              alt={product?.name}
+              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300`}
+            />
+          </div>
 
-      {/* Product Image */}
-      <div className="relative mb-3 sm:mb-4">
+          {/* Heart Icon */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setIsLiked(!isLiked);
+            }}
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          >
+            <Heart
+              className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                isLiked ? "fill-red-500 text-red-500" : "text-gray-400"
+              } transition-colors duration-200`}
+            />
+          </button>
+        </div>
+
+        {/* Product Info */}
         <div
-          className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg ${
-            isLarge ? "h-48 sm:h-64" : "h-24 md:h-34"
-          } flex items-center justify-center overflow-hidden`}
-        >
-          <img
-            src={product.image}
-            alt={product.name}
-            className={`${
-              isLarge
-                ? " h-14 sm:h-20 md:h-46 lg:h-52"
-                : " h-14 sm:h-20 md:h-36 lg:h-32"
-            }  group-hover:scale-105 transition-transform duration-300`}
-          />
-        </div>
-
-        {/* Heart Icon */}
-        <button
-          onClick={() => setIsLiked(!isLiked)}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
-        >
-          <Heart
-            className={`w-4 h-4 sm:w-5 sm:h-5 ${
-              isLiked ? "fill-red-500 text-red-500" : "text-gray-400"
-            } transition-colors duration-200`}
-          />
-        </button>
-      </div>
-
-      {/* Product Info */}
-      <div className="space-y-2">
-        {!isLarge && (
-          <StarRating
-            rating={product.rating}
-            reviewCount={product.reviewCount}
-          />
-        )}
-
-        <h3
-          className={`font-semibold text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors ${
-            isLarge ? "text-sm mg:text-lg mb-2 sm:mb-4" : "text-sm sm:text-base"
+          className={`space-y-2 ${
+            isLarge ? "flex-1 flex flex-col justify-between" : ""
           }`}
         >
-          {product.name}{" "}
-         {!isLarge && (   <span
-            className={`text-xs pl-1 text-gray-400 font-normal  `}
-          >
-            {product.condition}
-          </span>)}
-        </h3>
+          {!isLarge && (
+            <StarRating
+              rating={product?.rating || 0}
+              reviewCount={product?.reviews?.length || 0}
+            />
+          )}
+          {!isLarge && (
+            <h3
+              className={`font-semibold text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors ${
+                isLarge
+                  ? "text-sm md:text-base mb-2 sm:mb-4"
+                  : "text-sm sm:text-base"
+              }`}
+            >
+              {product?.name}
+            </h3>
+          )}
 
-        {isLarge && (
-          <>
-            <div className="flex items-center">
-              {" "}
-              <StarRating
-                rating={product.rating}
-                reviewCount={product.reviewCount}
-              />{" "}
-              <span
-                className={`text-xs pl-1 text-gray-400 font-normal hidden lg:block  `}
+          {isLarge && (
+            <>
+              <div className="flex items-center">
+                <StarRating
+                  rating={product?.rating || 0}
+                  reviewCount={product?.reviews?.length || 0}
+                />
+                <span
+                  className={`text-xs pl-1 text-gray-400 font-normal hidden lg:block  `}
+                >
+                  {product?.condition}
+                </span>
+              </div>
+              <h3
+                className={`font-semibold text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors ${
+                  isLarge
+                    ? "text-sm md:text-base mb-2 sm:mb-4"
+                    : "text-sm sm:text-base"
+                }`}
               >
-                {product.condition}
+                {product?.name}
+              </h3>
+              <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 hidden sm:block">
+                {product?.description}
+              </p>
+            </>
+          )}
+
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex flex-col">
+              <span
+                className={`font-bold text-gray-900 ${
+                  isLarge ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
+                }`}
+              >
+                {`${product?.priceInfo?.currencySymbol || "₦"} ${
+                  product.priceInfo?.displayPrice.toLocaleString() ||
+                  product.priceInfo?.originalPrice.toLocaleString()
+                }`}
               </span>
             </div>
-            <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 hidden sm:block">
-              {product.description}
-            </p>
-          </>
-        )}
 
-        {/* <div className="flex items-center gap-2 mb-2 sm:mb-3">
-         
-        </div> */}
-
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex flex-col">
-            <span
-              className={`font-bold text-gray-900 ${
-                isLarge ? "text-xl sm:text-2xl" : "text-base sm:text-lg"
-              }`}
-            >
-              {formatPrice(product.price)}
-            </span>
-            {product.originalPrice && (
-              <span className="text-xs sm:text-sm text-gray-500 line-through">
-                {formatPrice(product.originalPrice)}
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-xs px-2 sm:px-3 py-1 rounded-full bg-gray-300 text-gray-600`}
+              >
+                {product?.inventory?.listing.type === "instant"
+                  ? "Buy Now"
+                  : "Auction"}
               </span>
-            )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-xs px-2 sm:px-3 py-1 rounded-full ${
-                product.category === "Wholesale"
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-orange-100 text-orange-700"
-              }`}
-            >
-              {product.category}
-            </span>
-          </div>
+          {isLarge && (
+            <button className="btn-mobile w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors duration-200 transform hover:scale-105">
+              View Details
+            </button>
+          )}
         </div>
-
-        {isLarge && (
-          <button className="btn-mobile w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors duration-200 transform hover:scale-105">
-            View Details
-          </button>
-        )}
       </div>
-    </div>
+    </Link>
   );
 };
 
 export default function BestDeals() {
-  const [mainProduct] = useState(products[0]);
+  const { data: products = [], isLoading, isError, error } = useBestDeals();
   const otherProducts = products.slice(1);
 
-  return (
-    <div className="container-responsive section-spacing">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between element-spacing gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-          <h1 className="text-responsive-xl font-semibold text-gray-900">
-            Our Best Deals
-          </h1>
-          <CountdownTimer />
-        </div>
-        <button className="btn-mobile flex items-center gap-2 text-blue-600 hover:text-blue-700 font-normal transition-colors group self-start sm:self-auto underline">
-          <span className="text-sm">See All Deals</span>
-          <ArrowRight
-            size={16}
-            className="group-hover:translate-x-1 transition-transform"
-          />
-        </button>
-      </div>
-
-      {/* Products Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Main Featured Product */}
-        <div className="lg:col-span-1">
-          <ProductCard product={mainProduct} isLarge={true} />
-        </div>
-
-        {/* Other Products Grid */}
-        <div className="lg:col-span-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {otherProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-10 lg:py-15">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-600">Loading Best Deals...</p>
           </div>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  // if (isError) {
+  //   return (
+  //     <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-14 lg:py-18">
+  //       <div className="flex items-center justify-center min-h-[400px]">
+  //         <div className="text-center">
+  //           <p className="text-red-600 mb-4">
+  //             Failed to load best deals
+  //           </p>
+  //           <p className="text-gray-500 text-sm">
+  //             {error instanceof Error ? error.message : "Something went wrong"}
+  //           </p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  // if (!products.length) {
+  //   return (
+  //     <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-14 lg:py-18">
+  //       <div className="flex items-center justify-center min-h-[400px]">
+  //         <p className="text-gray-600">No deals available at the moment.</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  return (
+    products.length > 0 && (
+      <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-10 lg:py-15">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between element-spacing gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <h1 className="text-responsive-xl font-semibold text-gray-900">
+              Our Best Deals
+            </h1>
+            <CountdownTimer />
+          </div>
+          <button className="btn-mobile flex items-center gap-2 text-blue-600 hover:text-blue-700 font-normal transition-colors group self-start sm:self-auto underline">
+            <span className="text-sm">See All Deals</span>
+            <ArrowRight
+              size={16}
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          </button>
+        </div>
+
+        {/* Products Grid */}
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+          {/* Main Featured Product */}
+          <div className="lg:w-1/3">
+            <div className="h-full">
+              <ProductCard product={products[0]} isLarge={true} />
+            </div>
+          </div>
+
+          {/* Other Products Grid */}
+          <div className="lg:w-2/3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
+              {otherProducts.map((product: any) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   );
 }
