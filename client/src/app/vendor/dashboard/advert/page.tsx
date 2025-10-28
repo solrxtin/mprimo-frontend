@@ -50,9 +50,11 @@ type Props = {};
 const page = (props: Props) => {
   const [useDefaultPrice, setUseDefaultPrice] = useState(true);
   const [showSelector, setShowSelector] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null);
-  const [description, setDescription] = useState('');
-  const [promoPrice, setPromoPrice] = useState<number | ''>('');
+  const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(
+    null
+  );
+  const [description, setDescription] = useState("");
+  const [promoPrice, setPromoPrice] = useState<number | "">("");
 
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -94,95 +96,107 @@ const page = (props: Props) => {
           buyers
         </p>
         <div className="mt-6">
-      <h3 className="text-sm mb-2">Product Selection</h3>
+          <h3 className="text-sm mb-2">Product Selection</h3>
 
-      <div className="border border-gray-300 p-4 rounded-md shadow-sm space-y-6">
-        <div className="grid grid-cols-12 gap-6">
-          {/* Product Selection */}
-          <div className="col-span-6 flex flex-col gap-y-2">
-            <label htmlFor="product" className="flex justify-between items-center">
-              <span className="font-medium">Product</span>
-              <button
-                type="button"
-                className="text-[#004aad] text-xs flex gap-x-1 items-center hover:underline"
-              >
-                + Add New Product
-              </button>
-            </label>
+          <div className="border border-gray-300 p-4 rounded-md shadow-sm space-y-6">
+            <div className="grid grid-cols-12 gap-6">
+              {/* Product Selection */}
+              <div className="col-span-6 flex flex-col gap-y-2">
+                <label
+                  htmlFor="product"
+                  className="flex justify-between items-center"
+                >
+                  <span className="font-medium">Product</span>
+                  <button
+                    type="button"
+                    className="text-[#004aad] text-xs flex gap-x-1 items-center hover:underline"
+                  >
+                    + Add New Product
+                  </button>
+                </label>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="flex-1 border border-gray-300 rounded-md p-2 flex justify-between items-center"
-                onClick={() => setShowSelector((prev) => !prev)}
-              >
-                <span>
-                  {selectedProduct ? selectedProduct.name : 'Choose your product'}
-                </span>
-                <ChevronDown size={16} className={`${showSelector ? "rotate-180" : ""} `}/>
-              </button>
-            </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="flex-1 border border-gray-300 rounded-md p-2 flex justify-between items-center"
+                    onClick={() => setShowSelector((prev) => !prev)}
+                  >
+                    <span>
+                      {selectedProduct
+                        ? selectedProduct.name
+                        : "Choose your product"}
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      className={`${showSelector ? "rotate-180" : ""} `}
+                    />
+                  </button>
+                </div>
 
-            {showSelector && (
-              <div className="">
-                <ProductSelector
-                  products={vendorProducts}
-                  onSelect={(p) => {
-                    setSelectedProduct(p);
-                    setShowSelector(false);
-                  }}
-                />
+                {showSelector && (
+                  <div className="">
+                    <ProductSelector
+                      products={vendorProducts}
+                      onSelect={(p) => {
+                        setSelectedProduct(p);
+                        setShowSelector(false);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Promo Price */}
-          <div className="col-span-6 flex flex-col gap-y-2">
-            <label htmlFor="price" className="font-medium">Promo Price</label>
-            <input
-              type="number"
-              id="price"
-              className="w-full border border-gray-300 rounded-md p-2"
-              value={promoPrice}
-              disabled={useDefaultPrice}
-              onChange={(e) => setPromoPrice(Number(e.target.value) || '')}
-              placeholder="Enter amount"
-            />
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="default"
-                checked={useDefaultPrice}
-                onChange={(e) => {
-                  setUseDefaultPrice(e.target.checked);
-                  if (e.target.checked && selectedProduct) {
-                    // gvgvgvgv
-                  }
-                }}
-                className="mr-2"
+              {/* Promo Price */}
+              <div className="col-span-6 flex flex-col gap-y-2">
+                <label htmlFor="price" className="font-medium">
+                  Promo Price
+                </label>
+                <input
+                  type="number"
+                  id="price"
+                  className="w-full border border-gray-300 rounded-md p-2"
+                  value={promoPrice}
+                  disabled={useDefaultPrice}
+                  onChange={(e) => setPromoPrice(Number(e.target.value) || "")}
+                  placeholder="Enter amount"
+                />
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="default"
+                    checked={useDefaultPrice}
+                    onChange={(e) => {
+                      setUseDefaultPrice(e.target.checked);
+                      if (e.target.checked && selectedProduct) {
+                        // gvgvgvgv
+                      }
+                    }}
+                    className="mr-2"
+                  />
+                  <label htmlFor="default">Use default price</label>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <div className="flex flex-col gap-y-2">
+              <label htmlFor="description" className="font-medium">
+                Additional Information
+              </label>
+              <textarea
+                id="description"
+                className="w-full border border-gray-300 rounded-md p-2 resize-none"
+                placeholder="Write additional information for your Item."
+                rows={5}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
-              <label htmlFor="default">Use default price</label>
+              <p className="text-xs text-gray-600 text-end">
+                {description.length}/400
+              </p>
             </div>
           </div>
         </div>
-
-        {/* Additional Info */}
-        <div className="flex flex-col gap-y-2">
-          <label htmlFor="description" className="font-medium">
-            Additional Information
-          </label>
-          <textarea
-            id="description"
-            className="w-full border border-gray-300 rounded-md p-2 resize-none"
-            placeholder="Write additional information for your Item."
-            rows={5}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <p className="text-xs text-gray-600 text-end">{description.length}/400</p>
-        </div>
-      </div>
-    </div>
 
         <div className="mt-4">
           <h3 className="text-sm mb-2">Promotion Plans</h3>

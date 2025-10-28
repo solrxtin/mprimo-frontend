@@ -12,7 +12,6 @@ import {
   FolderMinus,
   Ellipsis,
   X,
-  EyeClosed,
   Eye,
   Trash,
   Upload,
@@ -439,28 +438,28 @@ const ProductsPage = () => {
                 <table className="min-w-full">
                   <thead>
                     <tr className="bg-[#f2f7ff] text-black">
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Date
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Name
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm ">
                         Category
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Price
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Stock
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm whitespace-nowrap">
                         Accept Offer
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Actions
                       </th>
                     </tr>
@@ -527,16 +526,16 @@ const ProductsPage = () => {
                             }
 
                             // Fallback to base quantity
-                            return product.inventory.listing.type === "instant"
+                            return product.inventory?.listing?.type === "instant"
                               ? product.inventory.listing.instant?.quantity ??
                                   "N/A"
-                              : product.inventory.listing.auction?.quantity ??
+                              : product.inventory?.listing?.auction?.quantity ??
                                   "N/A";
                           })()}
                         </td>
 
                         <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
-                          {product.inventory.listing.type === "instant" ? (
+                          {product.inventory?.listing?.type === "instant" ? (
                             <div
                               className={`w-8 h-4 rounded-full flex items-center cursor-pointer ${
                                 product.inventory.listing.instant?.acceptOffer
@@ -555,11 +554,11 @@ const ProductsPage = () => {
                         <td className="px-4 py-4 whitespace-nowrap">
                           <span
                             className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                              product.status
+                              product?.status
                             )}`}
                           >
-                            {product.status.charAt(0).toUpperCase() +
-                              product.status.slice(1)}
+                            {product?.status.charAt(0).toUpperCase() +
+                              product?.status.slice(1)}
                           </span>
                         </td>
 
@@ -664,8 +663,8 @@ const ProductsPage = () => {
                                     }
                                   )?.name
                                 : ""
-                              : typeof product.category.main !== "string"
-                              ? (product.category.main as { name: string })
+                              : typeof product?.category.main !== "string"
+                              ? (product?.category.main as { name: string })
                                   ?.name
                               : "",
                         },
@@ -699,7 +698,7 @@ const ProductsPage = () => {
                               }`;
                             }
 
-                            if (product.inventory.listing.type === "instant") {
+                            if (product.inventory?.listing?.type === "instant") {
                               const currency =
                                 typeof product.country !== "string"
                                   ? product.country.currency
@@ -730,10 +729,10 @@ const ProductsPage = () => {
                               );
                             }
 
-                            return product.inventory.listing.type === "instant"
+                            return product.inventory?.listing?.type === "instant"
                               ? product.inventory.listing.instant?.quantity ??
                                   "N/A"
-                              : product.inventory.listing.auction?.quantity ??
+                              : product.inventory?.listing?.auction?.quantity ??
                                   "N/A";
                           })(),
                         },
@@ -752,7 +751,7 @@ const ProductsPage = () => {
                       ))}
 
                       {/* Accept Offer Toggle */}
-                      {product.inventory.listing.type === "instant" && (
+                      {product.inventory?.listing?.type === "instant" && (
                         <div className="flex justify-between items-center px-2 py-2 text-xs bg-white text-gray-500">
                           <span className="font-medium">Accept Offer:</span>
                           <div

@@ -115,8 +115,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     }
   }, [productData]);
 
-  console.log(`Product data is: ${productData}`);
-
   // Initialize socket connection
   useEffect(() => {
     if (user?._id) {
@@ -238,13 +236,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     await addToCart(productData, quantity, selectedVariantObj);
   };
 
-  const handleBuyNow = async () => {
+  const handleBuyNow = async () => {};
 
-  }
-
-  const handlePlaceBidClicked = async () => {
-    
-  }
+  const handlePlaceBidClicked = async () => {};
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -263,8 +257,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   };
 
   return (
-    <div className="md:px-[42px] lg:px-[80px] px-4  mt-8 md:mt-10 lg:mt-14  ">
-      <div className=" p-3 md:p-5 lg:p-6   border border-[#ADADAD4D]">
+      <div className=" p-3 md:p-5 lg:p-6   md:border rounded-lg border-[#ADADAD4D]">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
           {/* Product Images Section */}
           <div className="space-y-4 lg:col-span-2">
@@ -285,7 +278,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                     selectedVariant?.options?.[0]?.price ||
                     0
                   }
-                  user={user}
                 />
               </div>
             </div>
@@ -525,7 +517,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                         selectedVariant?.options?.[0]?.price ||
                         0
                       }
-                      user={user}
                     />
                     <span className="text-gray-600 text-sm">
                       Add to Wishlist
@@ -622,7 +613,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

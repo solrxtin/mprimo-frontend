@@ -27,7 +27,11 @@ import User from "../models/user.model";
 export class ProductController {
   static async createProduct(req: Request, res: Response, next: NextFunction) {
     // I have to add bid increment from country
+    console.log("test")
     try {
+      // console.log("supposedVendor", req.userId)
+      // console.log("description", req.body.description)
+
       const supposedVendor = await Vendor.findOne({ userId: req.userId });
       const result = await validateProductData(req.body);
 

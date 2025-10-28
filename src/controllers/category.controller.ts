@@ -13,6 +13,11 @@ async function validateCategory(
 ): Promise<string[]> {
   const errors: string[] = [];
 
+  // Sanitize parent field - convert empty string to null
+  if (data.parent === '' || data.parent === undefined) {
+    data.parent = null;
+  }
+
   // Required fields for creation
   if (!isUpdate && !data.name) {
     errors.push("Category name is required");
@@ -26,8 +31,8 @@ async function validateCategory(
     errors.push("Category name must be at least 2 characters");
   }
 
-  // Validate parent exists if provided
-  if (data.parent) {
+  // Validate parent exists if provided (skip if null for level 1 categories)
+  if (data.parent !== null) {
     try {
       const parentExists = await CategoryService.categoryExists(data.parent);
       if (!parentExists) {

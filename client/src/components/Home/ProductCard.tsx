@@ -2,6 +2,8 @@ import { ProductType } from "@/types/product.type";
 import { Heart, Star } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import Wishlist from "../client-component/Wishlist";
+import { truncateSentence } from "@/utils/helper";
 
 export const StarRating = ({
   rating,
@@ -75,20 +77,13 @@ export const ProductCard = ({
             />
           </div>
 
-          {/* Heart Icon */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              setIsLiked(!isLiked);
-            }}
-            className="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
-          >
-            <Heart
-              className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                isLiked ? "fill-red-500 text-red-500" : "text-gray-400"
-              } transition-colors duration-200`}
+          {/* Wishlist */}
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3  rounded-full shadow-md hover:shadow-lg transition-all duration-200] flex items-center justify-center">
+            <Wishlist
+              productData={product}
+              price={product.priceInfo?.displayPrice || 0}
             />
-          </button>
+          </div>
         </div>
 
         {/* Product Info */}
@@ -119,7 +114,7 @@ export const ProductCard = ({
             )}
           </h3>
           <p className="text-gray-600 text-[8px] mt-1 sm:text-sm leading-tight mb-3 sm:mb-4 hidden sm:block">
-            {product.description}
+            {truncateSentence(product.description || "", 50)}
           </p>
 
           <div className="flex items-center justify-between flex-wrap gap-2">

@@ -37,6 +37,7 @@ const cryptoService = new CryptoPaymentService();
 
 export const signup = async(req: Request, res: Response): Promise<Response> => {
   try {
+    
     //TODO: Make sure phone uses international format
     const { email, password, firstName, lastName, phoneNumber } = req.body;
 

@@ -227,7 +227,7 @@ const AuctionedProduct = () => {
         </div>
       </div>
 
-      {auctionProducts.length === 0 ? (
+      {!auctionProducts || auctionProducts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">
             No auction products found for {status} status.

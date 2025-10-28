@@ -3,13 +3,15 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Home, ShoppingCart } from "lucide-react"
+import {Badge, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
 import { useRouter } from "next/navigation"
 import { useWishlist } from "@/hooks/useWishlist"
-import { useAddToCart } from "@/stores/cartHook"
 import { useCartStore } from "@/stores/cartStore"
+import { useWishlistSync } from "@/hooks/useWishlistSync"
+import { Wishlist } from "@/types/wishlist.type"
+import { Heart } from "iconsax-react"
 
   export default function WishlistPage() {
     const router = useRouter()
@@ -98,7 +100,7 @@ import { useCartStore } from "@/stores/cartStore"
      <>
   
   
-        <div className="min-h-screen font-roboto">
+      <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-10 lg:py-15">
           <div className=" mx-auto pt-4">
             {/* Breadcrumb */}
             <Breadcrumbs
@@ -110,7 +112,7 @@ import { useCartStore } from "@/stores/cartStore"
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div className="flex items-center space-x-2 mb-4 sm:mb-0">
-              <h1 className="text-2xl font-bold">My Wishlist hello</h1>
+              <h1 className="text-2xl font-bold">My Wishlist</h1>
               <span className="text-gray-600">{wishlistCount} Items</span>
             </div>
             <Button

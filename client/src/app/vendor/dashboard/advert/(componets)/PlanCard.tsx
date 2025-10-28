@@ -28,7 +28,7 @@ const PlanCard = (props: PlanCardProps) => {
       <div className="mt-8 mb-4">
         <button
           onClick={() => props.setSelectedPlan(props.plan)}
-          className="bg-[#004aad] text-white rounded-md py-1 text-xs w-full text-center mb-2"
+          className="bg-[#004aad] text-white rounded-md cursor-pointer py-1 text-xs w-full text-center mb-2"
         >
           {props.selectedPlan?.name === props.plan.name
             ? "Selected"
