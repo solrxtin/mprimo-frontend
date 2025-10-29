@@ -78,7 +78,6 @@ export default function NavigationButtons({
           (draft: any) => draft.draftId !== draftId
         );
 
-        console.log("Updated Drafts:", updatedDrafts);
 
         localStorage.setItem("productDrafts", JSON.stringify(updatedDrafts));
         setListedProducts([result.product, ...listedProducts]);

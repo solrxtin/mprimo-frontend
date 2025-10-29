@@ -9,14 +9,15 @@ import SalesActivity from "./(components)/SalesActivity";
 import SalesActivitySkeleton from "./(components)/skeletons/SalesActivitySkeleton";
 import RecentOrders from "./(components)/RecentOrders";
 import RecentOrdersSkeleton from "./(components)/skeletons/RecentOrdersSkeleton";
-import { useProductStore } from "@/stores/useProductStore";
 import { useSocket } from "@/hooks/useSocket";
 import { useUserNotifications, useVendorAnalytics } from "@/hooks/queries";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Props = {};
 
 const Page = (props: Props) => {
-  const { vendor } = useProductStore();
+    const { vendor } = useVendorStore();
+  
   const socket = useSocket();
   const { data, isLoading } = useVendorAnalytics(vendor?._id!);
 

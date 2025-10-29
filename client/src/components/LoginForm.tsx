@@ -8,6 +8,7 @@ import { toastConfigError, toastConfigSuccess } from "@/app/config/toast.config"
 import { useRouter } from "next/navigation";
 import {useLoginUser} from "@/hooks/mutations";
 import { useProductStore } from "@/stores/useProductStore";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 interface LoginFormProps {
   onLoginSuccess?: (data: any) => void;
@@ -23,7 +24,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess })=> {
   });
 
   const { setUser } = useUserStore();
-  const { setVendor } = useProductStore();
+  const { setVendor } = useVendorStore();
   const router = useRouter();
   const { mutate: loginUser, isPending } = useLoginUser();
 
@@ -79,7 +80,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess })=> {
         }
       );
     } else {
-      console.log("Form submission failed.");
       toast.error("Form submission failed. Please ensure you provided the necessary fields", toastConfigError);
     }
   };

@@ -4,8 +4,8 @@ import {
 } from "@/app/config/toast.config";
 import FullButton from "@/components/FullButton";
 import { useLoginUser } from "@/hooks/mutations";
-import { useProductStore } from "@/stores/useProductStore";
 import { useUserStore } from "@/stores/useUserStore";
+import { useVendorStore } from "@/stores/useVendorStore";
 import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -33,7 +33,7 @@ const LoginForm = ({ setAuthState, close }: LoginProps) => {
 
   const { setUser } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
-  const { setVendor } = useProductStore();
+  const { setVendor } = useVendorStore();
   const { mutate: loginUser, isPending } = useLoginUser();
 
   const validateForm = () => {
@@ -78,6 +78,7 @@ const LoginForm = ({ setAuthState, close }: LoginProps) => {
             // }
 
             setUser(data.user);
+            setVendor(data.vendor);
             toast.success("Login successful", toastConfigSuccess);
             setIsLoading(false);
              if (close) close();

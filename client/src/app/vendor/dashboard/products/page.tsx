@@ -1,6 +1,6 @@
 "use client";
 
-import { useCategories, useVendorProducts } from "@/hooks/queries";
+import { useVendorProducts } from "@/hooks/queries";
 import { useProductStore } from "@/stores/useProductStore";
 import { ProductType } from "@/types/product.type";
 import VariantPriceDisplay from "@/components/VariantPriceDisplay";
@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import ProductImport from "./create-product/(components)/ProductImport";
 import ProductsPageSkeleton from "./ProductsPageSkeleton";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Props = {};
 
@@ -38,7 +39,8 @@ const categories = [
 ];
 
 const ProductsPage = () => {
-  const { listedProducts, setListedProducts, vendor } = useProductStore();
+  const { listedProducts, setListedProducts } = useProductStore();
+  const { vendor } = useVendorStore();
   const [productList, setProductList] = useState<ProductType[] | []>(
     listedProducts
   );

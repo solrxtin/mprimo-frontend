@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useProductStore } from '@/stores/useProductStore';
+import { useVendorStore } from '@/stores/useVendorStore';
 
 export const useRefreshProducts = () => {
   const queryClient = useQueryClient();
-  const { vendor } = useProductStore();
+  const { vendor } = useVendorStore();
 
   const refreshProducts = () => {
     // Invalidate and refetch vendor products

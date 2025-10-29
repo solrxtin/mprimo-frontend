@@ -58,6 +58,8 @@ const Header = () => {
     if (!user) {
       setIsSell(!isSell);
     } else {
+      console.log("user", user)
+
       router.push("/vendor/dashboard");
     }
   };
@@ -66,7 +68,7 @@ const Header = () => {
     if (!user) {
       openModal();
     } else {
-      router.push("/home/user/profile");
+      router.push("/home/user");
     }
   }
   const handlecloseModal = () => {

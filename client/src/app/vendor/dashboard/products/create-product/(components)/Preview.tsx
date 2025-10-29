@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useProductListing } from "@/contexts/ProductLisitngContext";
 import { useUserStore } from "@/stores/useUserStore";
 import CategoryInfo from "./CategoryInfo";
-import { useProductStore } from "@/stores/useProductStore";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Props = {
   onHide: () => void;
@@ -177,7 +177,7 @@ const Preview = (props: Props) => {
   const [activeTab, setActiveTab] = React.useState("Specifications");
 
   const { productDetails } = useProductListing();
-  const { vendor } = useProductStore();
+  const { vendor } = useVendorStore();
 
   return (
     <div className="bg-white rounded-xl pb-4">

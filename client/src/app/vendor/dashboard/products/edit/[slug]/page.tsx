@@ -5,7 +5,10 @@ import { useRouter, useParams } from "next/navigation";
 import { updateProduct } from "@/hooks/useProducts";
 import { useProductListing } from "@/contexts/ProductLisitngContext";
 import { toast } from "react-toastify";
-import { toastConfigSuccess, toastConfigError } from "@/app/config/toast.config";
+import {
+  toastConfigSuccess,
+  toastConfigError,
+} from "@/app/config/toast.config";
 import ProductImages from "../../create-product/(components)/ProductImages";
 import ProductDetailForm from "../../create-product/(components)/ProductDetailForm";
 import ProductSpecifications from "../../create-product/(components)/ProductSpecifications";
@@ -14,13 +17,12 @@ import PricingInformation from "../../create-product/(components)/PricingInforma
 import ShippingDetails from "../../create-product/(components)/ShippingDetails";
 import { useFetchProductBySlug } from "@/hooks/queries";
 
-
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
   const { productDetails, setProductDetails } = useProductListing();
-  
+
   const { data: productData, isLoading } = useFetchProductBySlug(slug);
   const product = productData?.product;
 
@@ -29,12 +31,12 @@ export default function EditProductPage() {
       setProductDetails({
         productName: product.name,
         description: product.description,
-        brand: product.brand,
+        brandName: product.brand,
         condition: product.condition,
         conditionDescription: product.conditionDescription,
         category: product.category,
         images: product.images,
-        specifications: product.specifications,
+        productSpecifications: product.specifications,
         variants: product.variants,
         inventory: product.inventory,
         shipping: product.shipping,
@@ -59,18 +61,10 @@ export default function EditProductPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !product || !productDetails.productName) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Product not found</div>
       </div>
     );
   }
@@ -96,10 +90,10 @@ export default function EditProductPage() {
               </button>
             </div>
           </div>
-          
+
           <div className="space-y-8">
             <ProductImages />
-            <ProductDetailForm />
+            {/* <ProductDetailForm /> */}
             <ProductSpecifications />
             <ProductVariants />
             <PricingInformation />

@@ -4,13 +4,13 @@ import React from "react";
 import AnalyticsCard from "../(components)/AnalyticsCard";
 import OrderTable from "./(components)/OrderTable";
 import { useVendorOrders, useVendorAnalytics } from "@/hooks/useVendor";
-import { useProductStore } from "@/stores/useProductStore";
 import AnalyticsCardSkeleton from "../(components)/skeletons/AnalyticsCardSkeleton";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Props = {};
 
 const page = (props: Props) => {
-  const { vendor } = useProductStore();
+  const { vendor } = useVendorStore();
 
   if (!vendor) {
     return (

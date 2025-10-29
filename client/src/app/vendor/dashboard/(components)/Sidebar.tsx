@@ -1,5 +1,6 @@
 "use client";
 import { Icon } from "@iconify/react";
+import { Store } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 
@@ -146,7 +147,7 @@ export default function Sidebar({
       {/* Sidebar content */}
       <div className="max-w-[260px] min-h-screen bg-[#F1F4F9] w-[220px] md:w-[230px] p-[16px] md:p-[18px] sticky top-0 overflow-y-auto">
         <div className="relative">
-          <div className="relative h-screen overflow-y-auto flex flex-col justify-between">
+          <div className="relative h-[90vh] overflow-y-auto flex flex-col justify-between">
             <div>
               {/* Logo */}
               <h1 className="text-xl font-semibold text-[#211F1F]">Mprimo</h1>
@@ -167,7 +168,18 @@ export default function Sidebar({
             </div>
 
             {/* Logout Button */}
-            <div className="border-t pt-3 mt-4">
+            <div className="border-t pt-3 ">
+              <button
+                onClick={() => router.push("/home")}
+                className="relative py-[8px] w-full pl-[12px] flex items-center text-[14px] text-[#667185] font-normal hover:bg-gray-100 rounded-[10px]"
+              >
+                <Store
+                  width="20"
+                  height="20"
+                  className="mr-[12px]"
+                />
+                Buy Product
+              </button>
               <button
                 onClick={openLogoutModal}
                 className="relative py-[8px] w-full pl-[12px] flex items-center text-[14px] text-[#667185] font-normal hover:bg-gray-100 rounded-[10px]"

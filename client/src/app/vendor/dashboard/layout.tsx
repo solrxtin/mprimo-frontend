@@ -49,11 +49,11 @@ export default function DashboardLayout({
       //   toast.error("You don't have permission to access this page. Please upgrade your account");
       //   router.push("/");
       // }
-      else if (user.role === "business" && user.canMakeSales) {
-        // console.log("uesr", user)
-        // toast.error("You don't have permission to access this page. Please upgrade your account");
-        router.push("/vendor/dashboard");
-      }
+      // else if (user.role === "business" && user.canMakeSales) {
+      //   // console.log("uesr", user)
+      //   // toast.error("You don't have permission to access this page. Please upgrade your account");
+      //   router.push("/vendor/dashboard");
+      // }
     }
   }, [user, isLoading, router]);
 

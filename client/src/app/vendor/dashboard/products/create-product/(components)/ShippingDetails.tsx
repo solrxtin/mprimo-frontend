@@ -20,7 +20,7 @@ const ShippingDetails = (props: Props) => {
   const {data} = useCategories()
 
   useEffect(() => {
-    if (data.categories && data.categories.length > 0) {
+    if (data?.categories && data?.categories.length > 0) {
       const subcategoryNames = [
         productDetails.subCategory5,
         productDetails.subCategory4,
@@ -36,7 +36,7 @@ const ShippingDetails = (props: Props) => {
       
       setDeepest(deepestCategory)
     }
-  }, [data.categories])
+  }, [data?.categories])
   
   const countryOptions = React.useMemo(() => {
     if (!countries || !Array.isArray(countries)) return [];

@@ -1,11 +1,11 @@
 "use client";
 import { useVendorOrders, useVendorProducts } from "@/hooks/queries";
-import { useProductStore } from "@/stores/useProductStore";
 import { ArrowRight, Box, Plus } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { FaEye } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import RecentOrdersSkeleton from "./skeletons/RecentOrdersSkeleton";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Item = {
   product: string;
@@ -21,7 +21,7 @@ type Order = {
 };
 
 const RecentOrders = ({ currency }: { currency: string}) => {
-  const { vendor } = useProductStore();
+  const { vendor } = useVendorStore();
   const { data: products } = useVendorProducts(vendor?._id!);
   const { data, isLoading: isOrderdsLoading } = useVendorOrders(vendor?._id!);
   const router = useRouter();

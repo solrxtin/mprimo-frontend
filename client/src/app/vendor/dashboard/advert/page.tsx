@@ -3,11 +3,11 @@
 import { getCurrencySymbol } from "@/utils/currency";
 import React, { useState, useEffect } from "react";
 import { useVendorProducts } from "@/hooks/queries";
-import { useProductStore } from "@/stores/useProductStore";
 import { ChevronDown, Plus } from "lucide-react";
 import PlanCard from "./(componets)/PlanCard";
 import ProductSelector from "./(componets)/ProductSelector";
 import { ProductType } from "@/types/product.type";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 const plans = [
   {
@@ -60,7 +60,7 @@ const page = (props: Props) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<string>("");
   const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes in seconds
-  const { vendor } = useProductStore();
+  const { vendor } = useVendorStore();
   const { data: vendorProducts } = useVendorProducts(vendor?._id!);
   console.log(vendorProducts);
 

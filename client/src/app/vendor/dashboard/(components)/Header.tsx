@@ -5,7 +5,7 @@ import React, { useState, useRef } from "react";
 import { Search, X } from "lucide-react";
 import { FaBars } from "react-icons/fa";
 import NotificationBell from "@/components/NotificationBell";
-import { useProductStore } from "@/stores/useProductStore";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Props = {
   onOpenSidebar?: () => void;
@@ -13,7 +13,8 @@ type Props = {
 
 const Header = (props: Props) => {
   const [showSearch, setShowSearch] = useState(false);
-  const {vendor} = useProductStore();
+  const { vendor } = useVendorStore();
+
 
   return (
     <header className="sticky top-0 w-full flex justify-between px-2 md:px-3 lg:px-6 xl:px-10 py-4 bg-white z-10 shadow-sm">
@@ -43,11 +44,20 @@ const Header = (props: Props) => {
           className="md:hidden"
           onClick={() => setShowSearch(!showSearch)}
         >
-          <Search className={`text-gray-700 ${!showSearch ? "block" : "hidden"}`} size={18} />
-          <X className={`text-red-700 ${showSearch ? "block" : "hidden"}`} size={18} strokeWidth={4} />
+          <Search
+            className={`text-gray-700 ${!showSearch ? "block" : "hidden"}`}
+            size={18}
+          />
+          <X
+            className={`text-red-700 ${showSearch ? "block" : "hidden"}`}
+            size={18}
+            strokeWidth={4}
+          />
         </button>
         <NotificationBell />
-        <div className="text-gray-600 hidden lg:block font-[family-name:var(--font-alexandria)]">{vendor?.businessInfo?.name}</div>
+        <div className="text-gray-600 hidden lg:block font-[family-name:var(--font-alexandria)]">
+          {vendor?.businessInfo?.name}
+        </div>
         <div className="h-8 w-8 overflow-hidden rounded-full">
           <Image
             src="/images/vendor-image.jpg"

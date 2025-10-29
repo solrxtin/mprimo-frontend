@@ -6,12 +6,12 @@ import ReviewsTable from "./(components)/ReviewsTable";
 import RatingDistribution from "./(components)/RatingDistribution";
 import CustomerReviews from "./(components)/CustomerReviews";
 import { useVendorReviewAnalytics, useVendorReviews } from "@/hooks/queries";
-import { useProductStore } from "@/stores/useProductStore";
 import FilterByStar from "./(components)/FilterByStar";
 import { useAddVendorResponse } from "@/hooks/mutations";
 import { toast } from "react-toastify";
 import { toastConfigSuccess } from "@/app/config/toast.config";
 import ReviewAnalyticsSkeleton from "./(components)/(skeletons)/ReviewAnalyticsSkeleton";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Props = {};
 
@@ -21,7 +21,7 @@ const page = (props: Props) => {
   const [selectedStar, setSelectedStar] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { vendor } = useProductStore();
+  const { vendor } = useVendorStore();
   const { data: reviewAnalytics, isFetching: isFetchingReviewAnalytics } =
     useVendorReviewAnalytics(vendor?._id!);
   const { data: reviews, isFetching } = useVendorReviews(vendor?._id!);
