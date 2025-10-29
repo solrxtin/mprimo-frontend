@@ -146,6 +146,14 @@ export class ProductController {
         });
       }
 
+      // Generate SKU if not provided
+      if (!req.body.inventory?.sku) {
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substring(2, 7);
+        req.body.inventory = req.body.inventory || {};
+        req.body.inventory.sku = `PRD-${timestamp}-${random}`.toUpperCase();
+      }
+
       const productData = {
         ...req.body,
         vendorId: supposedVendor!._id,
@@ -383,6 +391,7 @@ export class ProductController {
       next(error);
     }
   }
+  
   static async getProductBySlug(
     req: Request,
     res: Response,
@@ -532,20 +541,132 @@ export class ProductController {
 
   static async updateProduct(req: Request, res: Response, next: NextFunction) {
     try {
-      const originalProduct = await ProductService.getProductById(
-        req.params.id
-      );
+      const productId = req.params.id;
+      
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid product ID format",
+        });
+      }
+
       const vendor = await Vendor.findOne({ userId: req.userId });
+      if (!vendor) {
+        return res.status(403).json({
+          success: false,
+          message: "Vendor not found",
+        });
+      }
+
+      const originalProduct = await ProductService.getProductById(productId);
+      if (!originalProduct) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
+
+      // Verify ownership
+      if (originalProduct.vendorId.toString() !== vendor._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized to update this product",
+        });
+      }
+
+      // Handle combination-based variants if provided
+      if (req.body.combinations && req.body.variantDimensions) {
+        const { combinations, variantDimensions } = req.body;
+
+        const validation = VariantCombinationUtil.validateCombinations(
+          combinations,
+          variantDimensions
+        );
+
+        if (!validation.valid) {
+          return res.status(400).json({
+            success: false,
+            message: validation.error,
+          });
+        }
+
+        const processedCombinations = VariantCombinationUtil.processCombinations(
+          combinations,
+          req.body.name || originalProduct.name
+        );
+
+        req.body.variants = [
+          {
+            name: variantDimensions.join(" & "),
+            isDefault: true,
+            options: processedCombinations,
+          },
+        ];
+        req.body.variantDimensions = variantDimensions;
+      }
+
+      // Validate variants if being updated
+      if (req.body.variants) {
+        if (!Array.isArray(req.body.variants) || req.body.variants.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "At least one variant is required",
+          });
+        }
+
+        // Ensure at least one variant is marked as default
+        if (!req.body.variants.some((v: any) => v.isDefault)) {
+          req.body.variants[0].isDefault = true;
+        }
+
+        // Ensure each default variant has at least one default option
+        req.body.variants.forEach((variant: any) => {
+          if (variant.isDefault && variant.options?.length > 0) {
+            if (!variant.options.some((o: any) => o.isDefault)) {
+              variant.options[0].isDefault = true;
+            }
+          }
+        });
+      }
+
+      // Check if featured status is being changed
+      if (req.body.isFeatured !== undefined && req.body.isFeatured !== originalProduct.isFeatured) {
+        if (req.body.isFeatured) {
+          const currentFeaturedCount = vendor.analytics?.featuredProducts || 0;
+          const canFeature = await SubscriptionService.checkPlanLimits(
+            vendor._id.toString(),
+            "feature_product",
+            currentFeaturedCount
+          );
+
+          if (!canFeature) {
+            return res.status(403).json({
+              success: false,
+              message: "Featured product limit reached. Upgrade to feature more products.",
+            });
+          }
+        }
+      }
+
       // Run product update and cache invalidation in parallel
-      const [product, _] = await Promise.all([
-        ProductService.updateProduct(req.params.id, vendor?._id!, req.body),
-        redisService.invalidateProductCache({ id: req.params.id }),
+      const [product] = await Promise.all([
+        ProductService.updateProduct(productId, vendor._id, req.body),
+        redisService.invalidateProductCache({ id: productId }),
       ]);
 
+      // Re-index product in Redis
       redisService.indexProduct(product);
 
-      const changes: Record<string, any> = {};
+      // Update vendor analytics if featured status changed
+      if (req.body.isFeatured !== undefined && req.body.isFeatured !== originalProduct.isFeatured) {
+        const increment = req.body.isFeatured ? 1 : -1;
+        await Vendor.findByIdAndUpdate(vendor._id, {
+          $inc: { "analytics.featuredProducts": increment },
+        });
+      }
 
+      // Track changes for audit log
+      const changes: Record<string, any> = {};
       Object.keys(req.body).forEach((key) => {
         const origValue = (originalProduct as Record<string, any>)[key];
         const newValue = req.body[key];
@@ -555,24 +676,29 @@ export class ProductController {
         }
       });
 
+      // Log audit trail
       await AuditLogService.log(
         "PRODUCT_UPDATED",
         "product",
         "info",
         {
-          productId: req.params.id,
+          productId,
           productName: product.name,
-          vendorId: vendor?._id,
+          vendorId: vendor._id,
           changes,
         },
         req,
-        req.params.id
+        productId
       );
 
-      res.json({ product });
+      res.json({
+        success: true,
+        message: "Product updated successfully",
+        product,
+      });
     } catch (error) {
       console.error("Error updating product:", error);
-      next(error); // Ensure the error is properly passed to middleware
+      next(error);
     }
   }
 
@@ -2525,7 +2651,8 @@ export const placeProxyBid = async (
 ) => {
   try {
     const { productId } = req.params;
-    const { userId, maxBid } = req.body;
+    const { maxBid } = req.body;
+    const userId = req.userId;
 
     if (!productId || !userId || typeof maxBid !== "number" || maxBid <= 0.01) {
       return res.status(400).json({ success: false, message: "Invalid input" });

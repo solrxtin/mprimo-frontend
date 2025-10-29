@@ -745,6 +745,20 @@ router.post(
   }
 );
 
+// Get bids for product
+router.get(
+  "/:productId/bids",
+  optionalAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { getBids } = await import("../controllers/product.controller");
+      await getBids(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // Relist item for auction
 router.post("/auctions/:productId/relist", verifyToken, authorizeRole(["business"]), relistItemForAuction)
 

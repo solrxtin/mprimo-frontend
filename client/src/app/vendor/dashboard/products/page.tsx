@@ -15,6 +15,7 @@ import {
   Eye,
   Trash,
   Upload,
+  Edit,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
@@ -487,7 +488,7 @@ const ProductsPage = () => {
                         <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                           <span className="">
                             {Array.isArray(product?.category?.sub) &&
-                            product.category.sub.length > 0
+                            product.category?.sub.length > 0
                               ? typeof product.category.sub[
                                   product.category.sub.length - 1
                                 ] !== "string"
@@ -497,8 +498,8 @@ const ProductsPage = () => {
                                     ] as { name: string }
                                   )?.name
                                 : ""
-                              : typeof product.category.main !== "string"
-                              ? (product.category.main as { name: string })
+                              : typeof product?.category?.main !== "string"
+                              ? (product?.category?.main as { name: string })
                                   ?.name
                               : ""}
                           </span>
@@ -514,9 +515,9 @@ const ProductsPage = () => {
                               product.variants && product.variants.length > 0;
 
                             if (hasVariants) {
-                              const allOptions = product.variants.flatMap(
+                              const allOptions = product.variants?.flatMap(
                                 (v: any) => v.options
-                              );
+                              ) || [];
                               const totalQuantity = allOptions.reduce(
                                 (sum: number, o: any) =>
                                   sum + (o.quantity || 0),
@@ -554,11 +555,11 @@ const ProductsPage = () => {
                         <td className="px-4 py-4 whitespace-nowrap">
                           <span
                             className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                              product?.status
+                              product?.status || ""
                             )}`}
                           >
-                            {product?.status.charAt(0).toUpperCase() +
-                              product?.status.slice(1)}
+                            {(product?.status?.charAt(0).toUpperCase() || "") +
+                              (product?.status?.slice(1) || "")}
                           </span>
                         </td>
 
@@ -595,6 +596,17 @@ const ProductsPage = () => {
                                   <Eye size={14} />
                                   <p className="text-xs">View</p>
                                 </li>
+                                 <li
+                                  className="p-2 hover:bg-gray-100 cursor-pointer flex gap-x-1 items-center"
+                                  onClick={() =>
+                                    router.push(
+                                      `/vendor/dashboard/products/edit/${product.slug}`
+                                    )
+                                  }
+                                >
+                                  <Edit size={14} />
+                                  <p className="text-xs">Edit Product</p>
+                                </li>
                                 <li
                                   className="p-2 hover:bg-gray-100 cursor-pointer flex gap-x-1 items-center"
                                   onClick={() =>
@@ -625,11 +637,11 @@ const ProductsPage = () => {
                       <span className="font-medium">{product.name}</span>
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                          product.status
+                          product.status || ""
                         )}`}
                       >
-                        {product.status.charAt(0).toUpperCase() +
-                          product.status.slice(1)}
+                        {(product.status?.charAt(0).toUpperCase() || "") +
+                          (product.status?.slice(1) || "")}
                       </span>
                     </div>
                     <div className="divide-y divide-gray-200 rounded-md overflow-hidden">
@@ -651,7 +663,7 @@ const ProductsPage = () => {
                           label: "Category",
                           value:
                             Array.isArray(product?.category?.sub) &&
-                            product.category.sub.length > 0
+                            product.category?.sub.length > 0
                               ? typeof product.category.sub[
                                   product.category.sub.length - 1
                                 ] !== "string"
@@ -663,8 +675,8 @@ const ProductsPage = () => {
                                     }
                                   )?.name
                                 : ""
-                              : typeof product?.category.main !== "string"
-                              ? (product?.category.main as { name: string })
+                              : typeof product?.category?.main !== "string"
+                              ? (product?.category?.main as { name: string })
                                   ?.name
                               : "",
                         },
@@ -675,9 +687,9 @@ const ProductsPage = () => {
                               product.variants && product.variants.length > 0;
 
                             if (hasVariants) {
-                              const allOptions = product.variants.flatMap(
+                              const allOptions = product.variants?.flatMap(
                                 (v: any) => v.options
-                              );
+                              ) || [];
                               const prices = allOptions
                                 .map((o: any) => o.price)
                                 .filter((p) => p > 0);
@@ -687,7 +699,7 @@ const ProductsPage = () => {
                               const minPrice = Math.min(...prices);
                               const maxPrice = Math.max(...prices);
                               const currency =
-                                typeof product.country !== "string"
+                                typeof product.country !== "string" && product.country
                                   ? product.country.currency
                                   : "";
 
@@ -700,7 +712,7 @@ const ProductsPage = () => {
 
                             if (product.inventory?.listing?.type === "instant") {
                               const currency =
-                                typeof product.country !== "string"
+                                typeof product.country !== "string" && product.country
                                   ? product.country.currency
                                   : "";
                               return `${currency} ${
@@ -719,9 +731,9 @@ const ProductsPage = () => {
                               product.variants && product.variants.length > 0;
 
                             if (hasVariants) {
-                              const allOptions = product.variants.flatMap(
+                              const allOptions = product.variants?.flatMap(
                                 (v: any) => v.options
-                              );
+                              ) || [];
                               return allOptions.reduce(
                                 (sum: number, o: any) =>
                                   sum + (o.quantity || 0),

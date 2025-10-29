@@ -13,6 +13,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const logoutMutation = useLogoutUser();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
+  console.log("logoutMutation.isPending", logoutMutation.isPending)
+
   const closeLogoutModal = () => {
     setIsLogoutModalOpen(false);
   };

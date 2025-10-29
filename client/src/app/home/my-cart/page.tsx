@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import Header from "@/components/Home/Header";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
-import { BidModal } from "@/components/BidModal";
 import { useCartStore } from "@/stores/cartStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
@@ -20,6 +19,7 @@ import { CartValidationModal } from "@/components/CartValidationModal";
 import { CartValidationResponse } from "@/utils/checkoutService";
 import { cartService } from "@/utils/cartService";
 import CartSidebar from "./(components)/CartSidebar";
+// import { BidModal1 } from "../product-details/[id]/(component)/(component)/BidModal";
 
 export default function CartPage() {
   const {
@@ -405,13 +405,13 @@ export default function CartPage() {
           <BuyNow />
         </div>
 
-        {selectedAuctionItem && (
-          <BidModal
+        {/* {selectedAuctionItem && (
+          <BidModal1
             isOpen={showBidModal}
             onClose={() => setShowBidModal(false)}
             auctionItem={selectedAuctionItem}
           />
-        )}
+        )} */}
 
         <CartValidationModal
           isOpen={showValidationModal}
