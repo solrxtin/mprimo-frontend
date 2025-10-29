@@ -307,7 +307,7 @@ export class ProductController {
       // Use Redis cache for product data if available
       let product;
       try {
-        product = await redisService.getProductWithCache({ id: req.params.id });
+        product = await redisService.getProductWithCache({ id: req.params.id, userCurrency: req.preferences?.currency || "USD" });
       } catch (error) {
         // Fallback to database if Redis fails
         product = await ProductService.getProductById(req.params.id);
@@ -396,6 +396,7 @@ export class ProductController {
       try {
         product = await redisService.getProductWithCache({
           slug: req.params.slug,
+          userCurrency: req.preferences?.currency || "USD",
         });
       } catch (error) {
         // Fallback to database if Redis fails
@@ -1369,6 +1370,7 @@ export class ProductController {
         quantity,
         price,
         optionId,
+        vendorCurrency: (product.country as any)?.currency || "USD",
       });
 
       if (cart) {
@@ -1435,6 +1437,7 @@ export class ProductController {
               images: item.images,
               quantity: item.quantity,
               price: item.price,
+              vendorCurrency: (product.country as any)?.currency,
             });
             if (success) successCount++;
           }
@@ -1497,7 +1500,25 @@ export class ProductController {
       }
 
       const cart = await CartService.getCart(userId.toString());
-      res.status(200).json({ success: true, cart });
+      if (!cart) {
+        res.status(404).json({ success: false, message: "Cart not found" });
+        return;
+      }
+
+      const userCurrency = req.preferences?.currency || "USD";
+
+      const cartWithConvertedPrices = await Promise.all(
+        cart.map(async(item: any) => {
+          const priceInfo = await CurrencyService.getProductPriceForUser(
+            item.price,
+            item.vendorCurrency,
+            userCurrency
+          );
+          return {...item, priceInfo}
+        })
+      )
+
+      res.status(200).json({ success: true, cart: cartWithConvertedPrices });
     } catch (error) {
       console.error("Error getting cart:", error);
       next(error);
@@ -1662,6 +1683,12 @@ export class ProductController {
       }
 
       const wishlist = await CartService.getWishlist(userId.toString());
+
+      if (!wishlist) {
+        res.status(404).json({ success: false, message: "Wishlist not found" });
+        return;
+      }
+
       const userCurrency = req.preferences?.currency || "USD";
 
       // Enrich wishlist items with currency conversion (no DB lookup needed)

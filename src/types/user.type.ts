@@ -15,6 +15,7 @@ export interface ICart {
 }
 
 interface Activity {
+  _id?: Types.ObjectId;
   activity: string;
   createdAt: string;
 }
@@ -26,7 +27,7 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   businessName?: string;
-  profile: {
+  profile?: {
     firstName: string;
     lastName: string;
     phoneNumber: string;
@@ -48,7 +49,7 @@ export interface IUser extends Document {
     provider: string;
     providerId: string;
   }>;
-  role: "personal" | "business" | "admin";
+  role: "user" | "admin";
   status: "active" | "inactive" | "suspended";
   canMakeSales: boolean;
   saleLimit: number;
@@ -132,5 +133,5 @@ export interface IUser extends Document {
     }>;
   };
   activities?: Activity[];
-
+  vendorId?: Types.ObjectId;
 }

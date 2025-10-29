@@ -13,33 +13,33 @@ router.use(verifyToken);
 
 // Vendor subscription management
 router.get('/vendor/:vendorId', 
-  authorizeRole(['business', 'admin']), 
+  authorizeRole(['user', 'admin']), 
   SubscriptionController.getVendorSubscription
 );
 
 router.post('/vendor/:vendorId/upgrade', 
-  authorizeRole(['business', 'admin']), 
+  authorizeRole(['user', 'admin']), 
   SubscriptionController.upgradeSubscription
 );
 
 router.get('/vendor/:vendorId/limits', 
-  authorizeRole(['business', 'admin']), 
+  authorizeRole(['user', 'admin']), 
   SubscriptionController.checkLimits
 );
 
 // Wallet and payouts
 router.get('/vendor/:vendorId/wallet', 
-  authorizeRole(['business', 'admin']), 
+  authorizeRole(['user', 'admin']), 
   SubscriptionController.getWallet
 );
 
 router.post('/vendor/:vendorId/payout', 
-  authorizeRole(['business', 'admin']), 
+  authorizeRole(['user', 'admin']), 
   SubscriptionController.requestPayout
 );
 
 router.get('/vendor/:vendorId/payouts', 
-  authorizeRole(['business', 'admin']), 
+  authorizeRole(['user', 'admin']), 
   SubscriptionController.getPayoutRequests
 );
 

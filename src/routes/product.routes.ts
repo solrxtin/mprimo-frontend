@@ -190,7 +190,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -225,7 +225,7 @@ router.post(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -243,7 +243,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -261,7 +261,7 @@ router.patch(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -279,7 +279,7 @@ router.delete(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -300,7 +300,7 @@ router.post(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -318,7 +318,7 @@ router.put(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -335,7 +335,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -387,7 +387,7 @@ router.delete(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -405,7 +405,7 @@ router.patch(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -423,7 +423,7 @@ router.post(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -582,7 +582,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
-  authorizeRole(["business"]),
+  authorizeRole(["user"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await makeCounterOffer(req, res, next);
@@ -597,7 +597,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
-  authorizeRole(["business"]),
+  authorizeRole(["user"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await acceptOffer(req, res, next);
@@ -626,7 +626,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
-  authorizeRole(["business"]),
+  authorizeRole(["user"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await rejectOffer(req, res, next);
@@ -666,6 +666,6 @@ router.post(
 );
 
 // Relist item for auction
-router.post("/auctions/:productId/relist", verifyToken, authorizeRole(["business"]), relistItemForAuction)
+router.post("/auctions/:productId/relist", verifyToken, authorizeRole(["user"]), relistItemForAuction)
 
 export default router;

@@ -32,8 +32,8 @@ export interface IVendor {
   stripeVerificationStatus: string;
   businessInfo?: {
     name: string;
-    registrationnumber: string;
-    taxId: string;
+    registrationnumber?: string;
+    taxId?: string;
     address: {
       street: string;
       city: string;

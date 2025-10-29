@@ -1,5 +1,7 @@
 import Stripe from "stripe";
 import { LoggerService } from "./logger.service";
+import countryNameToISO from "../utils/country-name-to-iso";
+
 
 const logger = LoggerService.getInstance();
 const stripe = new Stripe(process.env.STRIPE_TEST_SECRET_KEY!, {
@@ -23,7 +25,7 @@ export class StripeService {
           enabled: true,
           allow_redirects: "never",
         },
-        metadata
+        metadata,
       });
 
       return {
@@ -41,7 +43,7 @@ export class StripeService {
     try {
       const account = await stripe.accounts.create({
         type: "express",
-        country: vendorData.country || "US",
+        country: countryNameToISO[vendorData.country],
         email: vendorData.email,
         business_type:
           vendorData.accountType === "business" ? "company" : "individual",
@@ -190,5 +192,37 @@ export class StripeService {
       logger.error("Stripe webhook verification failed:", error);
       throw error;
     }
+  }
+
+  static async getTransferEligibleCountries() {
+    // 1. Get specs for all countries
+    const allSpecs = await stripe.countrySpecs.list({limit: 150});
+
+    // 2. Find the spec for your platform country (US)
+    const usSpec = allSpecs.data.find((c) => c.id === "US");
+    if (!usSpec) throw new Error("Unable to find US country spec in Stripe");
+
+    const eligibleDestinationCountries = new Set(
+      usSpec.supported_transfer_countries
+    );
+
+    // 3. Filter all specs to include only those eligible to receive payouts
+    const result = allSpecs.data
+      .filter((spec) => eligibleDestinationCountries.has(spec.id))
+      .filter(
+        (spec) =>
+          spec.supported_bank_account_currencies &&
+          Object.keys(spec.supported_bank_account_currencies).length > 0
+      )
+      .reduce((acc: Record<string, any>, spec) => {
+        acc[spec.id] = {
+          country: spec.id.toUpperCase(),
+          defaultCurrency: spec.default_currency,
+          supportedBankCurrencies: spec.supported_bank_account_currencies,
+        };
+        return acc;
+      }, {});
+
+    return result;
   }
 }

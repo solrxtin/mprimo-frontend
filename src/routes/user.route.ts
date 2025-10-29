@@ -1,6 +1,6 @@
 import Router, { NextFunction, Request, Response } from "express"
 import { verifyToken } from "../middlewares/verify-token.middleware";
-import { getUserOrders, getUserAddress, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, addCard, removeCard, setDefaultCard, updateNotificationPreferences } from "../controllers/user.controller";
+import { getUserOrders, getUserAddress, getUserOffersForAProduct, getUserOffersGrouped, addAddress, modifyAddress, deleteAddress, getUserNotifications, getUserRecentViews, getUserProfile, addCard, removeCard, setDefaultCard, updateNotificationPreferences, getUserActivities, deleteActivity, clearActivities } from "../controllers/user.controller";
 
 
 
@@ -57,6 +57,12 @@ router.get(
 router.post("/card", verifyToken, addCard);
 router.patch("/card", verifyToken, setDefaultCard);
 router.delete("/card/:last4", verifyToken, removeCard);
+
+
+// Activities Management
+router.get("/activities", verifyToken, getUserActivities)
+router.patch("/activities/:activityId", verifyToken, deleteActivity)
+router.delete("/activities/clear", verifyToken, clearActivities)
 
 
 export default router

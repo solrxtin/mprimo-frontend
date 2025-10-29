@@ -2,21 +2,55 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import User from '../models/user.model';
 import Vendor from '../models/vendor.model';
+import { StripeService } from '../services/stripe.service';
+import NodeCache from 'node-cache';
+import countryNameToISO from '../utils/country-name-to-iso';
 
 const stripe = new Stripe(process.env.STRIPE_TEST_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
 });
+const cache = new NodeCache({ stdTTL: 86400 });
 
 export const getSupportedCountries = async (req: Request, res: Response) => {
   try {
-    const countrySpecs = await stripe.countrySpecs.list({ limit: 150 });
-    const countries = countrySpecs.data.reduce((acc: any, spec: any) => {
-      if (spec.supported_payment_methods.includes('card') && 
-          spec.supported_transfer_countries.length > 0) {
-        acc[spec.id] = spec.default_currency;
+    let countries: Record<string, string> = {};
+    const cachedCountries = cache.get("supportedCountries");
+    if (cachedCountries) {
+      let countries = cachedCountries
+      return res.json({ success: true, countries });
+    }
+    
+    let startingAfter: string | undefined = undefined;
+
+    while (true) {
+      const countrySpecs: any = await stripe.countrySpecs.list({
+        limit: 100,
+        ...(startingAfter && { starting_after: startingAfter }),
+      });
+
+      countrySpecs.data.forEach((spec:any) => {
+        // Stripe capabilities aren't always present as array; safer to check supported_transfer_countries
+        const canTransfer =
+          Array.isArray(spec.supported_transfer_countries) &&
+          spec.supported_transfer_countries.length > 0;
+
+        if (canTransfer) {
+          countries[spec.id] = spec.default_currency;
+        }
+      });
+
+      if (countrySpecs.has_more) {
+        startingAfter = countrySpecs.data[countrySpecs.data.length - 1].id;
+      } else {
+        break;
       }
-      return acc;
-    }, {});
+    }
+
+    if (!countries["US"]) {
+      throw new Error("Unable to find US country spec in Stripe");
+    }
+
+    cache.set("supportedCountries", countries)
 
     res.json({ success: true, countries });
   } catch (error: any) {
@@ -64,15 +98,18 @@ export const initiateStripeVerification = async (req: Request, res: Response) =>
     }
 
     // Get country from vendor business address or default to US
-    const accountCountry = country || vendor.businessInfo?.address?.country || 'US';
+    const accountCountry = vendor.businessInfo?.address?.country;
+
+    if (!accountCountry) {
+      return res.status(400).json({ success: false, message: 'Can\'t find Vendo\'s country' });
+    }
 
     // Create Stripe Custom account for admin-controlled payouts
     const account = await stripe.accounts.create({
       type: 'custom',
-      country: accountCountry,
+      country: countryNameToISO[accountCountry] || country,
       email: user.email,
       capabilities: {
-        card_payments: { requested: true },
         transfers: { requested: true },
       },
       business_type: businessType === 'business' ? 'company' : 'individual',
@@ -82,8 +119,8 @@ export const initiateStripeVerification = async (req: Request, res: Response) =>
       ...(businessType === 'individual' && {
         individual: {
           email: user.email,
-          first_name: user.profile.firstName,
-          last_name: user.profile.lastName,
+          first_name: user.profile?.firstName,
+          last_name: user.profile?.lastName,
         }
       })
     });
@@ -442,7 +479,7 @@ export const acceptTos = async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
     const { userAgent } = req.body;
-    const ip = req.ip || req.connection.remoteAddress || '127.0.0.1';
+    const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
 
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });

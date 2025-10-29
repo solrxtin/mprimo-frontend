@@ -13,7 +13,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(['admin', 'business'])(req, res, next);
+    authorizeRole(['admin', 'user'])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -31,7 +31,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(['admin', 'business'])(req, res, next);
+    authorizeRole(['admin', 'user'])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {

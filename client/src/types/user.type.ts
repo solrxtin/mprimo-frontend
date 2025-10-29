@@ -27,7 +27,7 @@ export interface IUser {
         provider: string;
         providerId: string;
     }>;
-    role: 'personal' | 'business' | 'admin';
+    role: 'user' | 'admin';
     status: 'active' | 'inactive' | 'suspended';
     canMakeSales: boolean;
     preferences: {
@@ -67,4 +67,5 @@ export interface IUser {
         tempSecret?: string;
         backupCodes?: string[];
     };
+    vendorInfo: Types.ObjectId;
 }

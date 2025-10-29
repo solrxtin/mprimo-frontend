@@ -10,7 +10,7 @@ router.post(
   "/:vendorId/request",
   verifyToken,
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   vendorPayoutController.requestPayout
 );
@@ -18,7 +18,7 @@ router.get(
   "/:vendorId/payouts",
   verifyToken,
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   vendorPayoutController.getVendorPayouts
 );
@@ -26,7 +26,7 @@ router.get(
   "/:vendorId/eligible-orders",
   verifyToken,
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   vendorPayoutController.getPayoutEligibleOrders
 );

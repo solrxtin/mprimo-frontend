@@ -28,6 +28,7 @@ import { SubscriptionService } from "../services/subscription.service";
 import Wallet from "../models/wallet.model";
 import { StripeVerificationService } from "../services/stripe-verification.service";
 import Country from "../models/country.model";
+import countryNameToISO from "../utils/country-name-to-iso";
 
 const logger = LoggerService.getInstance();
 const generateVerificationCode = () =>
@@ -89,7 +90,7 @@ export const signup = async (req: Request, res: Response) => {
         avatar:
           "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.pngwing.com%2Fen%2Fsearch%3Fq%3Ddefault&psig=AOvVaw0lcae7FB-Vd4hXMHi_VoGC&ust=1747319513029000&source=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCOiUucqWo40DFQAAAAAdAAAAABAE",
       },
-      role: "personal",
+      role: "user",
       status: "active",
       country: req.preferences?.country,
       preferences: {
@@ -191,7 +192,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Find user by email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate("vendorId");
 
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -208,15 +209,6 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    let vendor: IVendor | null = null;
-    if (
-      (user.role === "personal" && user.canMakeSales) ||
-      user.role === "business"
-    ) {
-      const proposedVendor = await Vendor.findOne({ userId: user._id });
-      vendor = proposedVendor ? proposedVendor : null;
-    }
-
     const has2faEnabled = user.twoFactorAuth.enabled || false;
     if (has2faEnabled) {
       return res.status(200).json({
@@ -226,7 +218,6 @@ export const login = async (req: Request, res: Response) => {
           ...user._doc,
           password: undefined,
         },
-        vendor,
         has2faEnabled,
       });
     }
@@ -265,7 +256,6 @@ export const login = async (req: Request, res: Response) => {
         ...user._doc,
         password: undefined,
       },
-      vendor,
       has2faEnabled,
       requires2FA: true,
     });
@@ -317,7 +307,7 @@ export const verifyController = async (req: Request, res: Response) => {
 
     validUser.isEmailVerified = true;
     await validUser.save();
-    await sendWelcomeEmail(validUser.email, validUser.profile.firstName);
+    if (validUser.profile) await sendWelcomeEmail(validUser.email, validUser.profile.firstName);
 
     res.status(200).json({
       success: true,
@@ -750,12 +740,15 @@ interface IAddress {
   country: string;
 }
 
-// Vendor
 export const signupVendor = async (req: Request, res: Response) => {
   try {
     const {
+      accountType,
+      firstName,
+      lastName,
+      phoneNumber,
       businessName,
-      businessEmail,
+      email,
       password,
       country,
       street,
@@ -764,176 +757,173 @@ export const signupVendor = async (req: Request, res: Response) => {
       postalCode,
     } = req.body;
 
-    console.log(req.body);
+    if (!accountType) {
+      return res.status(400).json({ message: "Account type is required" });
+    }
 
-    // Validate input
-    if (
-      !businessEmail ||
-      !password ||
-      !businessName ||
-      !country ||
-      !street ||
-      !city ||
-      !state ||
-      !postalCode
-    ) {
-      return res.status(400).json({
-        message:
-          "Business email, Business name, password, country, street, city, state, postalCode are required",
-      });
+    if (!country || !street || !city || !state || !postalCode) {
+      return res.status(400).json({ message: "Missing one or more address fields" });
     }
 
     const allowedCountry = await Country.findOne({
       name: { $regex: new RegExp(`^${country}$`, "i") },
     });
+
     if (!allowedCountry) {
       await AuditLogService.log(
         "VENDOR_REGISTRATION_ATTEMPT_UNSUPPORTED_COUNTRY",
         "auth",
         "info",
-        {
-          userId: req.userId,
-          email: businessEmail,
-          country: country,
-        },
+        { userId: req.userId, email, country },
         req,
-        req.userId.toString() || "unknown"
+        req.userId?.toString() || "unknown"
       );
       return res.status(400).json({ message: "Country is not supported" });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: businessEmail });
-    if (existingUser) {
-      return res
-        .status(409)
-        .json({ message: "Business email already registered" });
+    const userId = req.userId;
+    let existingUser = null;
+    let newUser = null;
+    let savedUser = null;
+
+    if (userId) {
+      existingUser = await User.findById(userId);
+
+      if (existingUser?.vendorId) {
+        return res.status(409).json({ message: "Vendor already registered" });
+      }
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const preferences = getCountryPreferences(country);
 
-    // Create new user
-    const newUser = {
-      email: businessEmail,
-      password: hashedPassword,
-      businessName: businessName,
-      country: country,
-      role: "business",
-      status: "active",
-      canMakeSales: true,
-      preferences: {
-        language: preferences.language,
-        currency: preferences.currency,
-        notifications: {
-          email: {
-            stockAlert: true,
-            orderStatus: true,
-            pendingReviews: true,
-            paymentUpdates: true,
-            newsletter: false,
-          },
-          push: true,
-          sms: false,
-        },
-        marketing: false,
-      },
-      activity: {
-        lastLogin: new Date(),
-        totalOrders: 0,
-        totalSpent: 0,
-      },
-    };
+    // Create user if not already existing
+    if (!existingUser) {
+      if (accountType === "business") {
+        if (!businessName || !email) {
+          return res.status(400).json({
+            message: "Business name and email are required for business accounts",
+          });
+        }
 
-    // Save user to database
-    const savedUser = await User.create(newUser);
-    const wallet = await cryptoService.createWallet(savedUser._id);
-    tokenWatcher.addAddressToWatch(wallet.address);
-    logger.debug("User created successfully", {
-      userId: savedUser._id,
-    });
-
-    const vendor = await Vendor.create({
-      userId: savedUser._id,
-      accountType: "business",
-      businessInfo: {
-        name: businessName,
-        address: {
-          city,
-          street,
-          state,
+        newUser = await User.create({
+          email,
+          password: hashedPassword,
+          businessName,
           country,
-          postalCode,
-        },
+          role: "user",
+          status: "active",
+          preferences: {
+            language: preferences.language,
+            currency: preferences.currency,
+            notifications: {
+              email: {
+                stockAlert: true,
+                orderStatus: true,
+                pendingReviews: true,
+                paymentUpdates: true,
+                newsletter: false,
+              },
+              push: true,
+              sms: false,
+            },
+            marketing: false,
+          },
+          activity: {
+            lastLogin: new Date(),
+            totalOrders: 0,
+            totalSpent: 0,
+          },
+        });
+      } else if (accountType === "personal") {
+        if (!firstName || !lastName || !email || !phoneNumber) {
+          return res.status(400).json({
+            message: "First name, last name, phone number, and email are required for personal accounts",
+          });
+        }
+
+        newUser = await User.create({
+          email,
+          password: hashedPassword,
+          profile: { firstName, lastName, phoneNumber },
+          country,
+          role: "user",
+          status: "active",
+          preferences: {
+            language: preferences.language,
+            currency: preferences.currency,
+            notifications: {
+              email: {
+                stockAlert: true,
+                orderStatus: true,
+                pendingReviews: true,
+                paymentUpdates: true,
+                newsletter: false,
+              },
+              push: true,
+              sms: false,
+            },
+            marketing: false,
+          },
+          activity: {
+            lastLogin: new Date(),
+            totalOrders: 0,
+            totalSpent: 0,
+          },
+        });
+      }
+
+      savedUser = newUser;
+    } else {
+      savedUser = existingUser;
+    }
+
+    // Create wallet if new user
+    if (newUser) {
+      const wallet = await cryptoService.createWallet(newUser._id);
+      tokenWatcher.addAddressToWatch(wallet.address);
+    }
+
+    // Create vendor
+    const createdVendor = await Vendor.create({
+      userId: savedUser?._id,
+      accountType,
+      businessInfo: {
+        name: accountType === "business" ? businessName : `${firstName}'s ventures`,
+        address: { city, street, state, country, postalCode },
       },
     });
+
+    if (savedUser) {
+      savedUser.canMakeSales = true;
+      savedUser.vendorId = createdVendor._id
+      await savedUser.save()
+    }
 
     await AuditLogService.log(
       "SIGNUP",
       "auth",
       "info",
       {
-        userId: savedUser._id,
-        email: savedUser.email,
-        role: savedUser.role,
-        country: req.headers["cf-ipcountry"] || "unknown",
-        vendor: vendor._id,
+        userId: savedUser?._id,
+        email: savedUser?.email,
+        role: savedUser?.role,
+        country: req.headers["cf-ipcountry"] || country || "unknown",
+        vendor: createdVendor._id,
       },
       req,
-      savedUser._id.toString()
+      savedUser?._id.toString()
     );
-    await SubscriptionService.initializeVendorSubscription(
-      vendor._id.toString()
-    );
-    const rawCountry = req.headers["cf-ipcountry"];
-    const reqCountry = Array.isArray(rawCountry) ? rawCountry[0] : rawCountry || "US";
 
-    const userData = {
-      email: businessEmail,
-      country: reqCountry,
-      businessType: "company",
-      companyName: businessName,
-    } as const;
-    const { success, accountId, account, error } =
-      await StripeVerificationService.createCustomAccount(userData);
-
-    console.log(success, accountId, account, error);
-
-    let linkResult;
-
-    if (success && accountId && account) {
-      // wait for the onboarding link (needed for response)
-      linkResult = await StripeVerificationService.createAccountLink(
-        accountId,
-        `${process.env.FRONTEND_URL}/vendor/verification/refresh`,
-        `${process.env.FRONTEND_URL}/vendor/verification/complete`
-      );
-
-      // fire-and-forget vendor save
-      (async () => {
-        try {
-          vendor.stripeAccountId = accountId;
-          await vendor.save();
-        } catch (err) {
-          console.error("Failed to save vendor with stripeAccountId:", err);
-        }
-      })();
-    }
+    await SubscriptionService.initializeVendorSubscription(createdVendor._id.toString());
+    
 
     return res.status(201).json({
-      message:
-        "Business created successfully. Please proceed with verification",
-      user: {
-        ...savedUser._doc,
-        password: undefined,
-        vendor,
-      },
-      onboardingLink: linkResult?.url || null,
-      accountId: accountId || null,
+      message: "Business created successfully. Please proceed with verification",
+      user: { ...savedUser?.toObject(), password: undefined, vendor: createdVendor },
+      vendor: createdVendor,
     });
   } catch (error) {
-    console.error("Signup error:", error);
     logger.error("Signup error:", { error });
     return res.status(500).json({ message: "Internal server error" });
   }
@@ -1085,3 +1075,56 @@ async function verifyAppleToken(token: string, publicKeys: any[]) {
     return null;
   }
 }
+
+// async function upgradePersonalToSell(req: Request, res: Response) {
+//   try {
+//     const userId = req.userId;
+
+//     if (!userId) {
+//       return res.status(401).json({ success: false, message: 'Unauthorized' });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ success: false, message: 'User not found' });
+//     }
+
+//     if (user.role !== 'personal') {
+//       return res.status(400).json({ success: false, message: 'User is not a personal user' });
+//     }
+
+//     const allowedCountry = await Country.findOne({
+//       name: { $regex: new RegExp(`^${user.country}$`, "i") },
+//     });
+
+//     user.role = 'business';
+//     user.canMakeSales = true;
+//     await user.save();
+
+//     await AuditLogService.log(
+//       'PERSONAL_TO_SELL_UPGRADE',
+//       'auth',
+//       'info',
+//       {
+//         userId: user._id,
+//         email: user.email,
+//         role: user.role
+//       },
+//       req,
+//       user._id.toString()
+//     );
+
+//     res.json({
+//       success: true,
+//       message: 'User upgraded to sell successfully',
+//       user: {
+//         ...user._doc,
+//         password: undefined
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Upgrade to sell error:', error);
+//     logger.error('Upgrade to sell error:', { error });
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// }

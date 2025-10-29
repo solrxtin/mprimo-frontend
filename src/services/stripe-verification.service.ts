@@ -5,32 +5,6 @@ dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_TEST_SECRET_KEY!);
 export class StripeVerificationService {
-  // Create Express Account for vendor verification
-  static async createExpressAccount(email: string, country: string = "US") {
-    try {
-      const account = await stripe.accounts.create({
-        type: "express",
-        country,
-        email,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-      });
-
-      return {
-        success: true,
-        accountId: account.id,
-        account,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
   // Create account link for onboarding
   static async createAccountLink(
     accountId: string,
@@ -97,7 +71,6 @@ export class StripeVerificationService {
         country: userData.country,
         email: userData.email,
         capabilities: {
-          card_payments: { requested: true },
           transfers: { requested: true },
         },
         business_type: userData.businessType,

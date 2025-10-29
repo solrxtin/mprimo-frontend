@@ -20,6 +20,7 @@ import { strictRateLimit, moderateRateLimit } from "../middlewares/rate-limit.mi
 import User from "../models/user.model";
 import { IUser } from "../types/user.type";
 import { setPreferencesMiddleware } from "../middlewares/country-prefrences.middleware";
+import { optionalAuth } from "../middlewares/optional-auth.middleware";
 
 
 const router = Router();
@@ -42,6 +43,7 @@ router.post(
 router.post(
   "/register-vendor",
   // rateLimitMiddleware.auth,
+  optionalAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await signupVendor(req, res);

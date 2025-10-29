@@ -306,8 +306,6 @@ export const getUserProfile = async (req: Request, res: Response) => {
   }
 };
 
-
-
 export const getUserOrders = async (
   req: Request,
   res: Response,
@@ -594,3 +592,110 @@ export const getUserOffersGrouped = async (
     next(error);
   }
 };
+
+// Activities management
+
+export const getUserActivities = async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    const { page = 1, limit = 10 } = req.query;
+
+    const user = await User.findById(userId).limit(Number(limit));
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      activities: user.activities,
+      message: "User activities fetched successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while trying to fetch user activities",
+    });
+  }
+};
+
+export const deleteActivity = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  const activityId = req.params.activityId;
+
+  if (!activityId || !mongoose.Types.ObjectId.isValid(activityId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Valid activity ID is required",
+    });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const activityExists = user.activities?.some(
+      (activity) => activity._id?.toString() === activityId
+    );
+
+    if (!activityExists) {
+      return res.status(404).json({
+        success: false,
+        message: "Activity not found",
+      });
+    }
+
+    if (user.activities) {
+      user.activities = user.activities.filter(
+        (activity) => activity._id?.toString() !== activityId
+      );
+      await user.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Activity deleted successfully",
+      activities: user.activities,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+};
+
+
+export const clearActivities = async ( req: Request, res: Response ) => {
+  try {
+    const userId = req.userId;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    user.activities = [];
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Activities cleared successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while trying to clear activities",
+    });
+  }
+}
