@@ -28,6 +28,7 @@ export interface CartItem {
     images: string[]
     price: number;
     addedAt?: Date;
+    vendorCurrency?: string;
 }
 
 export interface ICart {

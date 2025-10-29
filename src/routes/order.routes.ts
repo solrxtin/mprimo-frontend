@@ -13,7 +13,7 @@ import {
   OrderController,
   getVendorOrderMetrics
 } from "../controllers/order.controller";
-import { authorizeRole } from "../middlewares/authorize-role.middleware";
+import { authorizeRole, authorizeVendor } from "../middlewares/authorize-role.middleware";
 
 const router = Router();
 
@@ -22,9 +22,7 @@ router.get(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
-  (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
-  },
+ authorizeVendor,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await getVendorOrders(req, res, next);
@@ -124,7 +122,7 @@ router.get(
 router.get(
   "/:vendorId/metrics",
   verifyToken,
-  authorizeRole(["business", "admin"]),
+  authorizeVendor,
   getVendorOrderMetrics
 );
 
@@ -132,7 +130,7 @@ router.get(
 router.patch(
   "/:orderId/status",
   verifyToken,
-  authorizeRole(["business", "admin"]),
+  authorizeVendor,
   OrderController.updateOrderStatus
 );
 

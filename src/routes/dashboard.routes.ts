@@ -14,7 +14,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {

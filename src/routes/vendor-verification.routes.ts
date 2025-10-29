@@ -23,7 +23,7 @@ router.get('/supported-countries', getSupportedCountries);
 router.get('/country/:countryCode', getCountryDetails);
 router.post('/stripe/initiate', verifyToken, initiateStripeVerification);
 router.get('/stripe/status', verifyToken, checkStripeVerificationStatus);
-router.get('/stripe/requirements', verifyToken, getVerificationRequirements);
+router.get('/stripe/requirements', getVerificationRequirements);
 
 // Embedded verification routes
 router.get('/upload-requirements', verifyToken, getUploadRequirements);

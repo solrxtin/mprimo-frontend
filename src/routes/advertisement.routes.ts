@@ -9,7 +9,7 @@ const router = express.Router();
 
 
 // Advertisement Management
-router.post("/", verifyToken, authorizeRole(["business"]), AdvertisementController.createAdvertisement);
+router.post("/", verifyToken, authorizeRole(["user"]), AdvertisementController.createAdvertisement);
 router.get("/:id/click", AdvertisementController.trackClick);
 router.get("/sponsored", AdvertisementController.getSponsoredAds)
 router.post("/:id/impression", AdvertisementController.trackImpression);

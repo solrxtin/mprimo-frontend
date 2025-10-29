@@ -17,6 +17,7 @@ import { ProductType } from "../types/product.type";
 import { SubscriptionService } from "./subscription.service";
 import Vendor from "../models/vendor.model";
 import AdminNotification from "../models/admin-notification.model";
+import { ProductService } from "./product.service";
 
 dotenv.config();
 const logger = LoggerService.getInstance();
@@ -75,8 +76,8 @@ class RedisService {
   }
 
   // ==================== PRODUCT CACHING ====================
-  async getProductWithCache(options: { id?: string; slug?: string }) {
-    const { id, slug } = options;
+  async getProductWithCache(options: { id?: string; slug?: string, userCurrency: string }) {
+    const { id, slug, userCurrency } = options;
 
     try {
       const cacheKey = id ? `product:${id}` : `product:slug:${slug}`;
@@ -132,10 +133,13 @@ class RedisService {
               });
 
       if (product) {
+        const enriched = await ProductService.enrichProductsWithPriceInfo([product], userCurrency);
+        const enrichedProduct = enriched[0];
+
         // Cache using both ID and slug for flexibility
         await this.redisClient.set(
           `product:${product._id}`,
-          JSON.stringify(product),
+          JSON.stringify(enrichedProduct),
           "EX",
           3600
         );
@@ -143,14 +147,16 @@ class RedisService {
         if (product.slug) {
           await this.redisClient.set(
             `product:slug:${product.slug}`,
-            JSON.stringify(product),
+            JSON.stringify(enrichedProduct),
             "EX",
             3600
           );
         }
+        return enrichedProduct;
       }
 
-      return product;
+      return product
+      
     } catch (error) {
       logger.error("Redis cache error:", error);
       return id
@@ -315,7 +321,8 @@ class RedisService {
     name: string,
     images: string[],
     selectedVariant?: string,
-    optionId?: string
+    optionId?: string,
+    vendorCurrency?: string
   ) {
     if (!this.isConnected) return;
 
@@ -338,6 +345,7 @@ class RedisService {
           addedAt: existingItem.addedAt
             ? new Date(existingItem.addedAt)
             : new Date(),
+          vendorCurrency: vendorCurrency || "USD",
         };
       } else {
         newItem = {
@@ -349,6 +357,7 @@ class RedisService {
           quantity,
           price,
           addedAt: new Date(),
+          vendorCurrency: vendorCurrency || "USD",
         };
       }
 
@@ -363,8 +372,8 @@ class RedisService {
 
     try {
       const cartKey = `cart:${userId}`;
-      console.log("Cart key is", cartKey);
       const cartItems = await this.redisClient.hgetall(cartKey);
+
       return Object.values(cartItems)
         .map((item) => JSON.parse(item))
         .sort(

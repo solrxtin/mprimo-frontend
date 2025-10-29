@@ -130,7 +130,7 @@ const SignUpPage = (props: Props) => {
         )}
         {accountType === "business" && <BusinessRegistration />}
 
-        {/* <p className="mt-4 text-center text-black text-sm">
+        <p className="mt-4 text-center text-black text-xs">
           Forgot your password?{" "}
           <a
             href="/user/forgot-password"
@@ -138,7 +138,7 @@ const SignUpPage = (props: Props) => {
           >
             Reset Password
           </a>
-        </p> */}
+        </p>
       </div>
     </div>
   );

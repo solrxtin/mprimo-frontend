@@ -11,12 +11,16 @@ export class CartService {
   static async getCart(userId: string): Promise<CartItem[]> {
     try {
       let cart: CartItem[] = await redisService.getCart(userId);
-
       if (!cart || cart.length === 0) {
-        const dbCart = await Cart.findOne({ userId }).populate(
-          "items.productId"
-        );
-        
+        const dbCart = await Cart.findOne({ userId }).populate({
+          path: "items.productId",
+          populate: {
+            path: "country",
+            model: "Country",
+            select: "name currency currencySymbol", // optional fields to include
+          },
+        });
+
         if (dbCart && dbCart.items.length > 0) {
           const items: CartItem[] = dbCart.items.map((item: any) => ({
             productId: item.productId.toString(),
@@ -27,6 +31,7 @@ export class CartService {
             name: item.name,
             images: item.images,
             addedAt: item.addedAt,
+            vendorCurrency: item.productId.country.currency,
           }));
 
           for (const item of items) {
@@ -38,7 +43,8 @@ export class CartService {
               item.name,
               item.images,
               item.variantId,
-              item.optionId
+              item.optionId,
+              item.vendorCurrency
             );
           }
 
@@ -54,6 +60,7 @@ export class CartService {
   }
 
   static async addToCart(userId: string, item: CartItem) {
+    
     try {
       // Add to Redis
       await redisService.addToCart(
@@ -64,7 +71,8 @@ export class CartService {
         item.name,
         item.images,
         item.variantId,
-        item.optionId
+        item.optionId,
+        item.vendorCurrency
       );
 
       // Add to MongoDB
