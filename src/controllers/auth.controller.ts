@@ -211,6 +211,10 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    const isVendor = user?.vendorId
+    let vendor;
+    if (isVendor) vendor = await Vendor.findById(user.vendorId);
+    
     const has2faEnabled = user.twoFactorAuth.enabled || false;
     if (has2faEnabled) {
       return res.status(200).json({
@@ -220,6 +224,7 @@ export const login = async (req: Request, res: Response) => {
           ...user._doc,
           password: undefined,
         },
+        vendor,
         has2faEnabled,
       });
     }
@@ -259,6 +264,7 @@ export const login = async (req: Request, res: Response) => {
         ...user._doc,
         password: undefined,
       },
+      vendor,
       has2faEnabled,
       requires2FA: true,
     });
