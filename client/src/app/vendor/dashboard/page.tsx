@@ -17,6 +17,7 @@ type Props = {};
 
 const Page = (props: Props) => {
     const { vendor } = useVendorStore();
+    console.log("vendor details", vendor)
   
   const socket = useSocket();
   const { data, isLoading } = useVendorAnalytics(vendor?._id!);
