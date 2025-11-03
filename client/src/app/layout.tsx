@@ -9,6 +9,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import SocketInitializer from "@/components/SocketInitializer";
 import ToastProvider from "@/components/providers/ToastProvider";
 
+
 const poppins = Poppins({
   variable: "--font-poppins",
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
@@ -100,6 +101,8 @@ export default function RootLayout({
             }
           `}
         </Script>
+
+        
         {/* Register service worker for push notifications */}
         <Script id="register-service-worker" strategy="afterInteractive">
           {`
