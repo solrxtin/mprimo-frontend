@@ -102,6 +102,7 @@ export default function RootLayout({
           `}
         </Script>
 
+
         
         {/* Register service worker for push notifications */}
         <Script id="register-service-worker" strategy="afterInteractive">
