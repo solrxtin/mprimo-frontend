@@ -5,6 +5,7 @@ import LoginForm from "./(component)/LoginForm";
 import RegisterForm from "./(component)/RegisterForm";
 import RecoverPass from "./(component)/RecoverPass";
 import OTPModal from "./(component)/Otp";
+import { useAuthModalStore } from "@/stores/useAuthModalStore";
 
 type ModalProps = {
   isOpen: boolean;

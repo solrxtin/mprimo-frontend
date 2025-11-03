@@ -30,6 +30,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { useUserStore } from "@/stores/useUserStore";
 import { useCartSync } from "@/hooks/useCartSync";
 import { useRouter } from "next/navigation";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 const Header = () => {
   const [isSell, setIsSell] = useState(false);
@@ -44,9 +45,11 @@ const Header = () => {
   const { wishlistCount } = useWishlist();
   const { openModal } = useAuthModalStore();
   const { user } = useUserStore();
+  const { vendor } = useVendorStore();
   const debouncedQuery = useDebounce(searchQuery, 300);
   const { data: suggestionsData } = useSearchSuggestions(debouncedQuery, 5);
-  
+  const { setAuthType } = useAuthModalStore();
+
   // Initialize cart sync
   useCartSync();
 
@@ -55,24 +58,24 @@ const Header = () => {
   }, []);
 
   const handleSellClick = () => {
-    if (!user) {
+    if (!vendor) {
+      setAuthType("vendor");
       setIsSell(!isSell);
     } else {
-      console.log("user", user)
-
       router.push("/vendor/dashboard");
     }
   };
 
-  const handleProfileClick=() => {
+  const handleProfileClick = () => {
     if (!user) {
       openModal();
     } else {
       router.push("/home/user");
     }
-  }
+  };
   const handlecloseModal = () => {
     setIsSell(false);
+    setAuthType("");
   };
 
   const toggleSearch = () => {
@@ -279,9 +282,7 @@ const Header = () => {
               </button>
 
               <button
-                onClick={() => 
-                  handleProfileClick()
-                }
+                onClick={() => handleProfileClick()}
                 className="text-white hover:bg-blue-700 p-2 rounded cursor-pointer"
               >
                 <User className="w-5 h-5" />
@@ -293,10 +294,10 @@ const Header = () => {
               >
                 <Heart className="w-5 h-5" />
                 {isMounted && wishlistCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center text-white">
-                  {wishlistCount ?? 0}
-                </div>
-              )}
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center text-white">
+                    {wishlistCount ?? 0}
+                  </div>
+                )}
               </Link>
 
               <div className="inline-block">
