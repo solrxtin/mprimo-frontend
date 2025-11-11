@@ -96,7 +96,7 @@ const RecentOrders = ({ currency }: { currency: string}) => {
                         {order?.user?.profile?.firstName}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order.payment.amount.toLocaleString("en-US", {
+                        {order?.payment?.amount.toLocaleString("en-US", {
                           minimumFractionDigits: 1,
                           maximumFractionDigits: 1,
                         })}{" "}

@@ -27,8 +27,6 @@ const Page = (props: Props) => {
 
   useUserNotifications(true);
 
-
-
   useEffect(() => {
     if (!vendor || !socket) return;
 
@@ -42,12 +40,14 @@ const Page = (props: Props) => {
     };
   }, [socket, vendor]);
 
+  
+
   return (
     <div className="bg-[#f6f6f6] font-[family-name:var(--font-alexandria)]">
       <div className="p-4 md:p-10">
         <h1 className="font-bold text-2xl mb-2 md:mb-0">Dashboard</h1>
         <p className="mb-5 font-[family-name:var(--font-poppins)]">
-          Welcome back, Bovie! Here's what is happening with your store today.
+          {`Hey ${vendor?.businessInfo?.name}, welcome back! Let’s take a look at what’s going on in your store today.`}
         </p>
         {vendor?.kycStatus !== "verified" && (
           <div className="">
