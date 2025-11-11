@@ -14,13 +14,20 @@ export interface ICart {
   lastUpdated: Date;
 }
 
+interface Activity {
+  _id?: Types.ObjectId;
+  activity: string;
+  createdAt: string;
+}
+
+
 export interface IUser extends Document {
   _id: Types.ObjectId;
   _doc: Document;
   email: string;
   password?: string;
   businessName?: string;
-  profile: {
+  profile?: {
     firstName: string;
     lastName: string;
     phoneNumber: string;
@@ -42,7 +49,7 @@ export interface IUser extends Document {
     provider: string;
     providerId: string;
   }>;
-  role: "personal" | "business" | "admin";
+  role: "user" | "admin";
   status: "active" | "inactive" | "suspended";
   canMakeSales: boolean;
   saleLimit: number;
@@ -125,4 +132,6 @@ export interface IUser extends Document {
       billingAddressId?: Types.ObjectId;
     }>;
   };
+  activities?: Activity[];
+  vendorId?: Types.ObjectId;
 }

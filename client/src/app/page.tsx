@@ -2,7 +2,6 @@
 
 import { useLogoutUser } from "@/hooks/mutations";
 import { useUserStore } from "@/stores/useUserStore";
-import Link from "next/link";
 import { toast } from "react-toastify";
 import { toastConfigError } from "./config/toast.config";
 import { useSocket } from "@/hooks/useSocket";

@@ -6,6 +6,7 @@ import {
   getBalance,
   getUserWallet,
 } from "../controllers/payment.controller";
+import { getWalletActivities } from "../controllers/wallet.controller";
 
 const router = Router();
 
@@ -34,6 +35,12 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     await getUserWallet(req, res);
   }
+);
+
+router.get(
+  "/activities",
+  verifyToken,
+  getWalletActivities
 );
 
 export default router;

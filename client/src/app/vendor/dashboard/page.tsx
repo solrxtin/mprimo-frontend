@@ -9,15 +9,15 @@ import SalesActivity from "./(components)/SalesActivity";
 import SalesActivitySkeleton from "./(components)/skeletons/SalesActivitySkeleton";
 import RecentOrders from "./(components)/RecentOrders";
 import RecentOrdersSkeleton from "./(components)/skeletons/RecentOrdersSkeleton";
-import { useProductStore } from "@/stores/useProductStore";
 import { useSocket } from "@/hooks/useSocket";
 import { useUserNotifications, useVendorAnalytics } from "@/hooks/queries";
 import Link from "next/link";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Props = {};
 
 const Page = (props: Props) => {
-  const { vendor, setVendor } = useProductStore();
+  const { vendor } = useVendorStore();
   const socket = useSocket();
   const { data, isLoading } = useVendorAnalytics(vendor?._id!);
 
@@ -27,26 +27,7 @@ const Page = (props: Props) => {
 
   useUserNotifications(true);
 
-  // Fetch and update vendor data on mount
-  useEffect(() => {
-    const fetchVendorData = async () => {
-      try {
-        const response = await fetch('http://localhost:5800/api/v1/vendor/profile', {
-          credentials: 'include',
-        });
-        const result = await response.json();
-        if (result.success && result.vendor) {
-          setVendor(result.vendor);
-        }
-      } catch (error) {
-        console.error('Failed to fetch vendor data:', error);
-      }
-    };
 
-    if (vendor?._id) {
-      fetchVendorData();
-    }
-  }, [vendor?._id, setVendor]);
 
   useEffect(() => {
     if (!vendor || !socket) return;

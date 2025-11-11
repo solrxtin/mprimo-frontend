@@ -6,9 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Stepper() {
   const { step, totalSteps, mobileTotalSteps } = useProductListing();
   const { isMobileOrTablet } = useResponsive();
-  // Update to use 7 steps for mobile to account for the new variants step
-  const updatedMobileTotalSteps = 7;
-  const steps = isMobileOrTablet ? Array.from({ length: updatedMobileTotalSteps }, (_, i) => `Step ${i + 1}`) : Array.from({ length: totalSteps }, (_, i) => `Step ${i + 1}`);
+  const steps = isMobileOrTablet ? Array.from({ length: mobileTotalSteps }, (_, i) => `Step ${i + 1}`) : Array.from({ length: totalSteps }, (_, i) => `Step ${i + 1}`);
 
   return (
     <div className="flex items-center justify-between gap-x-2 relative">
@@ -20,6 +18,7 @@ export default function Stepper() {
           <div
             key={label}
             className="flex-1 flex flex-col items-center relative"
+            title={`Step ${index + 1} ${isCompleted ? '(Completed)' : isActive ? '(Current)' : ''}`}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -34,16 +33,15 @@ export default function Stepper() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.7, opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className={`h-2 flex items-center justify-center rounded-full
+                className={`h-2 flex items-center justify-center rounded-full transition-all duration-300
                 ${
                   isCompleted
-                    ? "bg-green-500 text-white"
+                    ? "bg-green-500"
                     : isActive
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-400 text-black"
+                    ? "bg-blue-500"
+                    : "bg-gray-300"
                 } ${isActive ? "w-10" : "w-8"}`}
-              >
-              </motion.div>
+              />
             </AnimatePresence>
           </div>
         );

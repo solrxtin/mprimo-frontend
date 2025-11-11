@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import FullButton from "../FullButton";
 import Link from "next/link";
 import Modal2 from "../Modal2";
@@ -30,6 +30,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { useUserStore } from "@/stores/useUserStore";
 import { useCartSync } from "@/hooks/useCartSync";
 import { useRouter } from "next/navigation";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 const Header = () => {
   const [isSell, setIsSell] = useState(false);
@@ -37,21 +38,44 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const cartLength = useCartLength();
+  const router = useRouter();
+
   const { wishlistCount } = useWishlist();
   const { openModal } = useAuthModalStore();
   const { user } = useUserStore();
-  const router = useRouter();
+  const { vendor } = useVendorStore();
   const debouncedQuery = useDebounce(searchQuery, 300);
   const { data: suggestionsData } = useSearchSuggestions(debouncedQuery, 5);
-  
+  const { setAuthType } = useAuthModalStore();
+
   // Initialize cart sync
   useCartSync();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const handleSellClick = () => {
-    setIsSell(!isSell);
+    if (!vendor) {
+      setAuthType("vendor");
+      setIsSell(!isSell);
+    } else {
+      router.push("/vendor/dashboard");
+    }
+  };
+
+  const handleProfileClick = () => {
+    if (!user) {
+      openModal();
+    } else {
+      router.push("/home/user");
+    }
   };
   const handlecloseModal = () => {
     setIsSell(false);
+    setAuthType("");
   };
 
   const toggleSearch = () => {
@@ -119,7 +143,7 @@ const Header = () => {
           </div>
 
           <Button
-            variant="link"
+            variant="ghost"
             onClick={handleSellClick}
             className="text-[#121212] py-2 px-3 sm:px-4 lg:py-3 w-[80px] sm:w-[100px] lg:w-[180px] rounded-md bg-white font-normal h-auto text-xs sm:text-sm lg:text-base"
           >
@@ -258,13 +282,7 @@ const Header = () => {
               </button>
 
               <button
-                onClick={() => {
-                  if (user) {
-                    router.push('/home/user');
-                  } else {
-                    router.push('/login');
-                  }
-                }}
+                onClick={() => handleProfileClick()}
                 className="text-white hover:bg-blue-700 p-2 rounded cursor-pointer"
               >
                 <User className="w-5 h-5" />
@@ -275,11 +293,11 @@ const Header = () => {
                 className="text-white hover:bg-blue-700 relative p-2 rounded"
               >
                 <Heart className="w-5 h-5" />
-                {/* { wishlistCount && wishlistCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center text-white">
-                  {wishlistCount}
-                </div>
-              )} */}
+                {isMounted && wishlistCount > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center text-white">
+                    {wishlistCount ?? 0}
+                  </div>
+                )}
               </Link>
 
               <div className="inline-block">
@@ -384,7 +402,7 @@ const Header = () => {
         </div>
       </div>
 
-      <Modal2 isOpen={isSell} onClose={handlecloseModal}>
+      {/* <Modal2 isOpen={isSell} onClose={handlecloseModal}>
         <div className="inline-block overflow-hidden text-left pb-4 px-4 sm:px-6 lg:px-7 relative align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-[90vw] sm:max-w-[620px] sm:w-full">
           <div className="py-4 flex justify-between items-center">
             <h3 className="text-lg sm:text-xl md:text-2xl flex-1 text-center text-gray-700 font-semibold">
@@ -425,7 +443,7 @@ const Header = () => {
             />
           </div>
         </div>
-      </Modal2>
+      </Modal2> */}
 
       <AuthenticationModal isOpen={isSell} close={handlecloseModal} />
     </header>

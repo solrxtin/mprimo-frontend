@@ -43,7 +43,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 ">
       {/* Description Column */}
       <div className="lg:col-span-1 px-3">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Description</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">Description</h3>
         <div className="space-y-4 text-gray-600 leading-relaxed text-xs md:text-sm ">
           <p>
            {productData?.description}
@@ -54,7 +54,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
 
       {/* Features Column */}
       <div className="lg:col-span-1 px-3">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Features</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">Features</h3>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <Shield className="w-5 h-5 text-orange-500" />
@@ -79,7 +79,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
 
       {/* Product Details Column */}
       <div className="lg:col-span-1 px-3">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">
           Product Details
         </h3>
         <div className="space-y-3 text-sm">
@@ -108,7 +108,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Product Specifications */}
       <div className="px-3">
-        <h3 className="text-xl font-medium text-gray-900 mb-4">Product Specifications</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">Product Specifications</h3>
         <div className="space-y-3">
           {productData?.specifications?.map((spec) => (
             <div key={spec._id}>
@@ -121,7 +121,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
 
       {/* Shipping Information */}
       <div className="px-3">
-        <h3 className="text-xl font-medium text-gray-900 mb-4">Shipping Information</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">Shipping Information</h3>
         <div className="space-y-3">
           <div>
             <span className="font-medium text-gray-900">Weight:</span>
@@ -146,7 +146,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Product Analytics */}
       <div>
-        <h3 className="text-xl font-medium text-gray-900 mb-4">
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">
           Product Analytics
         </h3>
         <div className="space-y-3">
@@ -171,7 +171,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
 
       {/* Listing Information */}
       <div>
-        <h3 className="text-xl font-medium text-gray-900 mb-4">
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">
           Listing Information
         </h3>
         <div className="space-y-3">
@@ -201,7 +201,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
 
       {/* Variants Information */}
       <div>
-        <h3 className="text-xl font-medium text-gray-900 mb-4">Available Variants</h3>
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">Available Variants</h3>
         <div className="space-y-3">
           {productData?.variants?.map((variant) => (
             <div key={variant._id}>
@@ -239,15 +239,15 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
   };
 
   return (
-    <div className="md:px-[42px] lg:px-[80px] px-4  mt-2 md:mt-3 lg:mt-5   ">
+    <div className=" ">
       {/* Tab Navigation */}
-      <div className="border">
-        <div className="flex flex-wrap justify-center gap-8 mb-4 lg:mb-8 border-b border-gray-200 p-3">
+      <div className="md:border">
+        <div className="flex justify-center overflow-auto  gap-4 lg:gap-6 2xl:gap-8 mb-4 lg:mb-8 border-b border-gray-200 p-2 md:p-3 pl-4 md:pl-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`pb-4 px-1 font-medium text-base transition-colors relative ${
+              className={`pb-1 md:pb-3 px-1 font-medium text-base whitespace-nowrap transition-colors relative ${
                 activeTab === tab.id
                   ? "text-gray-900 border-b-2 border-orange-400"
                   : "text-gray-500 hover:text-gray-700"
@@ -259,7 +259,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
         </div>
 
         {/* Tab Content */}
-        <div className="py-4">{renderTabContent()}</div>
+        <div className=" pt-2 pb-4 md:py-4">{renderTabContent()}</div>
       </div>
     </div>
   );

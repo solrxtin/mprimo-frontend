@@ -12,11 +12,7 @@ import { AllProduct } from "@/utils/config";
 import { useQuery } from "@tanstack/react-query";
 import React from "react";
 
-type HomepageProps = {
-  children?: React.ReactNode;
-};
-
-const Page = ({ children }: HomepageProps) => {
+const Page = () => {
 
 const fetchAllProducts = async () => {
   const response = await fetch(`${AllProduct}?page=2`);

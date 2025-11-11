@@ -4,8 +4,9 @@ import {
 } from "@/app/config/toast.config";
 import FullButton from "@/components/FullButton";
 import { useLoginUser } from "@/hooks/mutations";
-import { useProductStore } from "@/stores/useProductStore";
+import { useAuthModalStore } from "@/stores/useAuthModalStore";
 import { useUserStore } from "@/stores/useUserStore";
+import { useVendorStore } from "@/stores/useVendorStore";
 import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -33,9 +34,10 @@ const LoginForm = ({ setAuthState, close }: LoginProps) => {
 
   const { setUser } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
-  const { setVendor } = useProductStore();
-  const router = useRouter();
+  const { setVendor } = useVendorStore();
   const { mutate: loginUser, isPending } = useLoginUser();
+  const {authType} = useAuthModalStore()
+  const router = useRouter();
 
   const validateForm = () => {
     const newErrors = {
@@ -67,7 +69,6 @@ const LoginForm = ({ setAuthState, close }: LoginProps) => {
     setIsLoading(true);
     // Perform validation and submit the form if valid
     if (validateForm()) {
-      // Submit the form
       loginUser(
         { email, password },
         {
@@ -79,7 +80,12 @@ const LoginForm = ({ setAuthState, close }: LoginProps) => {
             // }
 
             setUser(data.user);
+            setVendor(data.vendor);
             toast.success("Login successful", toastConfigSuccess);
+            if (authType === "vendor") {
+              router.push("/vendor/dashboard");
+            }
+            
             setIsLoading(false);
              if (close) close();
           },
@@ -92,7 +98,6 @@ const LoginForm = ({ setAuthState, close }: LoginProps) => {
         }
       );
     } else {
-      console.log("Form submission failed.");
       toast.error(
         "Form submission failed. Please ensure you provided the necessary fields",
         toastConfigError

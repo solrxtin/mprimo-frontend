@@ -23,6 +23,7 @@ interface Attribute {
 const ProductDetailForm = (props: Props) => {
   const { setAttributes, updateProductDetails, productDetails, step } =
     useProductListing();
+    console.log("the product details page" , productDetails )
   const [productDetail, setProductDetail] = React.useState({
     productName: productDetails?.productName || "",
     description: productDetails?.description || "",

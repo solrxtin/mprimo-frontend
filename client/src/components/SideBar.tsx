@@ -3,19 +3,16 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   ShoppingBag,
-  MessageCircle,
   Wallet,
   Heart,
   Star,
   Settings,
   LogOut,
+  MessageCircleMore,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useLogoutUser } from "@/hooks/mutations";
-import { toast } from "react-toastify";
-import LogOutPromptModal from "./users/LogOutPromptModal";
-import { useState } from "react";
+import { Notification1 } from "iconsax-react";
 
 // Define the base path for your user section
 const BASE_PATH = "/home/user";
@@ -23,39 +20,20 @@ const BASE_PATH = "/home/user";
 const navigation = [
   { name: "Overview", href: "", icon: LayoutDashboard }, // Empty string for base path
   { name: "Orders", href: "/orders", icon: ShoppingBag },
-  { name: "Messages", href: "/messages", icon: MessageCircle },
+  { name: "Messages", href: "/messages", icon: MessageCircleMore },
   { name: "Wallet", href: "/wallet", icon: Wallet },
   { name: "Wishlists", href: "/wishlist", icon: Heart },
+  { name: "Notifications", href: "/notifications", icon: Notification1 },
   { name: "Needs Reviews", href: "/reviews", icon: Star },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ openLogoutModal }: { openLogoutModal: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const logoutMutation = useLogoutUser();
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState<boolean>(false);
-
-  const closeLogoutModal = () => {
-    setIsLogoutModalOpen(false);
-  };
-
-  const openLogoutModal = () => {
-    setIsLogoutModalOpen(true);
-  };
 
   const handleClick = (link: string) => {
     router.push(link);
-  };
-
-  const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        toast.success("Logout Successfull");
-
-        router.push("/home");
-      },
-    });
   };
 
   return (
@@ -77,25 +55,19 @@ export function Sidebar() {
                 : "text-gray-700 hover:bg-gray-100"
             )}
           >
-            <item.icon className="mr-3 h-4 w-4" />
+            <item.icon size={16} color={isActive ? "#dbeafe" : "#2e2e2e"} variant="Outline" className="mr-3 h-4 w-4" />
             {item.name}
           </Button>
         );
       })}
       <Button
         variant="ghost"
-        onClick={openLogoutModal}
-        className="w-full justify-start text-left font-normal  hover:bg-gray-100 mt-8 cursor-pointer"
+        onClick={() => openLogoutModal()}
+        className="w-full justify-start text-left font-normal text-gray-700 hover:bg-gray-100 mt-8 z-50"
       >
         <LogOut className="mr-3 h-4 w-4" />
         Logout{" "}
       </Button>
-      <LogOutPromptModal
-        isOpen={isLogoutModalOpen}
-        onClose={closeLogoutModal}
-        logout={handleLogout}
-        loading={logoutMutation.isPending}
-      />
     </div>
   );
 }

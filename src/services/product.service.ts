@@ -11,17 +11,92 @@ import { IVendor } from "../types/vendor.type";
 import Notification from "../models/notification.model";
 import { socketService } from "..";
 import Vendor from "../models/vendor.model";
-import InventoryLog from "../models/inventory-log.model";
+import { PipelineStage } from "mongoose";
+import { CurrencyService } from "./currency.service";
 
 function isMongoError(error: any): error is MongoError {
   return error.code !== undefined && typeof error.code === "number";
 }
 
 export class ProductService {
+  static async enrichProductsWithPriceInfo(
+    products: any[],
+    req: any
+  ) {
+    const userCurrency = req.preferences?.currency || "USD";
+    return Promise.all(
+      products.map(async (doc) => {
+        const product = doc.toObject ? doc.toObject() : doc;
+        let priceInfo;
+        const vendorCurrency = (product.country as any)?.currency || "USD";
+        if (product.inventory?.listing?.type === "instant") {
+          const variants = Array.isArray(product.variants) ? product.variants : [product.variants].filter(Boolean);
+          const defaultOption =
+            variants
+              ?.flatMap((v: any) => v?.options || [])
+              ?.find((o: any) => o.isDefault) ||
+            variants?.[0]?.options?.[0];
+          if (defaultOption) {
+            priceInfo = await CurrencyService.getProductPriceForUser(
+              defaultOption.salePrice || defaultOption.price,
+              vendorCurrency,
+              userCurrency
+            );
+          }
+        } else if (product.inventory?.listing?.type === "auction") {
+          const auction = product.inventory.listing.auction;
+          let auctionPrice = auction?.startBidPrice || 0;
+          
+          // Determine price based on auction state
+          if (auction?.isExpired && auction?.finalPrice) {
+            auctionPrice = auction.finalPrice;
+          } else if (auction?.isStarted && product.bids?.length > 0) {
+            // Use current highest bid
+            const highestBid = product.bids.find((bid: any) => bid.isWinning);
+            auctionPrice = highestBid?.currentAmount || auction?.startBidPrice || 0;
+          } else if (auction?.buyNowPrice) {
+            // Show buy now price if available
+            auctionPrice = auction.buyNowPrice;
+          }
+          
+          priceInfo = await CurrencyService.getProductPriceForUser(
+            auctionPrice,
+            vendorCurrency,
+            userCurrency
+          );
+        }
+
+        // Remove sensitive user data
+        if (product.vendorId?.userId) {
+          product.vendorId.userId = {
+            _id: product.vendorId.userId._id,
+            profile: {
+              firstName: product.vendorId.userId.profile?.firstName,
+              lastName: product.vendorId.userId.profile?.lastName,
+            },
+          };
+        }
+
+        return {
+          ...product,
+          priceInfo,
+          auctionState: product.inventory?.listing?.type === "auction" ? {
+            isStarted: product.inventory.listing.auction?.isStarted,
+            isExpired: product.inventory.listing.auction?.isExpired,
+            hasReservePrice: !!product.inventory.listing.auction?.reservePrice,
+            reservePriceMet: product.inventory.listing.auction?.reservePriceMet,
+            hasBuyNow: !!product.inventory.listing.auction?.buyNowPrice,
+          } : undefined,
+        };
+      })
+    );
+  }
+
   static async getProducts(
     query: any = {},
     page = 1,
     limit = 10,
+    req: any,
     sort: any = { createdAt: -1 }
   ) {
     const skip = (page - 1) * limit;
@@ -40,18 +115,30 @@ export class ProductService {
 
     const [products, total] = await Promise.all([
       ProductModel.find(filter)
-        .populate("vendorId", "name email")
+        .populate({
+          path: "vendorId",
+          populate: {
+            path: "userId",
+            model: "User",
+            select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+          },
+        })
         .populate("category.main")
         .populate("category.sub")
+        .populate("country")
         .sort(sort)
         .skip(skip)
-        .limit(limit)
-        .lean(),
+        .limit(limit),
       ProductModel.countDocuments(filter),
     ]);
 
-    return {
+    const enrichedProducts = await this.enrichProductsWithPriceInfo(
       products,
+      req
+    );
+
+    return {
+      products: enrichedProducts,
       pagination: {
         page,
         limit,
@@ -61,73 +148,317 @@ export class ProductService {
     };
   }
 
-  static async getProductsByIds(ids: string[]): Promise<ProductType[]> {
+  static async getProductsByIds(
+    ids: string[],
+    req: any
+  ): Promise<ProductType[]> {
     const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
 
-    return ProductModel.find({ _id: { $in: objectIds } })
-      .populate("vendorId", "name email")
+    const products = await ProductModel.find({ _id: { $in: objectIds } })
+      .populate({
+        path: "vendorId",
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
+      })
       .populate("category.main")
-      .populate("category.sub");
+      .populate("category.sub")
+      .populate("country")
+      .lean();
+
+    return this.enrichProductsWithPriceInfo(products, req);
   }
 
-  static async getProductsByVendorId(vendorId: string): Promise<ProductType[]> {
-    return ProductModel.find({ vendorId })
-      .populate("vendorId", "name email")
-      .populate("category.main")
-      .populate("category.sub");
+  static async getBestDeals(
+    page: number,
+    limit: number,
+    req: any,
+    minDiscount: number = 5
+  ) {
+    const skip = (page - 1) * limit;
+
+    // Simplified pipeline - remove the 15% discount requirement temporarily
+    const pipeline: PipelineStage[] = [
+      { $match: { status: "active" } },
+      { $unwind: "$variants" },
+      { $unwind: "$variants.options" },
+      {
+        $match: {
+          "variants.options.salePrice": { $exists: true, $ne: null, $gt: 0 },
+          "variants.options.price": { $gt: 0 },
+          $expr: {
+            $lt: ["$variants.options.salePrice", "$variants.options.price"],
+          },
+        },
+      },
+      {
+        $addFields: {
+          discountPercentage: {
+            $multiply: [
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      "$variants.options.price",
+                      "$variants.options.salePrice",
+                    ],
+                  },
+                  "$variants.options.price",
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      },
+      { $match: { discountPercentage: { $gte: minDiscount } } },
+      { $sort: { discountPercentage: -1 } },
+      {
+        $group: {
+          _id: "$_id",
+          product: { $first: "$$ROOT" },
+          discountPercentage: { $first: "$discountPercentage" },
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: ["$product", { discountPercentage: "$discountPercentage" }]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: "$category.path",
+          bestDeal: { $first: "$$ROOT" },
+          maxDiscount: { $max: "$discountPercentage" },
+        },
+      },
+      { $replaceRoot: { newRoot: "$bestDeal" } },
+      { $sort: { discountPercentage: -1 } },
+      {
+        $lookup: {
+          from: "vendors",
+          localField: "vendorId",
+          foreignField: "_id",
+          as: "vendor",
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category.main",
+          foreignField: "_id",
+          as: "mainCategory",
+        },
+      },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const rawProducts = await ProductModel.aggregate(pipeline);
+    const products = await this.enrichProductsWithPriceInfo(rawProducts, req);
+
+    const totalPipeline = [
+      { $match: { status: "active" } },
+      { $unwind: "$variants" },
+      { $unwind: "$variants.options" },
+      {
+        $match: {
+          "variants.options.salePrice": { $exists: true, $ne: null, $gt: 0 },
+          "variants.options.price": { $gt: 0 },
+          $expr: {
+            $lt: ["$variants.options.salePrice", "$variants.options.price"],
+          },
+        },
+      },
+      {
+        $addFields: {
+          discountPercentage: {
+            $multiply: [
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      "$variants.options.price",
+                      "$variants.options.salePrice",
+                    ],
+                  },
+                  "$variants.options.price",
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      },
+      { $match: { discountPercentage: { $gte: minDiscount } } },
+      {
+        $group: {
+          _id: "$_id",
+          category: { $first: "$category" },
+          discountPercentage: { $first: "$discountPercentage" },
+        },
+      },
+      {
+        $group: {
+          _id: "$category.path",
+          bestDeal: { $first: "$$ROOT" },
+        },
+      },
+      {
+        $count: "total",
+      },
+    ];
+
+    const total = await ProductModel.aggregate(totalPipeline);
+
+    return {
+      products,
+      pagination: {
+        page,
+        limit,
+        total: total[0]?.total || 0,
+        pages: Math.ceil((total[0]?.total || 0) / limit),
+      },
+    };
   }
 
-  static async getTopProducts(count = 10): Promise<ProductType[]> {
-    return ProductModel.find({ status: "active" })
+  static async getProductsByVendorId(
+    vendorId: string,
+    req: any
+  ): Promise<ProductType[]> {
+    const products = await ProductModel.find({ vendorId })
+      .populate({
+        path: "vendorId",
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
+      })
+      .populate("category.main")
+      .populate("category.sub")
+      .populate("country")
+      .lean();
+
+    return this.enrichProductsWithPriceInfo(products, req);
+  }
+
+  static async getTopProducts(
+    count = 10,
+    req: any
+  ): Promise<ProductType[]> {
+    const products = await ProductModel.find({ status: "active" })
       .sort({ "analytics.views": -1 })
       .limit(count)
-      .populate("vendorId", "name email")
-      .populate("category.main");
+      .populate({
+        path: "vendorId",
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
+      })
+      .populate("category.main")
+      .populate("country")
+      .lean();
+
+    return this.enrichProductsWithPriceInfo(products, req);
   }
 
   static async getSimilarProducts(
     productId: string,
-    count = 5
+    count = 5,
+    req: any
   ): Promise<ProductType[]> {
     const product = await ProductModel.findById(productId);
     if (!product) {
       throw createError(404, "Product not found");
     }
 
-    return ProductModel.find({
+    const products = await ProductModel.find({
       _id: { $ne: productId },
       "category.main": product.category.main,
       status: "active",
     })
       .limit(count)
-      .populate("vendorId", "name email");
+      .populate({
+        path: "vendorId",
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
+      })
+      .populate("country")
+      .populate("category.main")
+      .populate("category.sub")
+      .lean();
+
+    return this.enrichProductsWithPriceInfo(products, req);
   }
 
-  static async getProductById(id: string): Promise<ProductType> {
+  static async getProductById(
+    id: string,
+    userCurrency: string = "USD"
+  ): Promise<ProductType> {
     const product = await ProductModel.findById(id)
-      .populate("vendorId", "name email")
+      .populate({
+        path: "vendorId",
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
+      })
       .populate("category.main")
-      .populate("category.sub");
+      .populate("category.sub")
+      .populate("country")
+      .lean();
 
     if (!product) {
       throw createError(404, "Product not found");
     }
-    return product;
+
+    const enrichedProducts = await this.enrichProductsWithPriceInfo(
+      [product],
+      userCurrency
+    );
+    return enrichedProducts[0];
   }
 
-  static async getProductBySlug(slug: string): Promise<ProductType> {
+  static async getProductBySlug(
+    slug: string,
+    userCurrency: string = "USD"
+  ): Promise<ProductType> {
     const product = await ProductModel.findOne({ slug })
-      .populate("vendorId", "name email")
+      .populate("vendorId")
+      .populate("vendorId.userId", "_id profile.firstName profile.lastName email")
       .populate("category.main")
-      .populate("category.sub");
+      .populate("category.sub")
+      .populate("country")
+      .lean();
 
     if (!product) {
       throw createError(404, "Product not found");
     }
-    return product;
+
+    const enrichedProducts = await this.enrichProductsWithPriceInfo(
+      [product],
+      userCurrency
+    );
+    return enrichedProducts[0];
   }
 
-  static async getProductsByCategory(categoryId: string, page = 1, limit = 10) {
+  static async getProductsByCategory(
+    categoryId: string,
+    page = 1,
+    limit = 10,
+    userCurrency: string
+  ) {
     // Find the category and its descendants
     const category = await CategoryModel.findById(categoryId);
     if (!category) {
@@ -143,7 +474,7 @@ export class ProductService {
       ],
     };
 
-    return this.getProducts(query, page, limit);
+    return this.getProducts(query, page, limit, userCurrency);
   }
 
   static async updateProduct(
@@ -180,7 +511,14 @@ export class ProductService {
       updateData,
       { new: true, runValidators: true }
     )
-      .populate("vendorId", "name email")
+      .populate({
+        path: "vendorId",
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email", // Exclude sensitive fields
+        },
+      })
       .populate("category.main")
       .populate("category.sub");
 
@@ -250,17 +588,17 @@ export class ProductService {
           option.quantity = Math.max(0, option.quantity + change);
           
           // Log inventory change
-          await InventoryLog.create({
-            productId: product._id,
-            variantSku: variantId,
-            changeType: operation === "add" ? "restock" : "sale",
-            quantityBefore,
-            quantityAfter: option.quantity,
-            quantityChanged: Math.abs(change),
-            reason,
-            orderId,
-            userId: vendor.userId
-          });
+          // await InventoryLog.create({
+          //   productId: product._id,
+          //   variantSku: variantId,
+          //   changeType: operation === "add" ? "restock" : "sale",
+          //   quantityBefore,
+          //   quantityAfter: option.quantity,
+          //   quantityChanged: Math.abs(change),
+          //   reason,
+          //   orderId,
+          //   userId: vendor.userId
+          // });
           
           updated = true;
           break;
@@ -386,11 +724,17 @@ export class ProductService {
   }
 
   static async searchProducts(
+    userCurrency: string,
     query: string,
     filters: any = {},
     page = 1,
     limit = 10
   ) {
+    // If no query provided, just return products with filters
+    if (!query || query.trim() === "") {
+      return this.getProducts(filters, page, limit, userCurrency);
+    }
+
     // Get category IDs that match the search query
     const categories = await CategoryModel.find({
       $or: [
@@ -405,13 +749,14 @@ export class ProductService {
       $or: [
         { name: { $regex: query, $options: "i" } },
         { description: { $regex: query, $options: "i" } },
+        { brand: { $regex: query, $options: "i" } },
         { "category.main": { $in: categoryIds } },
         { "category.sub": { $in: categoryIds } },
       ],
       ...filters,
     };
 
-    return this.getProducts(searchQuery, page, limit);
+    return this.getProducts(searchQuery, page, limit, userCurrency);
   }
 
   static async addReview(
@@ -593,32 +938,32 @@ export class ProductService {
     return product;
   }
 
-  static async getInventoryHistory(
-    productId: string,
-    variantSku?: string,
-    page = 1,
-    limit = 20
-  ) {
-    const query: any = { productId };
-    if (variantSku) query.variantSku = variantSku;
+  // static async getInventoryHistory(
+  //   productId: string,
+  //   variantSku?: string,
+  //   page = 1,
+  //   limit = 20
+  // ) {
+  //   const query: any = { productId };
+  //   if (variantSku) query.variantSku = variantSku;
 
-    const skip = (page - 1) * limit;
-    const [logs, total] = await Promise.all([
-      InventoryLog.find(query)
-        .populate('userId', 'profile.firstName profile.lastName email')
-        .populate('orderId', '_id')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      InventoryLog.countDocuments(query)
-    ]);
+  //   const skip = (page - 1) * limit;
+  //   // const [logs, total] = await Promise.all([
+  //   //   InventoryLog.find(query)
+  //   //     .populate('userId', 'profile.firstName profile.lastName email')
+  //   //     .populate('orderId', '_id')
+  //   //     .sort({ createdAt: -1 })
+  //   //     .skip(skip)
+  //   //     .limit(limit)
+  //   //     .lean(),
+  //   //   InventoryLog.countDocuments(query)
+  //   // ]);
 
-    return {
-      logs,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) }
-    };
-  }
+  //   return {
+  //     logs,
+  //     pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+  //   };
+  // }
 
   static async getCategoryTree(filters: {
     category?: string;

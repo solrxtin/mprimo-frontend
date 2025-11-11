@@ -787,7 +787,7 @@ export class VenodrManagenentController {
             items: 1,
             user: {
               _id: "$user._id",
-              profile: "$user.profile",
+              profile: "$user?.profile?",
               email: "$user.email",
             },
           },
@@ -874,7 +874,7 @@ export class VenodrManagenentController {
         await Promise.all([
           sendWarningEmail(
             user.email,
-            user.businessName || user.profile.firstName,
+            user?.businessName || user?.profile?.firstName || "User",
             message
           ),
           Notification.create({
@@ -959,7 +959,7 @@ export class VenodrManagenentController {
 
       await sendSuspensionEmail(
         user.email,
-        user.businessName || user.profile.firstName,
+        user?.businessName || user?.profile?.firstName || "User",
         explanation,
         reason,
         durationDays.toString()
@@ -1041,7 +1041,7 @@ export class VenodrManagenentController {
       if (user) {
         await sendUnsuspensionEmail(
           user.email,
-          user.businessName || user.profile.firstName,
+          user?.businessName || user?.profile?.firstName || "User",
           explanation,
           reason
         );
@@ -1212,7 +1212,7 @@ export class VenodrManagenentController {
       const vendorUser = vendor.userId as any;
       if (vendorUser?.email) {
         const vendorName =
-          vendorUser.businessName || vendorUser.profile?.firstName || "Vendor";
+          vendorUser.businessName || vendorUser?.profile?.firstName || "Vendor";
         const receivedDate = new Date().toLocaleDateString();
 
         await sendItemReceivedEmail(
@@ -1346,7 +1346,7 @@ export class VenodrManagenentController {
       const vendorUser = vendor.userId as any;
       if (vendorUser?.email) {
         const vendorName =
-          vendorUser.businessName || vendorUser.profile?.firstName || "Vendor";
+          vendorUser.businessName || vendorUser?.profile?.firstName || "Vendor";
         const receivedDate = new Date().toLocaleDateString();
 
         await sendItemRejectionEmail(
@@ -3014,7 +3014,7 @@ export class VenodrManagenentController {
     const rows = reportData.users.map((user: any) => [
       user._id,
       user.email,
-      `${user.profile?.firstName || ""} ${user.profile?.lastName || ""}`.trim(),
+      `(${user?.profile?.firstName || ""} ${user?.profile?.lastName || ""}) || ${user.businessName}`.trim(),
       user.role,
       user.status,
       user.country?.name || "N/A",
@@ -3380,7 +3380,7 @@ export class VenodrManagenentController {
         const businessName =
           vendorUser.businessName ||
           vendor.businessInfo?.name ||
-          vendorUser.profile?.firstName ||
+          vendorUser?.profile?.firstName ||
           "Vendor";
 
         // Send email notification
@@ -3479,7 +3479,7 @@ export class VenodrManagenentController {
         const businessName =
           vendorUser.businessName ||
           vendor.businessInfo?.name ||
-          vendorUser.profile?.firstName ||
+          vendorUser?.profile?.firstName ||
           "Vendor";
 
         // Send email notification
@@ -4760,9 +4760,18 @@ export class VenodrManagenentController {
       }
 
       if (existingAdvert.adType === "featured") {
+        const { featuredCategoryId } = req.body;
+
+        if (!featuredCategoryId) {
+          return res.status(400).json({
+            success: false,
+            message: "Featured category ID is required for featured ads",
+          });
+        }
         await Product.findByIdAndUpdate(existingAdvert.productId, {
           isFeatured: true,
           featuredExpiry: endDate,
+          featuredCategory: featuredCategoryId
         });
       }
 

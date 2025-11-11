@@ -17,6 +17,8 @@ import {
   DollarSign,
   BarChart2,
   LineChart,
+  Gavel,
+  Clock,
 } from "lucide-react";
 import Image from "next/image";
 import { getCurrencySymbol } from "@/utils/currency";
@@ -72,6 +74,7 @@ const ProductDetail = ({ slug }: Props) => {
   } = useFetchProductBySlug(slug);
 
   const product = productData?.product;
+  const auctionData = productData?.auctionData;
   const productId = product?._id;
 
   const {
@@ -188,6 +191,34 @@ const ProductDetail = ({ slug }: Props) => {
                     </div>
                   )}
                 </div>
+                {product?.inventory?.listing?.type === "auction" && (
+                  <div className="mt-2 bg-purple-50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Gavel className="w-4 h-4 text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-900">Auction Details</span>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Start Price:</span>
+                        <span className="font-medium">{getCurrencySymbol(product?.country?.currency)}{product?.inventory?.listing?.auction?.startBidPrice}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Reserve Price:</span>
+                        <span className="font-medium">{getCurrencySymbol(product?.country?.currency)}{product?.inventory?.listing?.auction?.reservePrice}</span>
+                      </div>
+                      {auctionData && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Current Bid:</span>
+                          <span className="font-semibold text-purple-700">{getCurrencySymbol(product?.country?.currency)}{auctionData.highestBid}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Total Bids:</span>
+                        <span className="font-medium">{auctionData?.totalBids || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-4">
                   <p className="text-sm">{product?.name}</p>
                   <p className="text-xs mt-1 text-secondary">
@@ -197,6 +228,30 @@ const ProductDetail = ({ slug }: Props) => {
               </div>
             )}
           </div>
+          {/* Auction Activity */}
+          {product?.inventory?.listing?.type === "auction" && auctionData && auctionData.bidHistory?.length > 0 && (
+            <div className="border border-gray-200 rounded-lg">
+              <p className="py-4 px-4 border-b border-gray-200 font-medium">Bidding Activity</p>
+              <div className="px-4 py-3 max-h-64 overflow-y-auto">
+                {auctionData.bidHistory.map((bid: any, index: number) => (
+                  <div key={index} className="flex justify-between items-center py-2 border-b last:border-0">
+                    <div className="flex items-center gap-2">
+                      <Gavel className="w-3 h-3 text-gray-400" />
+                      <span className="text-xs text-gray-600">
+                        {new Date(bid.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">{getCurrencySymbol(product?.country?.currency)}{bid.amount}</span>
+                      {bid.isWinning && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Winning</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {/* Render product analytics */}
           {analyticsData && (
             <div className="border border-gray-200 rounded-lg">
@@ -278,7 +333,23 @@ const ProductDetail = ({ slug }: Props) => {
                   })()}
                 />
               ) : (
-                <InformationCard label={"Quantity"} value={1} />
+                <>
+                  <InformationCard label={"Quantity"} value={product.inventory.listing.auction?.quantity || 1} />
+                  <InformationCard
+                    label="Auction Start"
+                    value={new Date(product.inventory.listing.auction?.startTime).toLocaleString("en-US", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  />
+                  <InformationCard
+                    label="Auction End"
+                    value={new Date(product.inventory.listing.auction?.endTime).toLocaleString("en-US", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  />
+                </>
               )}
               <InformationCard
                 label="Created"

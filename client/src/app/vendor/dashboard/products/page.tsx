@@ -1,6 +1,6 @@
 "use client";
 
-import { useCategories, useVendorProducts } from "@/hooks/queries";
+import { useVendorProducts } from "@/hooks/queries";
 import { useProductStore } from "@/stores/useProductStore";
 import { ProductType } from "@/types/product.type";
 import VariantPriceDisplay from "@/components/VariantPriceDisplay";
@@ -12,15 +12,16 @@ import {
   FolderMinus,
   Ellipsis,
   X,
-  EyeClosed,
   Eye,
   Trash,
   Upload,
+  Edit,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import ProductImport from "./create-product/(components)/ProductImport";
 import ProductsPageSkeleton from "./ProductsPageSkeleton";
+import { useVendorStore } from "@/stores/useVendorStore";
 
 type Props = {};
 
@@ -38,7 +39,8 @@ const categories = [
 ];
 
 const ProductsPage = () => {
-  const { listedProducts, setListedProducts, vendor } = useProductStore();
+  const { listedProducts, setListedProducts } = useProductStore();
+  const { vendor } = useVendorStore();
   const [productList, setProductList] = useState<ProductType[] | []>(
     listedProducts
   );
@@ -439,28 +441,28 @@ const ProductsPage = () => {
                 <table className="min-w-full">
                   <thead>
                     <tr className="bg-[#f2f7ff] text-black">
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Date
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Name
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm ">
                         Category
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Price
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Stock
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm whitespace-nowrap">
                         Accept Offer
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase text-sm">
                         Actions
                       </th>
                     </tr>
@@ -488,7 +490,7 @@ const ProductsPage = () => {
                         <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                           <span className="">
                             {Array.isArray(product?.category?.sub) &&
-                            product.category.sub.length > 0
+                            product.category?.sub.length > 0
                               ? typeof product.category.sub[
                                   product.category.sub.length - 1
                                 ] !== "string"
@@ -498,8 +500,8 @@ const ProductsPage = () => {
                                     ] as { name: string }
                                   )?.name
                                 : ""
-                              : typeof product.category.main !== "string"
-                              ? (product.category.main as { name: string })
+                              : typeof product?.category?.main !== "string"
+                              ? (product?.category?.main as { name: string })
                                   ?.name
                               : ""}
                           </span>
@@ -515,9 +517,9 @@ const ProductsPage = () => {
                               product.variants && product.variants.length > 0;
 
                             if (hasVariants) {
-                              const allOptions = product.variants.flatMap(
+                              const allOptions = product.variants?.flatMap(
                                 (v: any) => v.options
-                              );
+                              ) || [];
                               const totalQuantity = allOptions.reduce(
                                 (sum: number, o: any) =>
                                   sum + (o.quantity || 0),
@@ -527,16 +529,16 @@ const ProductsPage = () => {
                             }
 
                             // Fallback to base quantity
-                            return product.inventory.listing.type === "instant"
+                            return product.inventory?.listing?.type === "instant"
                               ? product.inventory.listing.instant?.quantity ??
                                   "N/A"
-                              : product.inventory.listing.auction?.quantity ??
+                              : product.inventory?.listing?.auction?.quantity ??
                                   "N/A";
                           })()}
                         </td>
 
                         <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
-                          {product.inventory.listing.type === "instant" ? (
+                          {product.inventory?.listing?.type === "instant" ? (
                             <div
                               className={`w-8 h-4 rounded-full flex items-center cursor-pointer ${
                                 product.inventory.listing.instant?.acceptOffer
@@ -555,11 +557,11 @@ const ProductsPage = () => {
                         <td className="px-4 py-4 whitespace-nowrap">
                           <span
                             className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                              product.status
+                              product?.status || ""
                             )}`}
                           >
-                            {product.status.charAt(0).toUpperCase() +
-                              product.status.slice(1)}
+                            {(product?.status?.charAt(0).toUpperCase() || "") +
+                              (product?.status?.slice(1) || "")}
                           </span>
                         </td>
 
@@ -596,6 +598,17 @@ const ProductsPage = () => {
                                   <Eye size={14} />
                                   <p className="text-xs">View</p>
                                 </li>
+                                 <li
+                                  className="p-2 hover:bg-gray-100 cursor-pointer flex gap-x-1 items-center"
+                                  onClick={() =>
+                                    router.push(
+                                      `/vendor/dashboard/products/edit/${product.slug}`
+                                    )
+                                  }
+                                >
+                                  <Edit size={14} />
+                                  <p className="text-xs">Edit Product</p>
+                                </li>
                                 <li
                                   className="p-2 hover:bg-gray-100 cursor-pointer flex gap-x-1 items-center"
                                   onClick={() =>
@@ -626,11 +639,11 @@ const ProductsPage = () => {
                       <span className="font-medium">{product.name}</span>
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                          product.status
+                          product.status || ""
                         )}`}
                       >
-                        {product.status.charAt(0).toUpperCase() +
-                          product.status.slice(1)}
+                        {(product.status?.charAt(0).toUpperCase() || "") +
+                          (product.status?.slice(1) || "")}
                       </span>
                     </div>
                     <div className="divide-y divide-gray-200 rounded-md overflow-hidden">
@@ -652,7 +665,7 @@ const ProductsPage = () => {
                           label: "Category",
                           value:
                             Array.isArray(product?.category?.sub) &&
-                            product.category.sub.length > 0
+                            product.category?.sub.length > 0
                               ? typeof product.category.sub[
                                   product.category.sub.length - 1
                                 ] !== "string"
@@ -664,8 +677,8 @@ const ProductsPage = () => {
                                     }
                                   )?.name
                                 : ""
-                              : typeof product.category.main !== "string"
-                              ? (product.category.main as { name: string })
+                              : typeof product?.category?.main !== "string"
+                              ? (product?.category?.main as { name: string })
                                   ?.name
                               : "",
                         },
@@ -676,9 +689,9 @@ const ProductsPage = () => {
                               product.variants && product.variants.length > 0;
 
                             if (hasVariants) {
-                              const allOptions = product.variants.flatMap(
+                              const allOptions = product.variants?.flatMap(
                                 (v: any) => v.options
-                              );
+                              ) || [];
                               const prices = allOptions
                                 .map((o: any) => o.price)
                                 .filter((p) => p > 0);
@@ -688,7 +701,7 @@ const ProductsPage = () => {
                               const minPrice = Math.min(...prices);
                               const maxPrice = Math.max(...prices);
                               const currency =
-                                typeof product.country !== "string"
+                                typeof product.country !== "string" && product.country
                                   ? product.country.currency
                                   : "";
 
@@ -699,9 +712,9 @@ const ProductsPage = () => {
                               }`;
                             }
 
-                            if (product.inventory.listing.type === "instant") {
+                            if (product.inventory?.listing?.type === "instant") {
                               const currency =
-                                typeof product.country !== "string"
+                                typeof product.country !== "string" && product.country
                                   ? product.country.currency
                                   : "";
                               return `${currency} ${
@@ -720,9 +733,9 @@ const ProductsPage = () => {
                               product.variants && product.variants.length > 0;
 
                             if (hasVariants) {
-                              const allOptions = product.variants.flatMap(
+                              const allOptions = product.variants?.flatMap(
                                 (v: any) => v.options
-                              );
+                              ) || [];
                               return allOptions.reduce(
                                 (sum: number, o: any) =>
                                   sum + (o.quantity || 0),
@@ -730,10 +743,10 @@ const ProductsPage = () => {
                               );
                             }
 
-                            return product.inventory.listing.type === "instant"
+                            return product.inventory?.listing?.type === "instant"
                               ? product.inventory.listing.instant?.quantity ??
                                   "N/A"
-                              : product.inventory.listing.auction?.quantity ??
+                              : product.inventory?.listing?.auction?.quantity ??
                                   "N/A";
                           })(),
                         },
@@ -752,7 +765,7 @@ const ProductsPage = () => {
                       ))}
 
                       {/* Accept Offer Toggle */}
-                      {product.inventory.listing.type === "instant" && (
+                      {product.inventory?.listing?.type === "instant" && (
                         <div className="flex justify-between items-center px-2 py-2 text-xs bg-white text-gray-500">
                           <span className="font-medium">Accept Offer:</span>
                           <div

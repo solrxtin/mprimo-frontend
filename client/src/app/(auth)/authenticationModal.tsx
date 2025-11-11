@@ -5,6 +5,7 @@ import LoginForm from "./(component)/LoginForm";
 import RegisterForm from "./(component)/RegisterForm";
 import RecoverPass from "./(component)/RecoverPass";
 import OTPModal from "./(component)/Otp";
+import { useAuthModalStore } from "@/stores/useAuthModalStore";
 
 type ModalProps = {
   isOpen: boolean;
@@ -76,8 +77,8 @@ const AuthenticationModal = ({ isOpen, close }: ModalProps) => {
   return (
     <div>
       <Modal2
-        isOpen={isOpen} // Replace with your state management for modal visibility
-        onClose={close} // Replace with your state management for closing the modal
+        isOpen={isOpen} 
+        onClose={close} 
       >
         <div className="inline-block overflow-hidden text-left pb-4  px-3 md:px-6 lg:px-7 relative align-bottom transition-all transform bg-[white] rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-[587px] sm:w-full">
           {authState === "login" && <Login />}

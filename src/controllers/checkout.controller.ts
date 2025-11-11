@@ -5,6 +5,8 @@ import User from "../models/user.model";
 import Product from "../models/product.model";
 import { CartService } from "../services/cart.service";
 import Country from "../models/country.model";
+import { CurrencyService } from "../services/currency.service";
+import Wallet from "../models/wallet.model";
 
 const cryptoService = new CryptoPaymentService();
 
@@ -23,95 +25,140 @@ export class CheckoutController {
       }
 
       const user = await User.findById(userId);
-      let currency = user?.preferences?.currency || "USD";
+      const currency = user?.preferences?.currency || "USD";
 
-      // Validate each item and calculate totals
-      let subtotal = 0;
-      const validatedItems = [];
-      const unavailableItems = [];
+      // Step 4: Batch-fetch products
+      const productIds = cart.map((item) => item.productId);
+      const products = await Product.find({ _id: { $in: productIds } });
+      const productMap = new Map(products.map((p) => [p._id.toString(), p]));
 
-      for (const item of cart) {
-        if (!item.productId || !item.variantId || !item.quantity) {
-          return res.status(400).json({
-            success: false,
-            message: "Each item must have productId, variantId, and quantity",
-          });
+      // Step 3: Cache exchange rates
+      const exchangeRates = new Map<string, number>();
+      const getConvertedPrice = async (
+        amount: number,
+        from: string,
+        to: string
+      ) => {
+        const key = `${from}_${to}`;
+        if (!exchangeRates.has(key)) {
+          const { convertedAmount, exchangeRate } =
+            await CurrencyService.convertPrice(amount, from, to);
+          exchangeRates.set(key, exchangeRate);
+          return convertedAmount;
         }
+        const rate = exchangeRates.get(key)!;
+        return amount * rate;
+      };
 
-        if (item.variantId && !item.optionId) {
-          return res.status(400).json({
-            success: false,
-            message: "Each item must have optionId when variantId is provided",
-          });
-        }
+      // Step 5: Parallelize item validation
+      const validatedResults = await Promise.all(
+        cart.map(async (item) => {
+          const errors = [];
 
-        // Get product with latest data
-        const product = await Product.findById(item.productId);
-        if (!product) {
-          unavailableItems.push({ ...item, reason: "Product not found" });
-          continue;
-        }
+          if (!item.productId || !item.variantId || !item.quantity) {
+            errors.push("Missing productId, variantId, or quantity");
+          }
 
-        // Find variant and check stock
-        const variant = product.variants.find(
-          (v: any) => v._id.toString() === item.variantId
-        );
-        const option = variant?.options.find(
-          (opt: any) => opt._id.toString() === item.optionId
-        );
+          if (item.variantId && !item.optionId) {
+            errors.push("Missing optionId for variant");
+          }
 
-        if (!option) {
-          unavailableItems.push({ ...item, reason: "Variant not found" });
-          continue;
-        }
+          const product = productMap.get(item.productId.toString());
+          if (!product) {
+            return { item, reason: "Product not found", valid: false };
+          }
 
+          const variant = product.variants.find(
+            (v: any) => v._id.toString() === item.variantId
+          );
+          const option = variant?.options.find(
+            (opt: any) => opt._id.toString() === item.optionId
+          );
 
-        console.log(`Item is ${item}`)
+          if (!option) {
+            return { item, reason: "Variant not found", valid: false };
+          }
 
-        if (option.quantity < item.quantity) {
-          unavailableItems.push({
-            ...item,
-            reason: `Only ${option.quantity} available`,
-            availableQuantity: option.quantity,
-          });
-          continue;
-        }
+          if (option.quantity < item.quantity) {
+            return {
+              item,
+              reason: `Only ${option.quantity} available`,
+              availableQuantity: option.quantity,
+              valid: false,
+            };
+          }
 
-        const itemTotal = option.salePrice * item.quantity;
-        subtotal += itemTotal;
+          let price =
+            currency !== item.vendorCurrency
+              ? await getConvertedPrice(
+                  item.price,
+                  item.vendorCurrency ?? "USD",
+                  currency
+                )
+              : item.price;
 
-        validatedItems.push({
-          productId: item.productId,
-          variantId: item.variantId,
-          quantity: item.quantity,
-          price: option.salePrice,
-          total: itemTotal,
-          productName: product.name,
-          productImage: product.images?.[0],
-        });
+          const itemTotal = price * item.quantity;
+
+          return {
+            valid: true,
+            validatedItem: {
+              productId: item.productId,
+              variantId: item.variantId,
+              quantity: item.quantity,
+              price,
+              total: itemTotal,
+              productName: product.name,
+              productImage: product.images?.[0],
+            },
+            itemTotal,
+          };
+        })
+      );
+
+      const validatedItems = validatedResults
+        .filter((r) => r.valid)
+        .map((r) => r.validatedItem);
+      const unavailableItems = validatedResults
+        .filter((r) => !r.valid)
+        .map((r) => ({
+          ...r.item,
+          reason: r.reason,
+          availableQuantity: r.availableQuantity,
+        }));
+      const subtotal = validatedResults
+        .filter((r) => r.valid && typeof r.itemTotal === "number")
+        .reduce((sum, r) => sum + r.itemTotal!, 0);
+
+      const taxRate = 0.08;
+      const tax = subtotal * taxRate;
+      let shipping = subtotal > 50 ? 0 : 9.99;
+
+      if (currency !== "USD") {
+        shipping = await getConvertedPrice(shipping, "USD", currency);
       }
 
-      // Calculate tax and shipping (simplified)
-      const taxRate = 0.08; // 8% tax
-      const tax = subtotal * taxRate;
-      const shipping = subtotal > 50 ? 0 : 9.99; // Free shipping over $50
       const total = subtotal + tax + shipping;
 
-      // Get available payment methods
       const paymentMethods = await Country.find({
         currency: { $regex: new RegExp(`^${currency}$`, "i") },
-      }).select("paymentOptions")
+      })
+        .select("paymentOptions")
         .populate("paymentOptions")
         .lean();
 
-      // Check crypto balance if user has wallet
-      let userWallet = null;
+      let userCryptoWallet = null;
+      let userFiatWallet = null;
+
       try {
-        const wallet = await cryptoService.getWalletByUserId(userId);
-        userWallet = wallet;
+        const [cryptoWallet, fiatWallet] = await Promise.all([
+          cryptoService.getWalletByUserId(userId),
+          Wallet.findOne({ userId }),
+        ]);
+
+        userCryptoWallet = cryptoWallet || null;
+        userFiatWallet = fiatWallet || null;
       } catch (error) {
-        // Crypto balance check failed, continue without it
-        console.error("Error fetching user wallet");
+        console.error("Error fetching user wallet", error);
       }
 
       res.json({
@@ -127,7 +174,8 @@ export class CheckoutController {
             currency,
           },
           paymentMethods,
-          userWallet,
+          userCryptoWallet,
+          userFiatWallet,
           canProceed: unavailableItems.length === 0,
         },
       });
@@ -149,7 +197,9 @@ export class CheckoutController {
       // First validate cart again (prices may have changed)
       const validation = await this.validateCartInternal(items, userId);
       if (!validation.success) {
-        return res.status(400).json(validation);
+        return res.status(400).json({
+          message: "An error occured while trying to validate order"
+        });
       }
 
       const { total, currency } = validation.pricing;

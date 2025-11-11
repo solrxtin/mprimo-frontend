@@ -1,7 +1,6 @@
 import { toastConfigError } from "@/app/config/toast.config";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
 import { toast } from "react-toastify";
 
 interface ProductData {
@@ -23,9 +22,6 @@ interface ProductData {
       type: "instant" | "auction";
       instant?: {
         acceptOffer: boolean;
-        // price: number;
-        // salePrice: number;
-        // quantity: number;
       };
       auction?: {
         startBidPrice: number;

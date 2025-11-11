@@ -130,7 +130,6 @@ const productSchema = new mongoose.Schema<ProductType>(
           },
           reservePrice: {
             type: Number,
-
             required: function (this: any) {
               return this.inventory?.listing?.type === "auction";
             },
@@ -373,10 +372,19 @@ const productSchema = new mongoose.Schema<ProductType>(
               type: Boolean,
               default: false,
             },
+            dimensions: {
+              type: Map,
+              of: String,
+              // Stores combination mapping like {"Color": "Black", "Size": "Small"}
+            },
           },
         ],
       },
     ],
+    variantDimensions: {
+      type: [String],
+      // Stores dimension names like ["Color", "Size", "Material"]
+    },
     analytics: {
       views: {
         type: Number,
@@ -483,6 +491,10 @@ const productSchema = new mongoose.Schema<ProductType>(
     },
     featuredExpiry: {
       type: Date,
+    },
+    featuredCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FeaturedProductCategory",
     },
   },
   {

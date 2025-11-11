@@ -20,11 +20,18 @@ import mongoose, { Types } from "mongoose";
 import { WishList } from "../models/cart.model";
 import Order from "../models/order.model";
 import { SubscriptionService } from "../services/subscription.service";
+import { VariantCombinationUtil } from "../utils/variant-combinations.util";
+import { IUser } from "../types/user.type";
+import User from "../models/user.model";
 
 export class ProductController {
   static async createProduct(req: Request, res: Response, next: NextFunction) {
     // I have to add bid increment from country
+    console.log("test")
     try {
+      // console.log("supposedVendor", req.userId)
+      // console.log("description", req.body.description)
+
       const supposedVendor = await Vendor.findOne({ userId: req.userId });
       const result = await validateProductData(req.body);
 
@@ -81,26 +88,71 @@ export class ProductController {
         }
       }
 
-      // Ensure variants exist and have default flags
-      if (!req.body.variants || req.body.variants.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "At least one variant is required for product creation",
+      // Handle combination-based variants
+      if (req.body.combinations && req.body.variantDimensions) {
+        const { combinations, variantDimensions } = req.body;
+
+        // Validate combinations using utility
+        const validation = VariantCombinationUtil.validateCombinations(
+          combinations,
+          variantDimensions
+        );
+
+        if (!validation.valid) {
+          return res.status(400).json({
+            success: false,
+            message: validation.error,
+          });
+        }
+
+        // Process combinations using utility
+        const processedCombinations =
+          VariantCombinationUtil.processCombinations(
+            combinations,
+            req.body.name
+          );
+
+        // Convert to current model structure
+        req.body.variants = [
+          {
+            name: variantDimensions.join(" & "), // "Color & Size"
+            isDefault: true,
+            options: processedCombinations,
+          },
+        ];
+
+        // Store dimension info for frontend
+        req.body.variantDimensions = variantDimensions;
+      } else {
+        // Handle legacy variant structure
+        if (!req.body.variants || req.body.variants.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "At least one variant is required for product creation",
+          });
+        }
+
+        // Ensure at least one variant and option is marked as default
+        if (!req.body.variants.some((v: any) => v.isDefault)) {
+          req.body.variants[0].isDefault = true;
+        }
+
+        req.body.variants.forEach((variant: any) => {
+          if (variant.isDefault && variant.options?.length > 0) {
+            if (!variant.options.some((o: any) => o.isDefault)) {
+              variant.options[0].isDefault = true;
+            }
+          }
         });
       }
 
-      // Ensure at least one variant and option is marked as default
-      if (!req.body.variants.some((v: any) => v.isDefault)) {
-        req.body.variants[0].isDefault = true;
+      // Generate SKU if not provided
+      if (!req.body.inventory?.sku) {
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substring(2, 7);
+        req.body.inventory = req.body.inventory || {};
+        req.body.inventory.sku = `PRD-${timestamp}-${random}`.toUpperCase();
       }
-
-      req.body.variants.forEach((variant: any) => {
-        if (variant.isDefault && variant.options?.length > 0) {
-          if (!variant.options.some((o: any) => o.isDefault)) {
-            variant.options[0].isDefault = true;
-          }
-        }
-      });
 
       const productData = {
         ...req.body,
@@ -205,6 +257,7 @@ export class ProductController {
           query,
           Number(page),
           Number(limit),
+          req,
           sortQuery
         ),
         ProductService.getBrandsForCategory({
@@ -247,9 +300,11 @@ export class ProductController {
           success: false,
           message: "Unauthorized",
         });
+        return;
       }
       const vendorProducts = await ProductService.getProductsByVendorId(
-        vendorId
+        vendorId,
+        req
       );
       res.json({
         success: true,
@@ -265,7 +320,7 @@ export class ProductController {
       // Use Redis cache for product data if available
       let product;
       try {
-        product = await redisService.getProductWithCache({ id: req.params.id });
+        product = await redisService.getProductWithCache({ id: req.params.id, userCurrency: req.preferences?.currency || "USD" });
       } catch (error) {
         // Fallback to database if Redis fails
         product = await ProductService.getProductById(req.params.id);
@@ -311,16 +366,32 @@ export class ProductController {
 
       // Track view asynchronously without waiting for result
       try {
-        await redisService.trackEvent(req.params.id, "view", req.userId!);
+        if (req.userId) {
+          console.log(
+            `Tracking view for user ${req.userId} on product ${req.params.id}`
+          );
+          await redisService.trackEvent(req.params.id, "view", req.userId);
+          console.log(`View tracked successfully`);
+        } else {
+          console.log("No userId found in request, skipping view tracking");
+        }
       } catch (error) {
         console.error("Error tracking view:", error);
       }
+
+      // Update product analytics view count (don't await)
+      Product.findByIdAndUpdate(req.params.id, {
+        $inc: { "analytics.views": 1 },
+      }).catch((err) =>
+        console.error("Error updating product view count:", err)
+      );
 
       res.json({ product });
     } catch (error) {
       next(error);
     }
   }
+  
   static async getProductBySlug(
     req: Request,
     res: Response,
@@ -339,10 +410,14 @@ export class ProductController {
       try {
         product = await redisService.getProductWithCache({
           slug: req.params.slug,
+          userCurrency: req.preferences?.currency || "USD",
         });
       } catch (error) {
         // Fallback to database if Redis fails
-        product = await ProductService.getProductBySlug(req.params.slug);
+        product = await ProductService.getProductBySlug(
+          req.params.slug,
+          req.preferences?.currency || "USD"
+        );
       }
 
       if (!product) {
@@ -354,9 +429,26 @@ export class ProductController {
 
       // Track view asynchronously without waiting for result
       try {
-        redisService.trackEvent(product?._id!.toString(), "view", req.userId!);
+        if (req.userId && product?._id) {
+          await redisService.trackEvent(
+            product._id.toString(),
+            "view",
+            req.userId
+          );
+        } else {
+          throw new Error("UserId or productId not found");
+        }
       } catch (error) {
         console.error("Error tracking view:", error);
+      }
+
+      // Update product analytics view count (don't await)
+      if (product?._id) {
+        Product.findByIdAndUpdate(product._id, {
+          $inc: { "analytics.views": 1 },
+        }).catch((err) =>
+          console.error("Error updating product view count:", err)
+        );
       }
 
       res.json({ product });
@@ -450,20 +542,132 @@ export class ProductController {
 
   static async updateProduct(req: Request, res: Response, next: NextFunction) {
     try {
-      const originalProduct = await ProductService.getProductById(
-        req.params.id
-      );
+      const productId = req.params.id;
+      
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid product ID format",
+        });
+      }
+
       const vendor = await Vendor.findOne({ userId: req.userId });
+      if (!vendor) {
+        return res.status(403).json({
+          success: false,
+          message: "Vendor not found",
+        });
+      }
+
+      const originalProduct = await ProductService.getProductById(productId);
+      if (!originalProduct) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
+
+      // Verify ownership
+      if (originalProduct.vendorId.toString() !== vendor._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized to update this product",
+        });
+      }
+
+      // Handle combination-based variants if provided
+      if (req.body.combinations && req.body.variantDimensions) {
+        const { combinations, variantDimensions } = req.body;
+
+        const validation = VariantCombinationUtil.validateCombinations(
+          combinations,
+          variantDimensions
+        );
+
+        if (!validation.valid) {
+          return res.status(400).json({
+            success: false,
+            message: validation.error,
+          });
+        }
+
+        const processedCombinations = VariantCombinationUtil.processCombinations(
+          combinations,
+          req.body.name || originalProduct.name
+        );
+
+        req.body.variants = [
+          {
+            name: variantDimensions.join(" & "),
+            isDefault: true,
+            options: processedCombinations,
+          },
+        ];
+        req.body.variantDimensions = variantDimensions;
+      }
+
+      // Validate variants if being updated
+      if (req.body.variants) {
+        if (!Array.isArray(req.body.variants) || req.body.variants.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "At least one variant is required",
+          });
+        }
+
+        // Ensure at least one variant is marked as default
+        if (!req.body.variants.some((v: any) => v.isDefault)) {
+          req.body.variants[0].isDefault = true;
+        }
+
+        // Ensure each default variant has at least one default option
+        req.body.variants.forEach((variant: any) => {
+          if (variant.isDefault && variant.options?.length > 0) {
+            if (!variant.options.some((o: any) => o.isDefault)) {
+              variant.options[0].isDefault = true;
+            }
+          }
+        });
+      }
+
+      // Check if featured status is being changed
+      if (req.body.isFeatured !== undefined && req.body.isFeatured !== originalProduct.isFeatured) {
+        if (req.body.isFeatured) {
+          const currentFeaturedCount = vendor.analytics?.featuredProducts || 0;
+          const canFeature = await SubscriptionService.checkPlanLimits(
+            vendor._id.toString(),
+            "feature_product",
+            currentFeaturedCount
+          );
+
+          if (!canFeature) {
+            return res.status(403).json({
+              success: false,
+              message: "Featured product limit reached. Upgrade to feature more products.",
+            });
+          }
+        }
+      }
+
       // Run product update and cache invalidation in parallel
-      const [product, _] = await Promise.all([
-        ProductService.updateProduct(req.params.id, vendor?._id!, req.body),
-        redisService.invalidateProductCache({ id: req.params.id }),
+      const [product] = await Promise.all([
+        ProductService.updateProduct(productId, vendor._id, req.body),
+        redisService.invalidateProductCache({ id: productId }),
       ]);
 
+      // Re-index product in Redis
       redisService.indexProduct(product);
 
-      const changes: Record<string, any> = {};
+      // Update vendor analytics if featured status changed
+      if (req.body.isFeatured !== undefined && req.body.isFeatured !== originalProduct.isFeatured) {
+        const increment = req.body.isFeatured ? 1 : -1;
+        await Vendor.findByIdAndUpdate(vendor._id, {
+          $inc: { "analytics.featuredProducts": increment },
+        });
+      }
 
+      // Track changes for audit log
+      const changes: Record<string, any> = {};
       Object.keys(req.body).forEach((key) => {
         const origValue = (originalProduct as Record<string, any>)[key];
         const newValue = req.body[key];
@@ -473,24 +677,29 @@ export class ProductController {
         }
       });
 
+      // Log audit trail
       await AuditLogService.log(
         "PRODUCT_UPDATED",
         "product",
         "info",
         {
-          productId: req.params.id,
+          productId,
           productName: product.name,
-          vendorId: vendor?._id,
+          vendorId: vendor._id,
           changes,
         },
         req,
-        req.params.id
+        productId
       );
 
-      res.json({ product });
+      res.json({
+        success: true,
+        message: "Product updated successfully",
+        product,
+      });
     } catch (error) {
       console.error("Error updating product:", error);
-      next(error); // Ensure the error is properly passed to middleware
+      next(error);
     }
   }
 
@@ -707,96 +916,60 @@ export class ProductController {
 
   static async searchProducts(req: Request, res: Response, next: NextFunction) {
     try {
-      const { q, page = 1, limit = 10, ...filters } = req.query;
-
-      if (!q || typeof q !== "string") {
-        return res.status(400).json({
-          success: false,
-          message: "Search query is required",
-        });
-      }
-
-      const result = await SearchService.searchProducts(
+      const {
         q,
-        filters,
-        Number(page),
-        Number(limit)
-      );
+        category,
+        status,
+        priceRange,
+        page = 1,
+        limit = 10,
+      } = req.query;
 
-      res.json({ success: true, ...result });
+      let filters = {
+        ...(category && { "category.main": category }),
+        ...(status && { status }),
+        ...(priceRange &&
+          typeof priceRange === "string" && {
+            "price.amount": {
+              $gte: Number(priceRange.split("-")[0]),
+              $lte: Number(priceRange.split("-")[1]),
+            },
+          }),
+      };
+
+      // Handle empty query - return all products with filters
+      const searchQuery =
+        q && typeof q === "string" && q.trim() ? String(q).trim() : "";
+
+      // Run suggestions and search in parallel to optimize response time
+      const [suggestions, results] = await Promise.all([
+        searchQuery && searchQuery.length >= 2 && searchQuery.length < 10
+          ? redisService.getSuggestions(searchQuery.toLowerCase())
+          : Promise.resolve([]),
+        ProductService.searchProducts(
+          req.preferences?.currency || "USD",
+          searchQuery,
+          filters,
+          Number(page),
+          Number(limit)
+        ),
+      ]);
+
+      return res.json({
+        ...results,
+        suggestions,
+      });
     } catch (error) {
       next(error);
     }
   }
 
-  static async getSearchSuggestions(req: Request, res: Response, next: NextFunction) {
+  static async getBestDeals(req: Request, res: Response, next: NextFunction) {
     try {
-      const { q, limit = 5 } = req.query;
-      
-      if (!q || typeof q !== "string") {
-        return res.json({ success: true, suggestions: [] });
-      }
-
-      const suggestions = await SearchService.getSearchSuggestions(q, Number(limit));
-      res.json({ success: true, suggestions });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async advancedSearch(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await SearchService.searchWithFilters(req.query as any);
-      res.json({ success: true, ...result });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async getInventoryHistory(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { productId } = req.params;
-      const { variantSku, page = 1, limit = 20 } = req.query;
-      
-      const result = await ProductService.getInventoryHistory(
-        productId,
-        variantSku as string,
-        Number(page),
-        Number(limit)
-      );
-      
-      res.json({ success: true, ...result });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async getReorderAlerts(req: Request, res: Response, next: NextFunction) {
-    try {
-      const vendor = await Vendor.findOne({ userId: req.userId });
-      if (!vendor) {
-        return res.status(404).json({ success: false, message: "Vendor not found" });
-      }
-      
-      const alerts = await ProductService.getReorderAlerts(vendor._id);
-      res.json({ success: true, alerts });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async bulkUpdateVariants(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { productId } = req.params;
-      const { variants } = req.body;
-      const vendor = await Vendor.findOne({ userId: req.userId });
-      
-      if (!vendor) {
-        return res.status(404).json({ success: false, message: "Vendor not found" });
-      }
-      
-      const product = await ProductService.bulkUpdateVariants(productId, vendor._id, variants);
-      res.json({ success: true, product });
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const results = await ProductService.getBestDeals(page, limit, req);
+      res.status(200).json(results);
     } catch (error) {
       next(error);
     }
@@ -815,10 +988,58 @@ export class ProductController {
       const results = await ProductService.getProductsByCategory(
         categoryId,
         page,
-        limit
+        limit,
+        req.preferences?.currency || "USD"
       );
 
       res.json(results);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getVariantDimensions(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { id } = req.params;
+      const product = await ProductService.getProductById(id);
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
+
+      // Extract dimensions from variant options
+      const dimensions: Record<string, string[]> = {};
+
+      if (product.variants && product.variants.length > 0) {
+        for (const variant of product.variants) {
+          for (const option of variant.options) {
+            if (option.dimensions) {
+              Object.entries(option.dimensions).forEach(([key, value]) => {
+                if (!dimensions[key]) {
+                  dimensions[key] = [];
+                }
+                if (!dimensions[key].includes(value)) {
+                  dimensions[key].push(value);
+                }
+              });
+            }
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        variantDimensions: product.variantDimensions || [],
+        availableOptions: dimensions,
+        combinations: product.variants[0]?.options || [],
+      });
     } catch (error) {
       next(error);
     }
@@ -842,7 +1063,7 @@ export class ProductController {
         // Extract product IDs
         productIds = topProducts.filter((_, index) => index % 2 === 0);
         // Fetch full product details
-        const products = await ProductService.getProductsByIds(productIds);
+        const products = await ProductService.getProductsByIds(productIds, req);
 
         return res.json({
           success: true,
@@ -851,7 +1072,7 @@ export class ProductController {
       }
 
       // Fallback to database if Redis doesn't have data
-      const products = await ProductService.getTopProducts(count);
+      const products = await ProductService.getTopProducts(count, req);
 
       res.json({
         success: true,
@@ -881,7 +1102,7 @@ export class ProductController {
 
       // If Redis has data, return it
       if (relatedIds && relatedIds.length > 0) {
-        const products = await ProductService.getProductsByIds(relatedIds);
+        const products = await ProductService.getProductsByIds(relatedIds, req);
 
         return res.json({
           success: true,
@@ -890,7 +1111,7 @@ export class ProductController {
       }
 
       // Fallback to database if Redis doesn't have data
-      const products = await ProductService.getSimilarProducts(id, count);
+      const products = await ProductService.getSimilarProducts(id, count, req);
 
       res.json({
         success: true,
@@ -898,6 +1119,52 @@ export class ProductController {
       });
     } catch (error) {
       next(error);
+    }
+  }
+
+  static async getUserRecommendations(req: Request, res: Response) {
+    try {
+      const { userId } = req;
+      const limit = Number(req.query.limit) || 10;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      // Get recommendations from Redis
+      const recommendedIds = await redisService.getUserRecommendations(
+        userId,
+        limit
+      );
+
+      if (recommendedIds.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: "No recommendations available",
+          products: [],
+        });
+      }
+
+      // Fetch product details
+      const products = await ProductService.getProductsByIds(
+        recommendedIds,
+        req
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Recommendations fetched successfully",
+        products: products,
+      });
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch recommendations",
+      });
     }
   }
 
@@ -1157,21 +1424,13 @@ export class ProductController {
   static async addToCart(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
-      const { productId, quantity, price, variantId, optionId } = req.body;
+      const { productId, quantity, price, optionId } = req.body;
 
-      if (!userId || !productId || !quantity || !price || !variantId) {
+      if (!userId || !productId || !quantity || !price || !optionId) {
         res.status(400).json({
           success: false,
           message:
-            "Missing cart parameters (productId, quantity, price, variantId required)",
-        });
-        return;
-      }
-
-      if (variantId && !optionId) {
-        res.status(400).json({
-          success: false,
-          message: "optionId is required when variantId is provided",
+            "Missing cart parameters (productId, quantity, price, optionId required)",
         });
         return;
       }
@@ -1182,40 +1441,53 @@ export class ProductController {
         return;
       }
 
-      if (product.inventory.listing.type === "instant") {
-        const variant = product.variants.find(
-          (v: any) => v._id.toString() === variantId
-        );
-        if (!variant) {
-          res
-            .status(404)
-            .json({ success: false, message: "Variant not found" });
-          return;
-        }
+      const vendor = product.vendorId as any;
+      const user = vendor.userId as IUser;
+      // Ensure vendor can't add his or her products to cart
+      if (user && user._id === userId) {
+        res.status(400).json({
+          success: false,
+          message: "Vendors cannot add their own products to cart",
+        });
+        return;
+      }
 
+      // Find option across all variants
+      let foundOption = null;
+      let foundVariant = null;
+
+      for (const variant of product.variants) {
         const option = variant.options.find(
           (o: any) => o._id.toString() === optionId
         );
-
-        if (!option) {
-          res
-            .status(404)
-            .json({ success: false, message: "Variant option not found" });
-          return;
+        if (option) {
+          foundOption = option;
+          foundVariant = variant;
+          break;
         }
+      }
 
-        if (option.quantity < quantity) {
+      if (!foundOption || !foundVariant) {
+        res
+          .status(404)
+          .json({ success: false, message: "Variant option not found" });
+        return;
+      }
+
+      if (product.inventory.listing.type === "instant") {
+        if (foundOption.quantity < quantity) {
           res.status(400).json({
             success: false,
-            message: `Only ${option.quantity} items in stock`,
+            message: `Only ${foundOption.quantity} items in stock`,
           });
           return;
         }
 
-        if (option.salePrice !== price) {
+        const expectedPrice = foundOption.salePrice || foundOption.price;
+        if (expectedPrice !== price) {
           res.status(400).json({
             success: false,
-            message: `Price mismatch. Current price is ${option.salePrice}`,
+            message: `Price mismatch. Current price is ${expectedPrice}`,
           });
           return;
         }
@@ -1223,12 +1495,13 @@ export class ProductController {
 
       const cart = await CartService.addToCart(userId.toString(), {
         productId,
-        variantId,
+        variantId: (foundVariant as any)._id.toString(),
         name: product.name,
         images: product.images,
         quantity,
         price,
         optionId,
+        vendorCurrency: (product.country as any)?.currency || "USD",
       });
 
       if (cart) {
@@ -1268,17 +1541,37 @@ export class ProductController {
       // Add each cart item using CartService
       let successCount = 0;
       for (const item of cart) {
-        if (item.productId && item.variantId && item.quantity && item.price) {
-          const success = await CartService.addToCart(userId.toString(), {
-            productId: item.productId,
-            variantId: item.variantId,
-            optionId: item.optionId,
-            name: item.name,
-            images: item.images,
-            quantity: item.quantity,
-            price: item.price,
-          });
-          if (success) successCount++;
+        if (item.productId && item.optionId && item.quantity && item.price) {
+          // Find variant for this option
+          const product = await ProductService.getProductById(item.productId);
+          let variantId = null;
+
+          if (product) {
+            for (const variant of product.variants) {
+              if (
+                variant.options.some(
+                  (o: any) => o._id.toString() === item.optionId
+                )
+              ) {
+                variantId = (variant as any)._id.toString();
+                break;
+              }
+            }
+          }
+
+          if (variantId) {
+            const success = await CartService.addToCart(userId.toString(), {
+              productId: item.productId,
+              variantId,
+              optionId: item.optionId,
+              name: item.name,
+              images: item.images,
+              quantity: item.quantity,
+              price: item.price,
+              vendorCurrency: (product.country as any)?.currency,
+            });
+            if (success) successCount++;
+          }
         }
       }
 
@@ -1338,7 +1631,25 @@ export class ProductController {
       }
 
       const cart = await CartService.getCart(userId.toString());
-      res.status(200).json({ success: true, cart });
+      if (!cart) {
+        res.status(404).json({ success: false, message: "Cart not found" });
+        return;
+      }
+
+      const userCurrency = req.preferences?.currency || "USD";
+
+      const cartWithConvertedPrices = await Promise.all(
+        cart.map(async(item: any) => {
+          const priceInfo = await CurrencyService.getProductPriceForUser(
+            item.price,
+            item.vendorCurrency,
+            userCurrency
+          );
+          return {...item, priceInfo}
+        })
+      )
+
+      res.status(200).json({ success: true, cart: cartWithConvertedPrices });
     } catch (error) {
       console.error("Error getting cart:", error);
       next(error);
@@ -1373,19 +1684,78 @@ export class ProductController {
     try {
       const userId = req.userId;
       const { productId } = req.params;
-      const { price } = req.body;
+      const { optionId } = req.body;
 
-      if (!productId || !userId || !price) {
+      if (!productId || !userId) {
         res.status(400).json({
           success: false,
-          message: "Missing required fields (productId, price)",
+          message: "Missing required fields (productId)",
         });
         return;
       }
 
+      const product = await ProductService.getProductById(productId);
+      if (!product) {
+        res.status(404).json({ success: false, message: "Product not found" });
+        return;
+      }
+
+      const vendor = product.vendorId as any;
+      const user = vendor.userId as IUser;
+
+      // Ensure vendor can't add his or her products to wishlist
+      if (user && user._id === userId) {
+        res.status(400).json({
+          success: false,
+          message: "Vendors cannot add their own products to wishlist",
+        });
+        return;
+      }
+
+      let price = 0;
+      let selectedVariantId: string | undefined = undefined;
+
+      if (optionId) {
+        // Find option across all variants
+        let foundOption = null;
+
+        for (const variant of product.variants) {
+          const option = variant.options.find(
+            (o: any) => o._id.toString() === optionId
+          );
+          if (option) {
+            foundOption = option;
+            selectedVariantId = (variant as any)._id.toString();
+            break;
+          }
+        }
+
+        if (!foundOption) {
+          res.status(404).json({ success: false, message: "Option not found" });
+          return;
+        }
+
+        price = foundOption.salePrice || foundOption.price;
+      } else {
+        // Use first variant's first option price as fallback
+        if (product.variants && product.variants.length > 0) {
+          const firstVariant = product.variants[0];
+          if (firstVariant.options && firstVariant.options.length > 0) {
+            const firstOption = firstVariant.options[0];
+            price = firstOption.salePrice || firstOption.price;
+            selectedVariantId = (firstVariant as any)._id.toString();
+          }
+        }
+      }
+
       const success = await CartService.addToWishlist(userId.toString(), {
         productId,
-        priceWhenAdded: price,
+        price,
+        name: product.name,
+        images: product.images,
+        variantId: selectedVariantId,
+        optionId,
+        vendorCurrency: (product.country as any)?.currency || "USD",
       });
 
       if (success) {
@@ -1437,13 +1807,35 @@ export class ProductController {
   static async getWishlist(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.userId;
+
       if (!userId) {
         res.status(401).json({ success: false, message: "Unauthorized" });
         return;
       }
 
       const wishlist = await CartService.getWishlist(userId.toString());
-      res.status(200).json({ success: true, data: wishlist });
+
+      if (!wishlist) {
+        res.status(404).json({ success: false, message: "Wishlist not found" });
+        return;
+      }
+
+      const userCurrency = req.preferences?.currency || "USD";
+
+      // Enrich wishlist items with currency conversion (no DB lookup needed)
+      const enrichedWishlist = await Promise.all(
+        wishlist.map(async (item: any) => {
+          const vendorCurrency = item.vendorCurrency || "USD";
+          const priceInfo = await CurrencyService.getProductPriceForUser(
+            item.price,
+            vendorCurrency,
+            userCurrency
+          );
+          return { ...item, priceInfo };
+        })
+      );
+
+      res.status(200).json({ success: true, data: enrichedWishlist });
     } catch (error) {
       next(error);
     }
@@ -1476,18 +1868,20 @@ export class ProductController {
     try {
       const userId = req.userId;
       const { productId } = req.params;
-      const { price, variantId, optionId } = req.body;
+      const { price, optionId } = req.body;
 
-      if (!userId || !productId || !price || !variantId || !optionId) {
+      if (!userId || !productId || !price || !optionId) {
         return res.status(400).json({
           success: false,
-          message: "Missing required fields: price, variantId, optionId",
+          message: "Missing required fields: price, optionId",
         });
       }
 
-      const product = await Product.findById(productId).populate<{
-        vendorId: IVendor;
-      }>("vendorId");
+      const product = await Product.findById(productId)
+        .populate<{
+          vendorId: IVendor;
+        }>("vendorId")
+        .populate("country");
       if (!product) {
         return res
           .status(404)
@@ -1508,24 +1902,39 @@ export class ProductController {
         });
       }
 
+      // Find variant that contains this option
+      let foundVariant = null;
+      for (const variant of product.variants) {
+        if (variant.options.some((o: any) => o._id.toString() === optionId)) {
+          foundVariant = variant;
+          break;
+        }
+      }
+
+      if (!foundVariant) {
+        return res.status(404).json({
+          success: false,
+          message: "Option not found",
+        });
+      }
+
+      const variantId = (foundVariant as any)._id.toString();
+
       // Find existing offer block for this user
       const existingOffer = product.offers.find(
         (offer) => offer.userId.toString() === userId.toString()
       );
 
-      // Check if user has already made 3 offers for this variant+option
+      // Check if user has already made 3 offers for this option
       const variantOffers =
         existingOffer?.userOffers.filter(
-          (o) =>
-            o.variantId.toString() === variantId &&
-            o.optionId.toString() === optionId
+          (o) => o.optionId.toString() === optionId
         ) || [];
 
       if (variantOffers.length === 3) {
         return res.status(400).json({
           success: false,
-          message:
-            "Maximum number of offers reached for this variant and option",
+          message: "Maximum number of offers reached for this option",
         });
       }
 
@@ -1546,7 +1955,23 @@ export class ProductController {
         });
       }
 
-      if (lastOffer && lastOffer.amount >= price) {
+      const userCurrency = req.preferences?.currency;
+      const vendorCurrency = (product.country as ICountry)?.currency || "USD";
+      let convertedPrice;
+
+      if (userCurrency != vendorCurrency) {
+        const exchange = await CurrencyService.convertPrice(
+          price,
+          userCurrency!,
+          vendorCurrency
+        );
+
+        if (exchange) convertedPrice = exchange.convertedAmount;
+      } else {
+        convertedPrice = price;
+      }
+
+      if (lastOffer && lastOffer.amount >= convertedPrice) {
         return res.status(400).json({
           success: false,
           message: "New offer must be higher than your last offer",
@@ -1554,7 +1979,7 @@ export class ProductController {
       }
 
       const newOffer = {
-        amount: price,
+        amount: convertedPrice,
         variantId,
         optionId,
         accepted: false,
@@ -1572,12 +1997,24 @@ export class ProductController {
         });
       }
 
+      await User.findByIdAndUpdate(
+        userId,
+        {
+          $push: {
+            activities: {
+              activity: `Offer of ${price} made for ${product.name}`,
+            },
+          },
+        },
+        { new: true }
+      );
+
       const notification = Notification.create({
         userId: product.vendorId.userId,
         case: "new-offer",
         type: "offer",
         title: `New offer made for ${product.name}`,
-        message: `Offer of ${price} made for ${product.name} (variant: ${variantId}, option: ${optionId})`,
+        message: `Offer of ${convertedPrice} made for ${product.name} (option: ${optionId})`,
         data: {
           redirectUrl: "/",
           entityId: product._id,
@@ -1634,7 +2071,7 @@ export const makeCounterOffer = async (
     const product = await Product.findOne({
       _id: productId,
       offers: { $elemMatch: { userId } },
-    });
+    }).populate('country');
 
     if (!product) {
       return res.status(404).json({
@@ -1677,6 +2114,21 @@ export const makeCounterOffer = async (
       });
     }
 
+    // Convert price to vendor's currency if needed
+    const vendorCurrency = (product.country as ICountry)?.currency || 'USD';
+    const buyer = await User.findById(userId);
+    const userCurrency = buyer?.preferences?.currency;
+    let convertedPrice = price;
+
+    if (userCurrency && userCurrency !== vendorCurrency) {
+      const exchange = await CurrencyService.convertPrice(
+        price,
+        vendorCurrency,
+        userCurrency
+      );
+      if (exchange) convertedPrice = exchange.convertedAmount;
+    }
+
     const counterOffer = {
       amount: price,
       variantId,
@@ -1688,12 +2140,25 @@ export const makeCounterOffer = async (
 
     existingOffer.counterOffers.push(counterOffer);
 
+    // Track vendor activity
+    await User.findByIdAndUpdate(
+      req.userId,
+      {
+        $push: {
+          activities: {
+            activity: `Counter offer of ${price} made for ${product.name}`,
+          },
+        },
+      },
+      { new: true }
+    );
+
     const notificationData = {
       userId,
       type: "offer",
       case: "new-counter-offer",
       title: `Vendor countered your offer for ${product.name}`,
-      message: `A counter offer of ${price} was made for ${product.name} (variant: ${variantId}, option: ${optionId})`,
+      message: `A counter offer of ${convertedPrice} was made for ${product.name} (variant: ${variantId}, option: ${optionId})`,
       data: {
         redirectUrl: "/",
         entityId: product._id,
@@ -1733,19 +2198,28 @@ export const acceptOffer = async (
     const { vendorId } = req.params;
 
     if (!productId || !userId || !variantId || !optionId) {
-      return res.status(400).json({ success: false, message: "Missing input" });
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: productId, userId, variantId, optionId",
+      });
+    }
+
+    const vendor = await Vendor.findOne({ userId: req.userId });
+    if (!vendor) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
     }
 
     const product = await Product.findOne({
       _id: productId,
       vendorId,
       offers: { $elemMatch: { userId } },
-    });
+    }).populate('country');
 
     if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found or no offer from this user",
+      });
     }
 
     const existingOffer = product.offers.find(
@@ -1753,9 +2227,10 @@ export const acceptOffer = async (
     );
 
     if (!existingOffer) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Offer not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Offer not found",
+      });
     }
 
     // Find the last user offer for this variant+option
@@ -1774,28 +2249,45 @@ export const acceptOffer = async (
 
     const latestUserOffer = variantOffers[variantOffers.length - 1];
 
-    if (latestUserOffer) latestUserOffer.accepted = true;
+    if (latestUserOffer.accepted) {
+      return res.status(400).json({
+        success: false,
+        message: "Offer has already been accepted",
+      });
+    }
 
-    // Prepare both async tasks
-    const savePromise = product.save();
-    const createNotificationPromise = Notification.create({
+    latestUserOffer.accepted = true;
+
+    // Track vendor activity
+    await User.findByIdAndUpdate(
+      req.userId,
+      {
+        $push: {
+          activities: {
+            activity: `Accepted offer for ${product.name}`,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    const notificationData = {
       userId,
       case: "offer-accepted",
       type: "offer",
       title: `Offer accepted for ${product.name}`,
-      message: `Offer for your ${product.name} was accepted`,
+      message: `Your offer for ${product.name} (variant: ${variantId}, option: ${optionId}) was accepted`,
       data: {
         redirectUrl: "/",
         entityId: product._id,
         entityType: "product",
       },
       isRead: false,
-    });
+    };
 
-    // Await them together
-    const [_, notification] = await Promise.all([
-      savePromise,
-      createNotificationPromise,
+    const [notification] = await Promise.all([
+      Notification.create(notificationData),
+      product.save(),
     ]);
 
     await PushNotificationService.notifyUser(
@@ -1804,9 +2296,12 @@ export const acceptOffer = async (
       notification
     );
 
-    return res.status(200).json({ success: true, message: "Offer accepted" });
+    return res.status(200).json({
+      success: true,
+      message: "Offer accepted successfully",
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Accept Offer Error:", error);
     next(error);
   }
 };
@@ -1876,6 +2371,19 @@ export const acceptCounterOffer = async (
     latestCounterOffer.accepted = true;
 
     const saveProduct = product.save();
+
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        $push: {
+          activities: {
+            activity: `You accepted a counter offer for ${product.name}`,
+          },
+        },
+      },
+      { new: true }
+    ).populate("vendorId")
+
     const createNotification = Notification.create({
       userId: product.vendorId.userId,
       case: "counter-offer-accepted",
@@ -1929,11 +2437,16 @@ export const rejectOffer = async (
       });
     }
 
+    const vendor = await Vendor.findOne({ userId: req.userId });
+    if (!vendor) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
     const product = await Product.findOne({
       _id: productId,
       vendorId,
       offers: { $elemMatch: { userId } },
-    });
+    }).populate('country');
 
     if (!product) {
       return res.status(404).json({
@@ -1975,11 +2488,29 @@ export const rejectOffer = async (
       });
     }
 
+    if (latestUserOffer.accepted) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot reject an accepted offer",
+      });
+    }
+
     latestUserOffer.rejected = true;
 
-    const saveProduct = product.save();
+    // Track vendor activity
+    await User.findByIdAndUpdate(
+      req.userId,
+      {
+        $push: {
+          activities: {
+            activity: `Rejected offer for ${product.name}`,
+          },
+        },
+      },
+      { new: true }
+    );
 
-    const notification = Notification.create({
+    const notificationData = {
       userId,
       case: "offer-rejected",
       type: "offer",
@@ -1995,11 +2526,11 @@ export const rejectOffer = async (
         entityType: "product",
       },
       isRead: false,
-    });
+    };
 
-    const [_, createdNotification] = await Promise.all([
-      saveProduct,
-      notification,
+    const [createdNotification] = await Promise.all([
+      Notification.create(notificationData),
+      product.save(),
     ]);
 
     await PushNotificationService.notifyUser(
@@ -2031,14 +2562,14 @@ export const rejectCounterOffer = async (
       return res.status(400).json({
         success: false,
         message:
-          "Missing required fields: productId, userId, variantId, optionId",
+          "Missing required fields: productId, variantId, optionId",
       });
     }
 
     const product = await Product.findOne({
       _id: productId,
       offers: { $elemMatch: { userId } },
-    }).populate<{ vendorId: IVendor }>("vendorId");
+    }).populate<{ vendorId: IVendor }>("vendorId").populate('country');
 
     if (!product) {
       return res.status(404).json({
@@ -2081,12 +2612,30 @@ export const rejectCounterOffer = async (
       });
     }
 
+    if (latestCounterOffer.accepted) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot reject an accepted counter offer",
+      });
+    }
+
     latestCounterOffer.rejected = true;
 
-    const saveProduct = product.save();
-
-    const createNotification = Notification.create({
+    // Track user activity
+    await User.findByIdAndUpdate(
       userId,
+      {
+        $push: {
+          activities: {
+            activity: `Rejected counter offer for ${product.name}`,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    const notificationData = {
+      userId: product.vendorId.userId,
       case: "counter-offer-rejected",
       type: "offer",
       title: `Counter offer rejected for ${product.name}`,
@@ -2097,11 +2646,11 @@ export const rejectCounterOffer = async (
         entityType: "product",
       },
       isRead: false,
-    });
+    };
 
-    const [_, notification] = await Promise.all([
-      saveProduct,
-      createNotification,
+    const [notification] = await Promise.all([
+      Notification.create(notificationData),
+      product.save(),
     ]);
 
     await PushNotificationService.notifyVendor(
@@ -2129,13 +2678,16 @@ export const placeProxyBid = async (
 ) => {
   try {
     const { productId } = req.params;
-    const { userId, maxBid } = req.body;
+    const { maxBid } = req.body;
+    const userId = req.userId;
 
     if (!productId || !userId || typeof maxBid !== "number" || maxBid <= 0.01) {
       return res.status(400).json({ success: false, message: "Invalid input" });
     }
 
-    const product = await Product.findById(productId).populate("bids.userId");
+    const product = await Product.findById(productId)
+      .populate("bids.userId")
+      .populate("country");
     if (!product) {
       return res
         .status(404)
@@ -2161,6 +2713,20 @@ export const placeProxyBid = async (
         .json({ success: false, message: "Auction has ended" });
     }
 
+    // Convert bid amount to vendor's currency
+    const userCurrency = req.preferences?.currency;
+    const vendorCurrency = (product.country as ICountry)?.currency || "USD";
+    let convertedMaxBid = maxBid;
+
+    if (userCurrency && userCurrency !== vendorCurrency) {
+      const exchange = await CurrencyService.convertPrice(
+        maxBid,
+        userCurrency,
+        vendorCurrency
+      );
+      if (exchange) convertedMaxBid = exchange.convertedAmount;
+    }
+
     const startBid = auction.startBidPrice ?? 0;
     const minIncrement = auction.bidIncrement ?? 1;
     const now = new Date();
@@ -2171,11 +2737,11 @@ export const placeProxyBid = async (
     );
 
     if (existingBid) {
-      existingBid.maxAmount = maxBid;
+      existingBid.maxAmount = convertedMaxBid;
     } else {
       currentBids.push({
         userId,
-        maxAmount: maxBid,
+        maxAmount: convertedMaxBid,
         currentAmount: 0,
         createdAt: now,
       });
@@ -2274,9 +2840,82 @@ export const placeProxyBid = async (
       success: true,
       message: "Proxy bid placed",
       currentAmount: topBid.currentAmount,
+      convertedAmount: convertedMaxBid,
     });
   } catch (error) {
     console.error("Bid error:", error);
+    next(error);
+  }
+};
+
+export const getBids = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { productId } = req.params;
+
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required",
+      });
+    }
+
+    const product = await Product.findById(productId)
+      .populate("bids.userId", "profile.firstName profile.lastName")
+      .populate("country");
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const userCurrency = req.preferences?.currency || "USD";
+    const vendorCurrency = (product.country as ICountry)?.currency || "USD";
+
+    const convertedBids = await Promise.all(
+      (product.bids || []).map(async (bid: any) => {
+        let displayMaxAmount = bid.maxAmount;
+        let displayCurrentAmount = bid.currentAmount;
+
+        if (userCurrency !== vendorCurrency) {
+          const maxExchange = await CurrencyService.convertPrice(
+            bid.maxAmount,
+            vendorCurrency,
+            userCurrency
+          );
+          const currentExchange = await CurrencyService.convertPrice(
+            bid.currentAmount,
+            vendorCurrency,
+            userCurrency
+          );
+
+          if (maxExchange) displayMaxAmount = maxExchange.convertedAmount;
+          if (currentExchange) displayCurrentAmount = currentExchange.convertedAmount;
+        }
+
+        return {
+          userId: bid.userId,
+          maxAmount: displayMaxAmount,
+          currentAmount: displayCurrentAmount,
+          isWinning: bid.isWinning,
+          createdAt: bid.createdAt,
+          displayCurrency: userCurrency,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      bids: convertedBids,
+      currency: userCurrency,
+    });
+  } catch (error) {
+    console.error("Get Bids Error:", error);
     next(error);
   }
 };
@@ -2339,10 +2978,18 @@ export const relistItemForAuction = async (req: Request, res: Response) => {
       product.inventory.listing.auction.endTime = endTime;
       product.inventory.listing.auction.isStarted = false;
       product.inventory.listing.auction.isExpired = false;
+      product.inventory.listing.auction.relistCount += 1;
       product.inventory.listing.auction.priorityScore =
         100 / (product.inventory.listing.auction.relistCount + 1);
-      product.inventory.listing.auction.relistCount += 1;
+
+      await product.save();
     }
+
+    res.status(200).json({
+      success: true,
+      message: "Product relisted successfully",
+      product,
+    });
   } catch (error: any) {
     console.error(error);
     // add logger
@@ -2385,6 +3032,17 @@ export const getAuctionProducts = async (req: Request, res: Response) => {
     }
 
     const products = await Product.find(filter)
+      .populate({
+        path: "vendorId",
+        populate: {
+          path: "userId",
+          model: "User",
+          select: "_id profile.firstName profile.lastName email",
+        },
+      })
+      .populate("category.main")
+      .populate("category.sub")
+      .populate("country")
       .skip(skip)
       .limit(Number(limit))
       .sort({
@@ -2392,6 +3050,10 @@ export const getAuctionProducts = async (req: Request, res: Response) => {
         "inventory.listing.auction.startTime": -1,
       });
 
+    const enrichedProducts = await ProductService.enrichProductsWithPriceInfo(
+      products,
+      req
+    );
     const totalProducts = await Product.countDocuments(filter);
 
     res.status(200).json({
@@ -2403,7 +3065,7 @@ export const getAuctionProducts = async (req: Request, res: Response) => {
         limit,
         totalPages: Math.ceil(totalProducts / Number(limit)),
       },
-      products,
+      products: enrichedProducts,
     });
   } catch (error) {
     console.error("Get Auction Products Error:", error);
@@ -2414,26 +3076,30 @@ export const getAuctionProducts = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getFeaturedProducts = async (req: Request, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 10
-    } = req.query;
+    const { page = 1, limit = 10 } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
 
     const filter = {
       isFeatured: true,
-      status: "active"
+      status: "active",
     };
 
     const products = await Product.find(filter)
+      .populate("vendorId")
+      .populate("category.main")
+      .populate("category.sub")
+      .populate("featuredCategory")
       .skip(skip)
       .limit(Number(limit))
       .sort({ featuredExpiry: -1, createdAt: -1 }); // prioritize soon-to-expire and newest
 
+    const enrichedProducts = await ProductService.enrichProductsWithPriceInfo(
+      products,
+      req
+    );
     const totalFeatured = await Product.countDocuments(filter);
 
     res.status(200).json({
@@ -2443,17 +3109,52 @@ export const getFeaturedProducts = async (req: Request, res: Response) => {
         total: totalFeatured,
         page: Number(page),
         limit: Number(limit),
-        totalPages: Math.ceil(totalFeatured / Number(limit))
+        totalPages: Math.ceil(totalFeatured / Number(limit)),
       },
-      products
+      products: enrichedProducts,
     });
   } catch (error) {
     console.error("Get Featured Products Error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error fetching featured products"
+      message: "Server error fetching featured products",
     });
   }
 };
 
+export const triggerAuctionBuyNow = async (req: Request, res: Response) => {
+  try {
+    const { productId } = req.params;
+    const { price } = req.body;
 
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    if (product.inventory.listing.type !== "auction") {
+      return res.status(404).json({
+        message: "Buy now can only be triggered for products up for auction",
+        success: false,
+      });
+    }
+
+    if (product.inventory.listing.auction?.buyNowPrice !== price) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid price",
+      });
+      return;
+    }
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "An error occured while trying to buy item",
+    });
+  }
+};

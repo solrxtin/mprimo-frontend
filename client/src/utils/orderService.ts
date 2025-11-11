@@ -14,6 +14,7 @@ export interface Order {
     price: number;
     variantId?: string;
   }>;
+  
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'failed';
   shipping: {
     address: any;

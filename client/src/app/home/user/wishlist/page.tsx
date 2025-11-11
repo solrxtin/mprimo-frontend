@@ -3,11 +3,10 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Home, ShoppingCart } from "lucide-react"
+import { ShoppingCart, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
-import Header from "@/components/Home/Header"
 import { useRouter } from "next/navigation"
 import { useWishlist } from "@/hooks/useWishlist"
 import { useCartStore } from "@/stores/cartStore"
@@ -107,6 +106,29 @@ export default function WishlistPage() {
             <div className="col-span-2">Status</div>
             <div className="col-span-3">Actions</div>
           </div>
+
+          {/* Loading State */}
+          {isLoading && (
+            <div className="p-8 text-center text-gray-500">
+              <Heart className="w-8 h-8 mx-auto mb-2 animate-pulse" />
+              <p>Loading your wishlist...</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && wishlist.length === 0 && (
+            <div className="p-8 text-center text-gray-500">
+              <Heart className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium mb-2">Your wishlist is empty</h3>
+              <p className="mb-4">Save items you love to your wishlist</p>
+              <Button 
+                onClick={() => router.push('/home')}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Start Shopping
+              </Button>
+            </div>
+          )}
 
           {/* Items */}
           <div className="divide-y">

@@ -142,10 +142,10 @@ const userSchema = new mongoose.Schema<IUser>(
     role: {
       type: String,
       enum: {
-        values: ["personal", "business", "admin"],
-        message: "Invalid user role",
+        values: ["user", "admin"],
+        message: "Invalid role",
       },
-      default: "personal",
+      default: "user",
     },
     status: {
       type: String,
@@ -292,6 +292,16 @@ const userSchema = new mongoose.Schema<IUser>(
     permissions: {
       type: [String],
       default: [], // Can override/extend base role
+    },
+    activities: [
+      {
+        activity: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    vendorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vendor",
     },
   },
   {

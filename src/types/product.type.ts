@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { ICountry } from "../models/country.model";
+import { IVendor } from "./vendor.type";
 
 type ListingType = "instant" | "auction";
 
@@ -37,15 +38,23 @@ type InventoryType = {
 };
 
 type VariantOptionType = {
+  _id?: Types.ObjectId;
   value: string;
   sku: string;
   price: number;
   salePrice: number;
   quantity: number;
   isDefault?: boolean;
+  dimensions?: Record<string, string>; // {"Color": "Black", "Size": "Small"}
+  displayPrice?: number;
+  displaySalePrice?: number;
+  currencySymbol?: string;
+  exchangeRate?: number;
+  displayCurrency?: string;
 };
 
 type VariantType = {
+  _id?: Types.ObjectId;
   name: string;
   isDefault?: boolean;
   options: VariantOptionType[];
@@ -105,7 +114,7 @@ type ShippingType = {
 
 export type ProductType = {
   _id?: Types.ObjectId;
-  vendorId: Types.ObjectId;
+  vendorId: Types.ObjectId | IVendor;
   name: string;
   slug: string;
   brand: string;
@@ -122,6 +131,7 @@ export type ProductType = {
   reviews: Types.DocumentArray<ReviewDocument>;
   rating: number;
   variants: VariantType[];
+  variantDimensions?: string[]; // ["Color", "Size", "Material"]
   analytics: AnalyticsType;
   offers: OfferType[];
   bids: BidType[];
@@ -129,4 +139,5 @@ export type ProductType = {
   updatedAt?: Date;
   isFeatured: boolean;
   featuredExpiry?: Date;
+  featuredCategory?: Types.ObjectId;
 };

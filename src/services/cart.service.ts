@@ -2,28 +2,25 @@ import {Cart} from "../models/cart.model";
 import { WishList } from "../models/cart.model";
 import redisService from "./redis.service";
 import { LoggerService } from "./logger.service";
-import { CartItem } from "../types/cart.type";
+import { CartItem, WishlistItem } from "../types/cart.type";
 
 const logger = LoggerService.getInstance();
-
-interface WishlistItem {
-  productId: string;
-  priceWhenAdded: number;
-}
 
 export class CartService {
   // Cart Methods
   static async getCart(userId: string): Promise<CartItem[]> {
     try {
       let cart: CartItem[] = await redisService.getCart(userId);
-
-      console.log("Cart from Redis:", cart);
-
       if (!cart || cart.length === 0) {
-        const dbCart = await Cart.findOne({ userId }).populate(
-          "items.productId"
-        );
-        console.log("Cart from DB:", dbCart);
+        const dbCart = await Cart.findOne({ userId }).populate({
+          path: "items.productId",
+          populate: {
+            path: "country",
+            model: "Country",
+            select: "name currency currencySymbol", // optional fields to include
+          },
+        });
+
         if (dbCart && dbCart.items.length > 0) {
           const items: CartItem[] = dbCart.items.map((item: any) => ({
             productId: item.productId.toString(),
@@ -34,6 +31,7 @@ export class CartService {
             name: item.name,
             images: item.images,
             addedAt: item.addedAt,
+            vendorCurrency: item.productId.country.currency,
           }));
 
           for (const item of items) {
@@ -45,7 +43,8 @@ export class CartService {
               item.name,
               item.images,
               item.variantId,
-              item.optionId
+              item.optionId,
+              item.vendorCurrency
             );
           }
 
@@ -61,6 +60,7 @@ export class CartService {
   }
 
   static async addToCart(userId: string, item: CartItem) {
+    
     try {
       // Add to Redis
       await redisService.addToCart(
@@ -71,11 +71,12 @@ export class CartService {
         item.name,
         item.images,
         item.variantId,
-        item.optionId
+        item.optionId,
+        item.vendorCurrency
       );
 
       // Add to MongoDB
-      const cart = await Cart.findOneAndUpdate(
+      await Cart.findOneAndUpdate(
         { userId },
         {
           $push: {
@@ -92,7 +93,8 @@ export class CartService {
         { upsert: true }
       );
 
-      return cart;
+      // Return the complete cart with all items
+      return await this.getCart(userId);
     } catch (error) {
       console.error(error);
       logger.error("Error adding to cart:", error);
@@ -150,11 +152,20 @@ export class CartService {
           "items.productId"
         );
         if (dbWishlist && dbWishlist.items.length > 0) {
-          // Sync to Redis
+          // Sync to Redis with full product details
           for (const item of dbWishlist.items) {
-            await redisService.addToWishlist(userId, item.productId.toString());
+            const product = item.productId as any;
+            await redisService.addToWishlist(
+              userId,
+              product._id.toString(),
+              item.price,
+              product.name,
+              product.images,
+              item.variantId,
+              item.optionId
+            );
           }
-          wishlist = dbWishlist.items.map((item) => item.productId.toString());
+          wishlist = await redisService.getWishlist(userId);
         }
       }
 
@@ -167,24 +178,43 @@ export class CartService {
 
   static async addToWishlist(userId: string, item: WishlistItem) {
     try {
-      await redisService.addToWishlist(userId, item.productId);
+      const existing = await WishList.findOne({
+        userId,
+        "items.productId": item.productId,
+      });
 
-      await WishList.findOneAndUpdate(
-        { userId },
-        {
-          $push: {
-            items: {
-              productId: item.productId,
-              priceWhenAdded: item.priceWhenAdded,
-              addedAt: new Date(),
+      if (!existing) {
+        await WishList.findOneAndUpdate(
+          { userId },
+          {
+            $push: {
+              items: {
+                productId: item.productId,
+                priceWhenAdded: item.price,
+                variantId: item.variantId,
+                optionId: item.optionId,
+                addedAt: new Date(),
+              },
             },
           },
-        },
-        { upsert: true }
-      );
+          { upsert: true }
+        );
+
+        await redisService.addToWishlist(
+          userId,
+          item.productId,
+          item.price,
+          item.name,
+          item.images,
+          item.variantId,
+          item.optionId,
+          item.vendorCurrency
+        );
+      }
 
       return true;
     } catch (error) {
+      console.error(error);
       logger.error("Error adding to wishlist:", error);
       return false;
     }

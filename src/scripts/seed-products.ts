@@ -433,7 +433,7 @@ async function seedProducts() {
     console.log("Cleared existing products");
 
     let productCount = 0;
-    const targetProducts = 200;
+    const targetProducts = 500;
 
     // Create products for each vendor
     const usedProductNames = new Set<string>(); // Track used names to prevent duplicates
@@ -446,8 +446,8 @@ async function seedProducts() {
       );
       if (!vendorCountry) continue;
 
-      // Each vendor gets 3-6 products (reduced to prevent duplicates)
-      const productsPerVendor = Math.floor(Math.random() * 4) + 3;
+      // Each vendor gets 8-12 products for more variety
+      const productsPerVendor = Math.floor(Math.random() * 5) + 8;
       const vendorUsedNames = new Set<string>(); // Track names per vendor
 
       for (
@@ -466,124 +466,43 @@ async function seedProducts() {
           const template =
             templates[Math.floor(Math.random() * templates.length)];
 
-          // Find matching category with proper parent-child relationship
+          // Prioritize subcategories (level 2+) for better product distribution
+          const subcategories = categories.filter(cat => cat.level >= 2);
+          const deepestCategories = categories.filter(cat => cat.level >= 3);
+          
           let category: any = null;
           let subCategories: any[] = [];
           
-          switch (categoryType) {
-            case "electronics":
-              // Find main Electronics category
-              const electronicsMain = categories.find(c => c.name === "Electronics" && !c.parent);
-              if (electronicsMain) {
-                // Find subcategories under Electronics
-                const electronicsSubcats = categories.filter(c => 
-                  c.parent && c.parent.toString() === electronicsMain._id.toString()
-                );
-                if (electronicsSubcats.length > 0) {
-                  category = electronicsSubcats[Math.floor(Math.random() * electronicsSubcats.length)];
-                  // Find deeper subcategories if available
-                  const deeperSubs = categories.filter(c => 
-                    c.parent && c.parent.toString() === category._id.toString()
-                  );
-                  if (deeperSubs.length > 0) {
-                    subCategories = [category._id];
-                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
-                  }
-                } else {
-                  category = electronicsMain;
-                }
-              }
-              break;
-            case "clothing":
-              const clothingMain = categories.find(c => c.name.includes("Clothing") && !c.parent);
-              if (clothingMain) {
-                const clothingSubcats = categories.filter(c => 
-                  c.parent && c.parent.toString() === clothingMain._id.toString()
-                );
-                if (clothingSubcats.length > 0) {
-                  category = clothingSubcats[Math.floor(Math.random() * clothingSubcats.length)];
-                  const deeperSubs = categories.filter(c => 
-                    c.parent && c.parent.toString() === category?._id.toString()
-                  );
-                  if (deeperSubs.length > 0) {
-                    subCategories = [category._id];
-                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
-                  }
-                } else {
-                  category = clothingMain;
-                }
-              }
-              break;
-            case "homeGarden":
-              const homeMain = categories.find(c => c.name === "Home & Garden" && !c.parent);
-              if (homeMain) {
-                const homeSubcats = categories.filter(c => 
-                  c.parent && c.parent.toString() === homeMain._id.toString()
-                );
-                if (homeSubcats.length > 0) {
-                  category = homeSubcats[Math.floor(Math.random() * homeSubcats.length)];
-                  const deeperSubs = categories.filter(c => 
-                    c.parent && c.parent.toString() === category._id.toString()
-                  );
-                  if (deeperSubs.length > 0) {
-                    subCategories = [category._id];
-                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
-                  }
-                } else {
-                  category = homeMain;
-                }
-              }
-              break;
-            case "automotive":
-              const autoMain = categories.find(c => c.name === "Automotive" && !c.parent);
-              if (autoMain) {
-                const autoSubcats = categories.filter(c => 
-                  c.parent && c.parent.toString() === autoMain._id.toString()
-                );
-                if (autoSubcats.length > 0) {
-                  category = autoSubcats[Math.floor(Math.random() * autoSubcats.length)];
-                  const deeperSubs = categories.filter(c => 
-                    c.parent && c.parent.toString() === category._id.toString()
-                  );
-                  if (deeperSubs.length > 0) {
-                    subCategories = [category._id];
-                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
-                  }
-                } else {
-                  category = autoMain;
-                }
-              }
-              break;
-            case "collectibles":
-              const collectiblesMain = categories.find(c => c.name.includes("Collectibles") && !c.parent);
-              if (collectiblesMain) {
-                const collectiblesSubcats = categories.filter(c => 
-                  c.parent && c.parent.toString() === collectiblesMain._id.toString()
-                );
-                if (collectiblesSubcats.length > 0) {
-                  category = collectiblesSubcats[Math.floor(Math.random() * collectiblesSubcats.length)];
-                  const deeperSubs = categories.filter(c => 
-                    c.parent && c.parent.toString() === category._id.toString()
-                  );
-                  if (deeperSubs.length > 0) {
-                    subCategories = [category._id];
-                    category = deeperSubs[Math.floor(Math.random() * deeperSubs.length)];
-                  }
-                } else {
-                  category = collectiblesMain;
-                }
-              }
-              break;
+          // First try to use deepest categories (level 3+)
+          if (deepestCategories.length > 0 && Math.random() > 0.3) {
+            category = deepestCategories[Math.floor(Math.random() * deepestCategories.length)];
           }
-
-          // Fallback to random category if no match found
-          if (!category) {
-            const mainCategories = categories.filter(c => !c.parent);
-            const mainCategory = mainCategories[Math.floor(Math.random() * mainCategories.length)];
-            const subCats = categories.filter(c => 
-              c.parent && c.parent.toString() === mainCategory._id.toString()
-            );
-            category = subCats.length > 0 ? subCats[Math.floor(Math.random() * subCats.length)] : mainCategory;
+          // Then try level 2 categories
+          else if (subcategories.length > 0 && Math.random() > 0.5) {
+            category = subcategories[Math.floor(Math.random() * subcategories.length)];
+          }
+          // Fallback to main categories
+          else {
+            const mainCategories = categories.filter(c => c.level === 1);
+            category = mainCategories[Math.floor(Math.random() * mainCategories.length)];
+          }
+          
+          // Build subcategory chain if using a deep category
+          if (category && category.level > 2) {
+            // Find parent categories to build the chain
+            let currentCat = category;
+            const categoryChain = [];
+            
+            while (currentCat.parent) {
+              const parentCat = categories.find(c => c._id.toString() === currentCat.parent.toString());
+              if (parentCat && parentCat.level > 1) {
+                categoryChain.unshift(parentCat._id);
+              }
+              currentCat = parentCat;
+              if (!parentCat) break;
+            }
+            
+            subCategories = categoryChain;
           }
 
           // Create more dynamic product names with better variation
@@ -743,8 +662,11 @@ async function seedProducts() {
                 ? "Gently used, excellent working condition"
                 : undefined,
             category: {
-              main: category.parent || category._id,
-              sub: category.parent ? [category._id, ...subCategories] : subCategories,
+              main: category.level === 1 ? category._id : (() => {
+                const mainCat = categories.find(c => c.name === category.path[0] && c.level === 1);
+                return mainCat ? mainCat._id : category._id;
+              })(),
+              sub: category.level > 1 ? [category._id, ...subCategories] : subCategories,
               path: category.path || [category.name],
             },
             country: vendorCountry._id,
@@ -794,74 +716,78 @@ async function seedProducts() {
                 : "outOfStock",
             reviews: [],
             rating: 0,
-            variants:
-              Math.random() > 0.7
-                ? [
-                    {
-                      name: "Size",
-                      isDefault: true,
-                      options: [
-                        {
-                          value: "Small",
-                          sku: `${productName
-                            .replace(/\s+/g, "-")
-                            .toUpperCase()}-SM-${Math.random()
-                            .toString(36)
-                            .substring(2, 8)
-                            .toUpperCase()}`,
-                          price: salePrice - 10,
-                          quantity: Math.floor(Math.random() * 20) + 1,
-                          isDefault: true,
-                        },
-                        {
-                          value: "Medium",
-                          sku: `${productName
-                            .replace(/\s+/g, "-")
-                            .toUpperCase()}-MD-${Math.random()
-                            .toString(36)
-                            .substring(2, 8)
-                            .toUpperCase()}`,
-                          price: salePrice,
-                          quantity: Math.floor(Math.random() * 20) + 1,
-                        },
-                        {
-                          value: "Large",
-                          sku: `${productName
-                            .replace(/\s+/g, "-")
-                            .toUpperCase()}-LG-${Math.random()
-                            .toString(36)
-                            .substring(2, 8)
-                            .toUpperCase()}`,
-                          price: salePrice + 10,
-                          quantity: Math.floor(Math.random() * 20) + 1,
-                        },
-                      ],
-                    },
-                  ]
-                : [
-                    {
-                      name: "Default",
-                      isDefault: true,
-                      options: [
-                        {
-                          value: "Standard",
-                          sku: `${productName
-                            .replace(/\s+/g, "-")
-                            .toUpperCase()}-STD-${Math.random()
-                            .toString(36)
-                            .substring(2, 8)
-                            .toUpperCase()}`,
-                          price: salePrice,
-                          salePrice:
-                            originalPrice > salePrice
-                              ? Math.round(salePrice * 0.95)
-                              : undefined,
-                          quantity: quantity,
-                          isDefault: true,
-                        },
-                      ],
-                    },
-                  ],
+            variants: (() => {
+              const variantType = Math.random();
+              if (variantType > 0.6) {
+                // Size & Color variants
+                const sizeColorOptions = [
+                  { size: "Small", color: "Black", priceAdj: -10 },
+                  { size: "Medium", color: "White", priceAdj: 0 },
+                  { size: "Large", color: "Blue", priceAdj: 10 },
+                  { size: "XL", color: "Red", priceAdj: 15 }
+                ];
+                return [{
+                  name: "Size & Color",
+                  isDefault: true,
+                  options: sizeColorOptions.map((opt, idx) => ({
+                    value: `${opt.size} ${opt.color}`,
+                    sku: `${productName.replace(/\s+/g, "-").toUpperCase()}-${opt.size.substring(0,2).toUpperCase()}-${opt.color.substring(0,3).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+                    price: salePrice + opt.priceAdj,
+                    salePrice: idx === 0 && Math.random() > 0.5 ? salePrice + opt.priceAdj - 5 : undefined,
+                    quantity: Math.floor(Math.random() * 25) + 5,
+                    isDefault: idx === 0,
+                    dimensions: { "Size": opt.size, "Color": opt.color }
+                  }))
+                }];
+              } else if (variantType > 0.3) {
+                // Storage & Color variants (for electronics)
+                const storageColorOptions = [
+                  { storage: "128GB", color: "Space Gray", priceAdj: 0 },
+                  { storage: "256GB", color: "Silver", priceAdj: 100 },
+                  { storage: "512GB", color: "Gold", priceAdj: 200 },
+                  { storage: "1TB", color: "Rose Gold", priceAdj: 400 }
+                ];
+                return [{
+                  name: "Storage & Color",
+                  isDefault: true,
+                  options: storageColorOptions.map((opt, idx) => ({
+                    value: `${opt.storage} ${opt.color}`,
+                    sku: `${productName.replace(/\s+/g, "-").toUpperCase()}-${opt.storage.replace('GB','').replace('TB','T')}-${opt.color.replace(' ','').substring(0,4).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+                    price: salePrice + opt.priceAdj,
+                    quantity: Math.floor(Math.random() * 15) + 3,
+                    isDefault: idx === 0,
+                    dimensions: { "Storage": opt.storage, "Color": opt.color }
+                  }))
+                }];
+              } else {
+                // Material & Size variants
+                const materialSizeOptions = [
+                  { material: "Cotton", size: "S", priceAdj: -5 },
+                  { material: "Cotton", size: "M", priceAdj: 0 },
+                  { material: "Cotton", size: "L", priceAdj: 5 },
+                  { material: "Premium Cotton", size: "M", priceAdj: 20 },
+                  { material: "Premium Cotton", size: "L", priceAdj: 25 }
+                ];
+                return [{
+                  name: "Material & Size",
+                  isDefault: true,
+                  options: materialSizeOptions.map((opt, idx) => ({
+                    value: `${opt.material} ${opt.size}`,
+                    sku: `${productName.replace(/\s+/g, "-").toUpperCase()}-${opt.material.replace(' ','').substring(0,4).toUpperCase()}-${opt.size}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+                    price: salePrice + opt.priceAdj,
+                    quantity: Math.floor(Math.random() * 20) + 2,
+                    isDefault: idx === 1,
+                    dimensions: { "Material": opt.material, "Size": opt.size }
+                  }))
+                }];
+              }
+            })(),
+            variantDimensions: (() => {
+              const variantType = Math.random();
+              if (variantType > 0.6) return ["Size", "Color"];
+              else if (variantType > 0.3) return ["Storage", "Color"];
+              else return ["Material", "Size"];
+            })(),
             analytics: {
               views: Math.floor(Math.random() * 1000),
               addToCart: Math.floor(Math.random() * 50),

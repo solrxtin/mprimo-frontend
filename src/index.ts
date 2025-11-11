@@ -37,7 +37,7 @@ import vendorPayoutRoutes from "./routes/vendor-payout.routes";
 import disputeChatRoutes from "./routes/dispute-chat.routes";
 import bannerRoutes from "./routes/banner.routes";
 import checkoutRoutes from "./routes/checkout.routes";
-import verificationRoutes from "./routes/stripe-verification.routes";
+import verificationRoutes from "./routes/vendor-verification.routes";
 import advertisementRoutes from "./routes/advertisement.routes";
 
 
@@ -108,8 +108,13 @@ app.use(
   session({
     secret: process.env.SECRET!,
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: process.env.NODE_ENV === "production" }, // Set to `true` in production if using HTTPS
+    saveUninitialized: false,
+    cookie: { 
+      secure: false, // Set to false for development
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
+    }
   })
 );
 

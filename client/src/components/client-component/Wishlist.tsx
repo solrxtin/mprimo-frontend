@@ -1,5 +1,6 @@
 import { useWishlist } from "@/hooks/useWishlist";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
+import { useUserStore } from "@/stores/useUserStore";
 import { useWishlistStore } from "@/stores/useWishlistStore";
 import { ProductType } from "@/types/product.type";
 import { User } from "@/types/user.type";
@@ -7,13 +8,13 @@ import { Heart } from "lucide-react";
 import React from "react";
 
 interface WishlistCompnent {
-  user: User | null;
   productData: ProductType;
   price: number;
 }
 
-const Wishlist = ({ user, productData, price }: WishlistCompnent) => {
+const Wishlist = ({ productData, price }: WishlistCompnent) => {
   const { openModal } = useAuthModalStore();
+  const { user } = useUserStore();
 
   const {
     addToWishlist,
@@ -49,9 +50,7 @@ const Wishlist = ({ user, productData, price }: WishlistCompnent) => {
       <Heart
         size={24}
         className={`${
-          isInWishlist(productData?._id!)
-            ? "text-red-400"
-            : "text-gray-300"
+          isInWishlist(productData?._id!) ? "text-red-400" : "text-gray-300"
         } transition-colors`}
       />
     </button>

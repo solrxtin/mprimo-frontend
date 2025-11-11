@@ -1,0 +1,13 @@
+{
+  "name": "mprimo-docs-generator",
+  "version": "1.0.0",
+  "description": "Generate PDF documentation for MPRIMO API",
+  "main": "generate-pdf-docs.js",
+  "scripts": {
+    "generate-docs": "node generate-pdf-docs.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "marked": "^9.0.0"
+  }
+}

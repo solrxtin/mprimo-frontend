@@ -10,12 +10,15 @@ import {
   ProductController,
   rejectCounterOffer,
   rejectOffer,
+  relistItemForAuction,
 } from "../controllers/product.controller";
 import { verifyToken } from "../middlewares/verify-token.middleware";
+import { optionalAuth } from "../middlewares/optional-auth.middleware";
 import { authorizeRole } from "../middlewares/authorize-role.middleware";
 import { ProductService } from "../services/product.service";
 import { uploadImage, uploadImageToCloudinary } from "../config/multer.config";
 import { standardRateLimit } from "../middlewares/enhanced-rate-limit.middleware";
+
 
 const router = Router();
 
@@ -71,32 +74,32 @@ router.get(
 );
 
 // Get search suggestions
-router.get(
-  "/search/suggestions",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.getSearchSuggestions(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// router.get(
+//   "/search/suggestions",
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.getSearchSuggestions(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
-// Advanced search
-router.get(
-  "/search/advanced",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.advancedSearch(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// // Advanced search
+// router.get(
+//   "/search/advanced",
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.advancedSearch(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
 // Get products by categoryId
 router.get(
-  "/category/:categoryId",
+  "/categories/:categoryId",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.getProductsByCategory(req, res, next);
@@ -108,10 +111,22 @@ router.get(
 
 // Get top products
 router.get(
-  "/topProducts",
+  "/top-products",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.getTopProducts(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Best deals
+router.get(
+  "/best-deals",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await ProductController.getBestDeals(req, res, next);
     } catch (error) {
       next(error);
     }
@@ -148,6 +163,9 @@ router.get(
     }
   }
 );
+
+// Recommended products
+router.get("/user/recommendations", verifyToken, ProductController.getUserRecommendations);
 
 // Get product reviews
 router.get(
@@ -196,7 +214,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -231,7 +249,7 @@ router.post(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -249,7 +267,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -267,7 +285,7 @@ router.patch(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -285,7 +303,7 @@ router.delete(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -306,7 +324,7 @@ router.post(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -324,7 +342,7 @@ router.put(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -341,7 +359,7 @@ router.get(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -353,7 +371,11 @@ router.get(
 );
 
 // Get single product
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id", 
+   (req: Request, res: Response, next: NextFunction) => {
+    optionalAuth(req, res, next);
+  },
+  async (req: Request, res: Response, next: NextFunction) => {
   try {
     await ProductController.getProduct(req, res, next);
   } catch (error) {
@@ -361,8 +383,18 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+// Get product variant dimensions
+router.get("/:id/variants", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await ProductController.getVariantDimensions(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get(
   "/slug/:slug",
+  optionalAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await ProductController.getProductBySlug(req, res, next);
@@ -379,7 +411,7 @@ router.delete(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -397,7 +429,7 @@ router.patch(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -415,7 +447,7 @@ router.post(
     verifyToken(req, res, next);
   },
   (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
+    authorizeRole(["user", "admin"])(req, res, next);
   },
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -427,58 +459,58 @@ router.post(
 );
 
 // Bulk update variants
-router.patch(
-  "/:id/variants/bulk",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.bulkUpdateVariants(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// router.patch(
+//   "/:id/variants/bulk",
+//   (req: Request, res: Response, next: NextFunction) => {
+//     verifyToken(req, res, next);
+//   },
+//   (req: Request, res: Response, next: NextFunction) => {
+//     authorizeRole(["business", "admin"])(req, res, next);
+//   },
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.bulkUpdateVariants(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
-// Get inventory history
-router.get(
-  "/:id/inventory/history",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.getInventoryHistory(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// // Get inventory history
+// router.get(
+//   "/:id/inventory/history",
+//   (req: Request, res: Response, next: NextFunction) => {
+//     verifyToken(req, res, next);
+//   },
+//   (req: Request, res: Response, next: NextFunction) => {
+//     authorizeRole(["business", "admin"])(req, res, next);
+//   },
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.getInventoryHistory(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
-// Get reorder alerts
-router.get(
-  "/inventory/reorder-alerts",
-  (req: Request, res: Response, next: NextFunction) => {
-    verifyToken(req, res, next);
-  },
-  (req: Request, res: Response, next: NextFunction) => {
-    authorizeRole(["business", "admin"])(req, res, next);
-  },
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await ProductController.getReorderAlerts(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+// // Get reorder alerts
+// router.get(
+//   "/inventory/reorder-alerts",
+//   (req: Request, res: Response, next: NextFunction) => {
+//     verifyToken(req, res, next);
+//   },
+//   (req: Request, res: Response, next: NextFunction) => {
+//     authorizeRole(["business", "admin"])(req, res, next);
+//   },
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       await ProductController.getReorderAlerts(req, res, next);
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
 // Cart Routes
 router.get(
@@ -630,7 +662,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
-  authorizeRole(["business"]),
+  authorizeRole(["user"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await makeCounterOffer(req, res, next);
@@ -645,7 +677,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
-  authorizeRole(["business"]),
+  authorizeRole(["user"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await acceptOffer(req, res, next);
@@ -674,7 +706,7 @@ router.post(
   (req: Request, res: Response, next: NextFunction) => {
     verifyToken(req, res, next);
   },
-  authorizeRole(["business"]),
+  authorizeRole(["user"]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await rejectOffer(req, res, next);
@@ -712,5 +744,22 @@ router.post(
     }
   }
 );
+
+// Get bids for product
+router.get(
+  "/:productId/bids",
+  optionalAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { getBids } = await import("../controllers/product.controller");
+      await getBids(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Relist item for auction
+router.post("/auctions/:productId/relist", verifyToken, authorizeRole(["user"]), relistItemForAuction)
 
 export default router;

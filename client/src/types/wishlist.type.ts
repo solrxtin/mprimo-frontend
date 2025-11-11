@@ -17,7 +17,19 @@ export type WishlistItem = {
 
 export interface WishlistResponse {
   success: boolean;
-  data: {
-    items: WishlistItem[];
-  };
+  data: Wishlist[];
 }
+
+export interface Wishlist  {
+  productId : string,
+    _id?: string;
+
+  name: string,
+  images: string[],
+  price: number,
+  variantId: string,
+  addedAt: string
+    priceWhenAdded?: number;
+
+            
+        }

@@ -1,5 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { IWallet } from "../models/wallet.model";
+import { IUser } from "./user.type";
 
 interface Subscription {
   currentPlan: Types.ObjectId;
@@ -28,11 +29,11 @@ export interface IVendor {
   kycStatus: "pending" | "verified" | "rejected";
   verificationDocuments: VerificationDocument[];
   stripeAccountId?: string;
-  stripeVerificationStatus: "pending" | "verified" | "rejected";
+  stripeVerificationStatus: string;
   businessInfo?: {
     name: string;
-    registrationnumber: string;
-    taxId: string;
+    registrationnumber?: string;
+    taxId?: string;
     address: {
       street: string;
       city: string;

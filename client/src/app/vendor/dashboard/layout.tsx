@@ -6,6 +6,10 @@ import { useUserStore } from "@/stores/useUserStore";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import LogoutModal from "@/components/users/LogOutPromptModal";
+import { useLogoutUser } from "@/hooks/mutations";
+import { toastConfigError } from "@/app/config/toast.config";
+import { resetAllStores } from "@/stores/resetStore";
 
 export default function DashboardLayout({
   children,
@@ -14,9 +18,11 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const { user } = useUserStore();
-  const router = useRouter()
+  const router = useRouter();
+  const logoutMutation = useLogoutUser();
 
   useEffect(() => {
     // Check if user store has been initialized
@@ -37,18 +43,19 @@ export default function DashboardLayout({
     // Only redirect if we're not loading
     if (!isLoading) {
       if (!user) {
-        window.location.href = "/login";
+        window.location.href = "/home";
       }
       //  else if (user.role === "personal" && !user.canMakeSales) {
       //   toast.error("You don't have permission to access this page. Please upgrade your account");
       //   router.push("/");
-      // } 
-      else if ((user.role === "business" || user.role === "personal") && user.canMakeSales) {
-        toast.error("You don't have permission to access this page. Please upgrade your account");
-        router.push("/vendor/dashboard");
-      }
+      // }
+      // else if (user.role === "business" && user.canMakeSales) {
+      //   // console.log("uesr", user)
+      //   // toast.error("You don't have permission to access this page. Please upgrade your account");
+      //   router.push("/vendor/dashboard");
+      // }
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, router]);
 
   // Show nothing while loading
   if (isLoading) {
@@ -61,18 +68,54 @@ export default function DashboardLayout({
   }
 
   if (user && user.role === "personal" && !user.canMakeSales) {
-    return null;
+    toast.error(
+      "You don't have permission to access this page. Please upgrade your account"
+    );
+    router.push("/home");
   }
+
+  const closeLogoutModal = () => {
+    setIsLogoutModalOpen(false);
+  };
+
+  const openLogoutModal = () => {
+    setIsLogoutModalOpen(true);
+  };
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        // useUserStore.getState().resetStore();
+        resetAllStores();
+
+        router.push("/home");
+      },
+      onError: (error) => {
+        console.error("Logout failed:", error);
+        toast.error(error.message, toastConfigError);
+      },
+    });
+  };
 
   return (
     <div className="flex flex-col h-screen">
       <NotificationProvider>
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            openLogoutModal={() => openLogoutModal()}
+          />
           <div className="flex-1 overflow-auto">
             <Header onOpenSidebar={() => setSidebarOpen(true)} />
             <main>{children}</main>
           </div>
+
+          <LogoutModal
+            isOpen={isLogoutModalOpen}
+            onClose={closeLogoutModal}
+            logout={handleLogout}
+            isLoading={logoutMutation.isPending}
+          />
         </div>
       </NotificationProvider>
     </div>
