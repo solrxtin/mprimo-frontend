@@ -262,13 +262,9 @@ export const useCartStore = create<CartState>()(
       loadCart: async () => {
         const isLoggedIn = !!useUserStore.getState().user;
         if (!isLoggedIn) {
-          // For guest users, just calculate summary from existing items
           get().calculateSummary();
           return;
         }
-
-        const { isLoading } = get();
-        if (isLoading) return; // Prevent multiple simultaneous requests
 
         set({ isLoading: true, error: null });
 
@@ -298,8 +294,8 @@ export const useCartStore = create<CartState>()(
           const summary = calculateCartSummary(items);
           set({ items, summary });
         } catch (error) {
-          // Don't set error for guest users or auth failures
-          console.warn('Failed to load cart:', error);
+          console.error('Failed to load cart:', error);
+          set({ error: error instanceof Error ? error.message : 'Failed to load cart' });
         } finally {
           set({ isLoading: false });
         }
@@ -376,6 +372,11 @@ export const useCartStore = create<CartState>()(
         items: state.items,
         summary: state.summary,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          console.log('Cart rehydrated:', state.summary);
+        }
+      },
     }
   )
 );

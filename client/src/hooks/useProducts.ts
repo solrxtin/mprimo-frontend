@@ -75,3 +75,46 @@ export const useCategoryTree = (parentId?: string) => {
     retry: 1,
   });
 };
+
+interface CategoryProductFilters {
+  categoryId: string;
+  subCategory1?: string;
+  subCategory2?: string;
+  subCategory3?: string;
+  subCategory4?: string;
+  brand?: string;
+  priceRange?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
+
+const fetchProductsByCategory = async (filters: CategoryProductFilters) => {
+  const { categoryId, ...params } = filters;
+  const queryParams = new URLSearchParams();
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      queryParams.append(key, value.toString());
+    }
+  });
+  
+  const queryString = queryParams.toString();
+  const url = `${API_BASE_URL}/products/categories/${categoryId}${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('Failed to fetch products by category');
+  }
+  return response.json();
+};
+
+export const useProductsByCategory = (filters: CategoryProductFilters) => {
+  return useQuery({
+    queryKey: ['productsByCategory', filters],
+    queryFn: () => fetchProductsByCategory(filters),
+    enabled: !!filters.categoryId,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+};

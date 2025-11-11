@@ -46,6 +46,11 @@ const Header = (props: Props) => {
           <Search className={`text-gray-700 ${!showSearch ? "block" : "hidden"}`} size={18} />
           <X className={`text-red-700 ${showSearch ? "block" : "hidden"}`} size={18} strokeWidth={4} />
         </button>
+        {vendor?.kycStatus === "pending" && (
+          <div className="text-xs font-[family-name:var(--font-alexandria)] bg-[#f1f1f1] text-[#5187f6] px-2 py-1 rounded-md">
+            Unverified 
+          </div>
+        )}
         <NotificationBell />
         <div className="text-gray-600 hidden lg:block font-[family-name:var(--font-alexandria)]">{vendor?.businessInfo?.name}</div>
         <div className="h-8 w-8 overflow-hidden rounded-full">

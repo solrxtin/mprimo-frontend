@@ -14,6 +14,7 @@ import { Loader2, Package, Truck, CheckCircle, XCircle, MapPin, Calendar, Credit
 import { format } from "date-fns"
 
 const getStatusColor = (status: string) => {
+  if (!status) return "bg-gray-100 text-gray-800";
   switch (status.toLowerCase()) {
     case "delivered":
       return "bg-green-100 text-green-800"
@@ -32,6 +33,7 @@ const getStatusColor = (status: string) => {
 }
 
 const getStatusIcon = (status: string) => {
+  if (!status) return <Package className="w-4 h-4" />;
   switch (status.toLowerCase()) {
     case "delivered":
       return <CheckCircle className="w-4 h-4" />
@@ -104,7 +106,7 @@ export default function OrderDetailsPage() {
     )
   }
 
-  if (error || !orderData?.data) {
+  if (error || !orderData?.order) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -117,7 +119,7 @@ export default function OrderDetailsPage() {
     )
   }
 
-  const order = orderData.data
+  const order = orderData.order
 
   return (
     <div className="min-h-screen bg-gray-50 body-padding">
@@ -136,9 +138,9 @@ export default function OrderDetailsPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl">Order #{order._id.slice(-8)}</CardTitle>
+                    <CardTitle className="text-xl">Order #{order._id?.slice(-8) || 'N/A'}</CardTitle>
                     <p className="text-gray-600 mt-1">
-                      Placed on {format(new Date(order.createdAt), 'MMMM dd, yyyy')}
+                      Placed on {order.createdAt ? format(new Date(order.createdAt), 'MMMM dd, yyyy') : 'N/A'}
                     </p>
                   </div>
                   <Badge className={getStatusColor(order.status)}>
@@ -158,7 +160,7 @@ export default function OrderDetailsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {order.items.map((item: any, index: number) => (
+                  {order.items?.map((item: any, index: number) => (
                     <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
                       <Image
                         src={item.productId?.images?.[0] || "/placeholder.svg"}
@@ -170,10 +172,10 @@ export default function OrderDetailsPage() {
                       <div className="flex-1">
                         <h3 className="font-medium">{item.productId?.name}</h3>
                         <p className="text-gray-600">Quantity: {item.quantity}</p>
-                        <p className="text-blue-600 font-medium">₦{item.price?.toLocaleString()}</p>
+                        <p className="text-blue-600 font-medium">${item.price?.toFixed(2) || '0.00'}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">₦{(item.price * item.quantity)?.toLocaleString()}</p>
+                        <p className="font-medium">${(item.price * item.quantity)?.toFixed(2) || '0.00'}</p>
                       </div>
                     </div>
                   ))}
@@ -196,7 +198,7 @@ export default function OrderDetailsPage() {
                     <div>
                       <p className="font-medium">Delivery Address</p>
                       <p className="text-gray-600">
-                        {order.shipping?.address?.homeAddress}<br />
+                        {order.shipping?.address?.street || order.shipping?.address?.homeAddress}<br />
                         {order.shipping?.address?.state}, {order.shipping?.address?.country}<br />
                         {order.shipping?.address?.postalCode}
                       </p>
@@ -319,20 +321,11 @@ export default function OrderDetailsPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>₦{order.items?.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)?.toLocaleString()}</span>
+                    <span>${order.items?.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)?.toFixed(2) || '0.00'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Shipping:</span>
-                    <span>₦50,000</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Tax:</span>
-                    <span>₦5,000</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-bold text-lg">
                     <span>Total:</span>
-                    <span>₦{(order.items?.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0) + 55000)?.toLocaleString()}</span>
+                    <span className="font-bold">${order.paymentId?.amount || order.items?.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)?.toFixed(2) || '0.00'}</span>
                   </div>
                 </div>
 
@@ -347,7 +340,7 @@ export default function OrderDetailsPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Payment ID:</span>
-                      <span className="text-blue-600">#{order.paymentId?.slice(-8)}</span>
+                      <span className="text-blue-600">#{order.paymentId?._id?.slice(-8) || order.paymentId?.slice?.(-8) || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Status:</span>

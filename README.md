@@ -206,3 +206,7 @@ Images: JPEG, PNG, GIF (5MB limit)
 Videos: MP4, MOV, AVI (50MB limit)
 
 Documents: PDF, DOC, DOCX, XLS, XLSX, TXT (10MB limit)
+
+## TODOS
+
+- Controollers for removing of activities and clearing of activities 

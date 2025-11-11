@@ -43,6 +43,7 @@ export const ProductCard = ({
 }) => {
   const [isLiked, setIsLiked] = useState(false);
 
+
   return (
     <Link
       href={{
@@ -105,20 +106,20 @@ export const ProductCard = ({
           )}
 
           <h3
-            className={`font-semibold text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors ${
+            className={`font-semibold text-gray-800 truncate group-hover:text-blue-600 transition-colors  ${
               isLarge
                 ? "text-sm mg:text-lg mb-2 sm:mb-4"
-                : "text-sm sm:text-base"
+                : "text-sm sm:text-base mb-1"
             }`}
           >
-            {product?.name}{" "}
-            {!isLarge && (
-              <span className={`text-xs pl-1 text-gray-400 font-normal  `}>
-                {product?.condition}
-              </span>
-            )}
+            {product?.name}
           </h3>
-          <p className="text-gray-600 text-[8px] mt-1 sm:text-sm leading-tight mb-3 sm:mb-4 hidden sm:block">
+          {!isLarge && (
+            <span className="text-xs text-gray-400 font-normal block mb-2">
+              {product?.condition}
+            </span>
+          )}
+          <p className="text-gray-600 text-[8px] mt-1 sm:text-sm leading-tight mb-3 sm:mb-4 hidden sm:block overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
             {product.description}
           </p>
 

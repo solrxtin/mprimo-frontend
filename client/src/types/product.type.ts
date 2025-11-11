@@ -354,4 +354,5 @@ export interface CartSummary {
   total: number;
   totalItems: number;
   totalQuantity: number;
+  validationData?: any;
 }

@@ -17,8 +17,8 @@ export const useCreateOrder = () => {
 
 export const useCreatePaymentIntent = () => {
   return useMutation({
-    mutationFn: ({ amount, currency }: { amount: number; currency?: string }) =>
-      checkoutService.createPaymentIntent(amount, currency),
+    mutationFn: (data: { items: any[], paymentMethod: string, tokenType?: string }) =>
+      checkoutService.createPaymentIntent(data),
     onError: (error: any) => {
       toast.error(error.message || 'Failed to create payment intent');
     },

@@ -21,50 +21,97 @@ import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
 import { useCreateOrder, useCreatePaymentIntent, useValidateCart } from "@/hooks/useCheckout";
+import { useAddAddress } from "@/hooks/useAddress";
+import { useCountries } from "@/hooks/useCountries";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import StripePaymentForm from "@/components/StripePaymentForm";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 import { toast } from "react-hot-toast";
+import { useUserStore } from "@/stores/useUserStore";
 
 export default function CheckoutPage() {
-  const [paymentMethod, setPaymentMethod] = useState("bank-transfer");
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    email: "",
-    country: "",
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentCategory, setPaymentCategory] = useState<"fiat" | "crypto" | "">("");
+  const [fiatProvider, setFiatProvider] = useState("");
+  const [sameAsShipping, setSameAsShipping] = useState(false);
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState({
+    type: "shipping" as const,
+    street: "",
+    city: "",
     state: "",
+    country: "",
     postalCode: "",
-    homeAddress: "",
+    isDefault: false,
+  });
+  const [showSuccess, setShowSuccess] = useState(false);
+  const { user } = useUserStore();
+  const billingAddress = user?.addresses?.find(addr => addr.type === "billing");
+  
+  const [formData, setFormData] = useState({
+    firstName: user?.profile?.firstName || "",
+    middleName: "",
+    lastName: user?.profile?.lastName || "",
+    email: user?.email || "",
+    address: {
+      type: "billing" as const,
+      street: billingAddress?.street || "",
+      city: billingAddress?.city || "",
+      state: billingAddress?.state || "",
+      country: billingAddress?.country || "",
+      postalCode: billingAddress?.postalCode || "",
+      isDefault: true,
+    },
   });
 
   const { items: cartItems, summary: cartSummary, clearCart } = useCartStore();
+  const { refetch: validateCart, data: validationData, isLoading: isValidating } = useValidateCart();
   const createOrderMutation = useCreateOrder();
   const createPaymentIntentMutation = useCreatePaymentIntent();
- 
+  const addAddressMutation = useAddAddress();
+  const { data: countries = [] } = useCountries();
 
-  const subtotal = cartSummary.subtotal;
-  const shipping = 50000;
-  const discount = 5000;
-  const tax = 5000;
-  const total = subtotal + shipping - discount + tax;
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      validateCart();
+    }
+  }, []);
+
+  const checkout = validationData?.checkout;
+  const subtotal = checkout?.pricing?.subtotal || 0;
+  const shipping = checkout?.pricing?.shipping || 0;
+  const tax = checkout?.pricing?.tax || 0;
+  const total = checkout?.pricing?.total || 0;
+  const currency = checkout?.pricing?.currency || "USD";
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [paymentIntentData, setPaymentIntentData] = useState<any>(null);
+  const [showPaymentUI, setShowPaymentUI] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handlePlaceOrder = async () => {
+  const handleProceedToPayment = async () => {
     // Validate form
     if (
       !formData.firstName ||
       !formData.lastName ||
       !formData.email ||
-      !formData.country ||
-      !formData.homeAddress
+      !formData.address.country ||
+      !formData.address.street ||
+      !formData.address.city ||
+      !formData.address.postalCode
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (!paymentMethod) {
+      toast.error("Please select a payment method");
       return;
     }
 
@@ -76,61 +123,114 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     try {
-      // Prepare order data
-      const validatedItems = cartItems.map((item) => ({
-        productId: item.product._id!,
-        quantity: item.quantity,
-        price: Number(item.selectedVariant?.price ?? item.product.price ?? 0),
-        variantId: item.selectedVariant?.optionId,
-      }));
-
-      const orderData = {
-        validatedItems,
-        pricing: {
-          subtotal,
-          shipping,
-          tax,
-          discount,
-          total,
-          currency: "NGN",
-        },
-        paymentData: {
-          type: paymentMethod as "stripe" | "crypto" | "bank-transfer",
-          amount: total,
-        },
-        address: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          country: formData.country,
-          state: formData.state,
-          postalCode: formData.postalCode,
-          homeAddress: formData.homeAddress,
-          isDefault: true,
-        },
-      };
-
-      // Handle different payment methods
-      if (paymentMethod === "stripe") {
-        // Create payment intent first
-        const paymentIntent = await createPaymentIntentMutation.mutateAsync({
-          amount: total,
-          currency: "ngn",
+      // Only add addresses if user has no addresses yet
+      if (!user?.addresses?.length) {
+        console.log('Step 1: Saving billing address...');
+        await addAddressMutation.mutateAsync({
+          address: formData.address,
+          duplicateForShipping: sameAsShipping
         });
-        // orderData.paymentData.paymentIntentId = paymentIntent.data.id;
+        console.log('Step 1: Billing address saved');
+
+        // Save shipping address if different
+        if (!sameAsShipping && shippingAddress.street) {
+          console.log('Step 2: Saving shipping address...');
+          await addAddressMutation.mutateAsync({
+            address: shippingAddress
+          });
+          console.log('Step 2: Shipping address saved');
+        }
       }
 
-      // Create order
-      const result = await createOrderMutation.mutateAsync(orderData);
+      const items = checkout?.items?.map((item: any) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        variantId: item.variantId,
+        price: item.price,
+      })) || [];
 
-      if (result.success) {
-        setOrderId(result.data._id);
+      let paymentData: any = {
+        type: paymentCategory,
+        amount: total,
+      };
+
+      if (paymentCategory === 'fiat') {
+        console.log('Step 3: Creating fiat payment intent...');
+        const response: any = await createPaymentIntentMutation.mutateAsync({
+          items,
+          paymentMethod: fiatProvider || 'stripe',
+        });
+        console.log('Step 3: Payment intent response:', response);
+        
+        if (response.success) {
+          // Store payment intent data and show payment UI
+          setPaymentIntentData({
+            clientSecret: response.paymentData.clientSecret,
+            paymentIntentId: response.paymentData.paymentIntentId,
+            provider: fiatProvider,
+            items,
+            pricing: { subtotal, shipping, tax, total, currency },
+          });
+          setShowPaymentUI(true);
+        }
+      } else if (paymentCategory === 'crypto') {
+        console.log('Step 3: Creating crypto payment intent...');
+        const response: any = await createPaymentIntentMutation.mutateAsync({
+          items,
+          paymentMethod: 'crypto',
+          tokenType: 'USDC',
+        });
+        console.log('Step 3: Payment intent response:', response);
+        
+        if (response.success) {
+          // For crypto, proceed directly to order creation after wallet confirmation
+          await handleCreateOrder({
+            ...response.paymentData,
+            type: 'crypto',
+            items,
+            pricing: { subtotal, shipping, tax, total, currency },
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error("Payment setup failed:", error);
+      toast.error(error.message || "Failed to setup payment");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCreateOrder = async (paymentData: any) => {
+    setIsProcessing(true);
+    try {
+      const orderData = {
+        validatedItems: paymentData.items,
+        pricing: paymentData.pricing,
+        paymentData: {
+          type: paymentData.type,
+          paymentIntentId: paymentData.paymentIntentId,
+          provider: paymentData.provider,
+        },
+        address: formData.address,
+      };
+
+      console.log('Creating order after payment...', orderData);
+      const result: any = await createOrderMutation.mutateAsync(orderData);
+      console.log('Order created:', result);
+
+      if (result.order || result.data) {
+        const order = result.order || result.data;
+        setOrderId(order._id || order.id);
         await clearCart();
+        // Refresh user data to update order history
+        const { useUserStore } = await import('@/stores/useUserStore');
+        await useUserStore.getState().refreshUser();
+        setShowPaymentUI(false);
         setShowSuccess(true);
       }
     } catch (error: any) {
       console.error("Order creation failed:", error);
-      toast.error(error.message || "Failed to place order");
+      toast.error(error.message || "Failed to create order");
     } finally {
       setIsProcessing(false);
     }
@@ -153,13 +253,25 @@ export default function CheckoutPage() {
     }
   };
 
-  const paymentMethods = [
-    { id: "bank-transfer", name: "Bank Transfer", icon: "🏦" },
-    { id: "card", name: "Card Payment", icon: "💳" },
-    { id: "wallet", name: "Wallet", icon: "🔴" },
-    { id: "crypto", name: "Crypto", icon: "₿" },
-    { id: "applepay", name: "ApplePay", icon: "🍎" },
+  const paymentCategories = [
+    { id: 'fiat', name: 'Fiat Currency', icon: '💳' },
+    { id: 'crypto', name: 'Cryptocurrency', icon: '₿' },
   ];
+
+  const getProviderByCurrency = (currency: string): string => {
+    const curr = currency.toLowerCase();
+    if (['usd', 'eur', 'cad', 'gbp'].includes(curr)) return 'stripe';
+    if (['ngn', 'zar'].includes(curr)) return 'paystack';
+    if (curr === 'cny') return 'airwallex';
+    return 'stripe';
+  };
+
+  useEffect(() => {
+    if (currency && paymentCategory === 'fiat') {
+      const provider = getProviderByCurrency(currency);
+      setFiatProvider(provider);
+    }
+  }, [currency, paymentCategory]);
 
   return (
     <>
@@ -245,18 +357,23 @@ export default function CheckoutPage() {
                     <div>
                       <Label htmlFor="country">Country</Label>
                       <Select
-                        value={formData.country}
+                        value={formData.address.country}
                         onValueChange={(value) =>
-                          handleInputChange("country", value)
+                          setFormData(prev => ({
+                            ...prev,
+                            address: { ...prev.address, country: value }
+                          }))
                         }
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Choose your country" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="nigeria">Nigeria</SelectItem>
-                          <SelectItem value="ghana">Ghana</SelectItem>
-                          <SelectItem value="kenya">Kenya</SelectItem>
+                          {countries.map((country: any) => (
+                            <SelectItem key={country._id} value={country.name}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -265,9 +382,12 @@ export default function CheckoutPage() {
                       <Input
                         id="state"
                         placeholder="Enter your State"
-                        value={formData.state}
+                        value={formData.address.state}
                         onChange={(e) =>
-                          handleInputChange("state", e.target.value)
+                          setFormData(prev => ({
+                            ...prev,
+                            address: { ...prev.address, state: e.target.value }
+                          }))
                         }
                         className="mt-1"
                       />
@@ -277,28 +397,79 @@ export default function CheckoutPage() {
                       <Input
                         id="postalCode"
                         placeholder="Enter your Postal Code"
-                        value={formData.postalCode}
+                        value={formData.address.postalCode}
                         onChange={(e) =>
-                          handleInputChange("postalCode", e.target.value)
+                          setFormData(prev => ({
+                            ...prev,
+                            address: { ...prev.address, postalCode: e.target.value }
+                          }))
                         }
                         className="mt-1"
                       />
                     </div>
                   </div>
 
-                  {/* Home Address */}
-                  <div>
-                    <Label htmlFor="homeAddress">Home Address</Label>
-                    <Input
-                      id="homeAddress"
-                      placeholder="Input your home address"
-                      value={formData.homeAddress}
-                      onChange={(e) =>
-                        handleInputChange("homeAddress", e.target.value)
-                      }
-                      className="mt-1"
-                    />
+                  {/* Street Address and City */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="street">Street Address</Label>
+                      <Input
+                        id="street"
+                        placeholder="Enter your street address"
+                        value={formData.address.street}
+                        onChange={(e) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            address: { ...prev.address, street: e.target.value }
+                          }))
+                        }
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        placeholder="Enter your city"
+                        value={formData.address.city}
+                        onChange={(e) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            address: { ...prev.address, city: e.target.value }
+                          }))
+                        }
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
+
+                  {/* Same as Shipping Checkbox */}
+                  {!user?.addresses?.length && (
+                    <div className="mt-6">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="sameAsShipping"
+                          checked={sameAsShipping}
+                          onChange={(e) => setSameAsShipping(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <Label htmlFor="sameAsShipping" className="cursor-pointer">
+                          Billing address is the same as shipping address
+                        </Label>
+                      </div>
+                      {!sameAsShipping && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowShippingModal(true)}
+                          className="mt-4"
+                        >
+                          Add Shipping Address
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Payment Method */}
@@ -309,30 +480,45 @@ export default function CheckoutPage() {
                   </p>
 
                   <RadioGroup
-                    value={paymentMethod}
-                    onValueChange={setPaymentMethod}
+                    value={paymentCategory}
+                    onValueChange={(value: any) => {
+                      setPaymentCategory(value);
+                      setPaymentMethod(value);
+                      if (value === 'fiat') {
+                        const provider = getProviderByCurrency(currency);
+                        setFiatProvider(provider);
+                      }
+                    }}
                   >
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                      {paymentMethods.map((method) => (
-                        <div key={method.id}>
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      {paymentCategories.map((category) => (
+                        <div key={category.id}>
                           <RadioGroupItem
-                            value={method.id}
-                            id={method.id}
+                            value={category.id}
+                            id={category.id}
                             className="peer sr-only"
                           />
                           <Label
-                            htmlFor={method.id}
+                            htmlFor={category.id}
                             className="flex flex-col items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 peer-checked:border-blue-500 peer-checked:bg-blue-50"
                           >
-                            <div className="text-2xl mb-2">{method.icon}</div>
+                            <div className="text-2xl mb-2">{category.icon}</div>
                             <span className="text-sm font-medium text-center">
-                              {method.name}
+                              {category.name}
                             </span>
                           </Label>
                         </div>
                       ))}
                     </div>
                   </RadioGroup>
+
+                  {paymentCategory === 'fiat' && fiatProvider && (
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-gray-700">
+                        Payment provider: <span className="font-semibold capitalize">{fiatProvider}</span>
+                      </p>
+                    </div>
+                  )}
 
                   {/* Bank Transfer Details */}
                   {paymentMethod === "bank-transfer" && (
@@ -410,66 +596,66 @@ export default function CheckoutPage() {
                 <CardContent className="p-6">
                   <h3 className="font-bold text-lg mb-4">Order Summary</h3>
 
-                  {/* Order Items */}
-                  <div className="space-y-4 mb-6">
-                    {cartItems.map((item) => (
-                      <div
-                        key={
-                          item.product._id +
-                          (item.selectedVariant?.optionId || "")
-                        }
-                        className="flex items-center space-x-3"
-                      >
-                        <Image
-                          src={item.product.images[0] || "/placeholder.svg"}
-                          alt={item.product.name}
-                          width={40}
-                          height={40}
-                          className="rounded object-cover"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-tight">
-                            {item.product.name}
-                          </p>
-                          <p className="text-xs text-blue-600">
-                            {item.quantity} x ₦{" "}
-                            {item.selectedVariant?.price.toLocaleString()}
-                          </p>
+                  {isValidating ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Order Items */}
+                      <div className="space-y-4 mb-6">
+                        {checkout?.items?.map((item: any) => (
+                          <div
+                            key={item.productId + (item.variantId || "")}
+                            className="flex items-center space-x-3"
+                          >
+                            <Image
+                              src={item.productImage || "/placeholder.svg"}
+                              alt={item.productName}
+                              width={40}
+                              height={40}
+                              className="rounded object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium leading-tight">
+                                {item.productName}
+                              </p>
+                              <p className="text-xs text-blue-600">
+                                {item.quantity} x {currency} {item.price.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Order Totals */}
+                      <div className="space-y-3 border-t pt-4">
+                        <div className="flex justify-between">
+                          <span>Sub Total:</span>
+                          <span>{currency} {subtotal.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Shipping:</span>
+                          <span>{currency} {shipping.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Tax:</span>
+                          <span>{currency} {tax.toLocaleString()}</span>
+                        </div>
+                        <hr />
+                        <div className="flex justify-between font-bold text-lg">
+                          <span>TOTAL:</span>
+                          <span>{currency} {total.toLocaleString()}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Order Totals */}
-                  <div className="space-y-3 border-t pt-4">
-                    <div className="flex justify-between">
-                      <span>Sub Total:</span>
-                      <span>₦ {subtotal.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Shipping:</span>
-                      <span>₦ {shipping.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Discount:</span>
-                      <span>₦ {discount.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tax:</span>
-                      <span>₦ {tax.toLocaleString()}</span>
-                    </div>
-                    <hr />
-                    <div className="flex justify-between font-bold text-lg">
-                      <span>TOTAL:</span>
-                      <span>₦ {total.toLocaleString()}</span>
-                    </div>
-                  </div>
+                    </>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="space-y-3 mt-6">
                     <Button
                       className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={handlePlaceOrder}
+                      onClick={handleProceedToPayment}
                       disabled={isProcessing || cartItems.length === 0}
                     >
                       {isProcessing ? (
@@ -478,7 +664,7 @@ export default function CheckoutPage() {
                           Processing...
                         </>
                       ) : (
-                        "Place Order"
+                        "Proceed to Payment"
                       )}
                     </Button>
                     <Button
@@ -508,24 +694,133 @@ export default function CheckoutPage() {
                   check progress
                 </p>
                 <div className="space-y-3 w-full">
-                  <Link
-                    href={`/home/user/orders${
-                      orderId ? `?orderId=${orderId}` : ""
-                    }`}
+                  <Button 
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    onClick={() => router.push('/home/user/orders')}
                   >
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                      Track Order
+                    View Orders
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
+                    onClick={() => router.push('/home')}
+                  >
+                    Continue Shopping
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Shipping Address Modal */}
+          <Dialog open={showShippingModal} onOpenChange={setShowShippingModal}>
+            <DialogContent className="sm:max-w-md">
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-4">Add Shipping Address</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="shipStreet">Street Address</Label>
+                    <Input
+                      id="shipStreet"
+                      value={shippingAddress.street}
+                      onChange={(e) => setShippingAddress(prev => ({ ...prev, street: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="shipCity">City</Label>
+                      <Input
+                        id="shipCity"
+                        value={shippingAddress.city}
+                        onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="shipState">State</Label>
+                      <Input
+                        id="shipState"
+                        value={shippingAddress.state}
+                        onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="shipCountry">Country</Label>
+                      <Select
+                        value={shippingAddress.country}
+                        onValueChange={(value) => setShippingAddress(prev => ({ ...prev, country: value }))}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Choose country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countries.map((country: any) => (
+                            <SelectItem key={country._id} value={country.name}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="shipPostal">Postal Code</Label>
+                      <Input
+                        id="shipPostal"
+                        value={shippingAddress.postalCode}
+                        onChange={(e) => setShippingAddress(prev => ({ ...prev, postalCode: e.target.value }))}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-6">
+                    <Button
+                      onClick={() => setShowShippingModal(false)}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      Save Address
                     </Button>
-                  </Link>
-                  <Link href="/home">
                     <Button
                       variant="outline"
-                      className="w-full bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
+                      onClick={() => setShowShippingModal(false)}
+                      className="flex-1"
                     >
-                      Continue Shopping
+                      Cancel
                     </Button>
-                  </Link>
+                  </div>
                 </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Stripe Payment Modal */}
+          <Dialog open={showPaymentUI} onOpenChange={setShowPaymentUI}>
+            <DialogContent className="sm:max-w-md">
+              <div className="p-6">
+                <h3 className="text-xl font-bold mb-6">Complete Payment</h3>
+                {paymentIntentData?.clientSecret && (
+                  <Elements stripe={stripePromise}>
+                    <StripePaymentForm
+                      clientSecret={paymentIntentData.clientSecret}
+                      amount={paymentIntentData.pricing.total}
+                      currency={paymentIntentData.pricing.currency}
+                      onSuccess={(paymentIntentId) => {
+                        handleCreateOrder({
+                          ...paymentIntentData,
+                          type: 'fiat',
+                          paymentIntentId,
+                        });
+                      }}
+                      onCancel={() => {
+                        setShowPaymentUI(false);
+                        setIsProcessing(false);
+                      }}
+                    />
+                  </Elements>
+                )}
               </div>
             </DialogContent>
           </Dialog>

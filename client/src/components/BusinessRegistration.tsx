@@ -7,6 +7,7 @@ import countries from "world-countries";
 import { toast } from "react-toastify";
 import { toastConfigError, toastConfigSuccess } from "@/app/config/toast.config";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 type Props = {};
 type Option = {
@@ -38,6 +39,8 @@ const BusinessRegistration = (props: Props) => {
     state: "",
     postalCode: "",
   });
+
+  const router = useRouter();
 
   const handleChange = (value: SingleValue<Option>) => {
     setSelected(value);
@@ -132,10 +135,11 @@ const BusinessRegistration = (props: Props) => {
         toast.success("Registration successful!", toastConfigSuccess);
         
         // Redirect to Stripe verification if onboarding link is provided
-        if (data.onboardingLink) {
-          window.location.href = data.onboardingLink;
+        if (data.accountId && data.stripeVerificationDetails) {
+          localStorage.setItem("account", JSON.stringify(data.stripeVerificationDetails))
+          router.push(`/vendor/verification/${data.accountId}`)
         } else {
-          // Fallback to login page if no onboarding link
+          // Fallback to login
           window.location.href = "/login";
         }
       } else {

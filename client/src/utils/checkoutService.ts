@@ -33,47 +33,34 @@ export interface CheckoutData {
   validatedItems: Array<{
     productId: string;
     quantity: number;
-    price: number;
+    price?: number;
     variantId?: string;
   }>;
   pricing: {
     subtotal: number;
     shipping: number;
     tax: number;
-    discount: number;
     total: number;
     currency: string;
   };
-  paymentData: {
-    type: 'stripe' | 'crypto' | 'bank-transfer';
-    paymentIntentId?: string;
-    tokenType?: string;
-    amount?: number;
-  };
-  address: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    country: string;
-    state: string;
-    postalCode: string;
-    homeAddress: string;
-    isDefault?: boolean;
-  };
+  paymentData: any;
+  address: any;
 }
 
 export const checkoutService = {
   async createOrder(data: CheckoutData) {
-    return fetchWithAuth('/api/v1/orders/make-order', {
+    const response = await fetchWithAuth('http://localhost:5800/api/v1/orders', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    return response.json();
   },
-  async createPaymentIntent(amount: number, currency: string = 'usd') {
-    return fetchWithAuth('/api/v1/payments/create-intent', {
+  async createPaymentIntent(data: { items: any[], paymentMethod: string, tokenType?: string }) {
+    const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/payment-intent', {
       method: 'POST',
-      body: JSON.stringify({ amount, currency }),
+      body: JSON.stringify(data),
     });
+    return response.json();
   },
 
   // : Promise<CartValidationResponse>
@@ -81,11 +68,12 @@ export const checkoutService = {
     const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/validate', {
       method: 'POST',
     });
-    return response.json();
+    const data = await response.json()
+    return data;
   },
 
   async getShippingRates(address: any) {
-    return fetchWithAuth('/api/v1/checkout/shipping-rates', {
+    return fetchWithAuth('http://localhost:5800/api/v1/checkout/shipping-rates', {
       method: 'POST',
       body: JSON.stringify({ address }),
     });

@@ -35,28 +35,37 @@ export const orderService = {
       ...(status && { status })
     });
     
-    return fetchWithAuth(`/api/v1/orders?${params}`);
+    const response = await fetchWithAuth(`http://localhost:5800/api/v1/orders/user?${params}`);
+    const data = await response.json();
+    console.log("Fetched user orders:", data);
+    return data
   },
 
   async getOrderById(orderId: string) {
-    return fetchWithAuth(`/api/v1/orders/${orderId}`);
+    const response = await fetchWithAuth(`http://localhost:5800/api/v1/orders/${orderId}`);
+    const data = await response.json();
+    console.log("Fetched order by ID:", data);
+    return data;
   },
 
   async trackOrder(trackingNumber: string) {
-    return fetchWithAuth(`/api/v1/orders/track/${trackingNumber}`);
+    const response = await fetchWithAuth(`http://localhost:5800/api/v1/orders/track/${trackingNumber}`);
+    return response.json();
   },
 
   async cancelOrder(orderId: string, reason?: string) {
-    return fetchWithAuth(`/api/v1/orders/${orderId}/cancel`, {
+    const response = await fetchWithAuth(`http://localhost:5800/api/v1/orders/${orderId}/cancel`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
     });
+    return response.json();
   },
 
   async requestRefund(orderId: string, reason: string, amount?: number) {
-    return fetchWithAuth(`/api/v1/refunds/request`, {
+    const response = await fetchWithAuth(`http://localhost:5800/api/v1/refunds/request`, {
       method: 'POST',
       body: JSON.stringify({ orderId, reason, amount }),
     });
+    return response.json();
   }
 };

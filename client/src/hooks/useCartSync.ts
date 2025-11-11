@@ -8,7 +8,17 @@ export const useCartSync = () => {
   const { syncCartOnLogin, loadCart } = useCartStore();
   const syncedRef = useRef(false);
   const prevUserRef = useRef(user);
+  const initialLoadRef = useRef(false);
 
+  // Load cart on initial mount for logged-in users
+  useEffect(() => {
+    if (isLoggedIn && !initialLoadRef.current) {
+      initialLoadRef.current = true;
+      loadCart().catch(console.warn);
+    }
+  }, [isLoggedIn, loadCart]);
+
+  // Handle user login/logout changes
   useEffect(() => {
     const userChanged = prevUserRef.current !== user;
     prevUserRef.current = user;
@@ -18,6 +28,7 @@ export const useCartSync = () => {
       syncCartOnLogin().catch(console.error);
     } else if (!isLoggedIn && userChanged) {
       syncedRef.current = false;
+      initialLoadRef.current = false;
       loadCart().catch(console.warn);
     }
   }, [user, isLoggedIn, syncCartOnLogin, loadCart]);

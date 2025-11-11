@@ -31,6 +31,9 @@ const BASE_URL = 'http://localhost:5800/api/v1';
 export const cartService = {
   async getCart(): Promise<CartResponse> {
     const response = await fetchWithAuth(`${BASE_URL}/products/cart/user`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch cart: ${response.status} ${response.statusText}`);
+    }
     const data = await response.json();
     return data;
   },
@@ -46,8 +49,8 @@ export const cartService = {
   },
 
   async updateCartItem(productId: string, data: UpdateCartRequest): Promise<CartResponse> {
-    const response = await fetchWithAuth(`${BASE_URL}/products/update-cart/${productId}`, {
-      method: 'PUT',
+    const response = await fetchWithAuth(`${BASE_URL}/products/cart/${productId}`, {
+      method: 'DELETE',
       body: JSON.stringify(data)
     });
     return response.json();
@@ -62,6 +65,9 @@ export const cartService = {
 
   async getCartSummary(): Promise<{ success: boolean; data: { itemsCount: number; totalValue: number } }> {
     const response = await fetchWithAuth(`${BASE_URL}/products/cart-summary`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch cart summary: ${response.status}`);
+    }
     return response.json();
   },
 

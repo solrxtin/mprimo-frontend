@@ -23,12 +23,16 @@ const addressApi = {
     return response.json();
   },
 
-  addAddress: async (address: Omit<Address, '_id'>) => {
+  addAddress: async (data: { address: Omit<Address, '_id'>, duplicateForShipping?: boolean }) => {
     const response = await fetchWithAuth(`${API_BASE}/users/address`, {
       method: 'POST',
-      body: JSON.stringify({ address }),
+      body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Failed to add address');
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('Add address failed:', response.status, text);
+      throw new Error(`Failed to add address: ${response.status}`);
+    }
     return response.json();
   },
 
@@ -62,8 +66,11 @@ export const useAddAddress = () => {
   
   return useMutation({
     mutationFn: addressApi.addAddress,
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      // Refresh user data to update addresses
+      const { useUserStore } = await import('@/stores/useUserStore');
+      await useUserStore.getState().refreshUser();
       toast.success('Address added successfully', toastConfigSuccess);
     },
     onError: () => {
@@ -77,8 +84,11 @@ export const useUpdateAddress = () => {
   
   return useMutation({
     mutationFn: addressApi.updateAddress,
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      // Refresh user data to update addresses
+      const { useUserStore } = await import('@/stores/useUserStore');
+      await useUserStore.getState().refreshUser();
       toast.success('Address updated successfully', toastConfigSuccess);
     },
     onError: () => {

@@ -41,7 +41,7 @@ export function Sidebar() {
   };
 
   const openLogoutModal = () => {
-    setIsLogoutModalOpen(false);
+    setIsLogoutModalOpen(true);
   };
 
   const handleClick = (link: string) => {

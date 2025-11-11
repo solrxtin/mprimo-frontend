@@ -21,9 +21,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
-import ProductCard from "@/components/ProductCard";
-import { useProducts, useCategoryBySlug, useCategoryTree } from "@/hooks/useProducts";
+import { useProducts, useCategoryBySlug, useCategoryTree, useProductsByCategory } from "@/hooks/useProducts";
 import { ProductType } from "@/types/product.type";
+import { ProductCard } from "@/components/Home/ProductCard";
 
 interface FilterState {
   category?: string;
@@ -79,7 +79,7 @@ export default function CategoryPage() {
   // Build product filters
   const productFilters = useMemo(() => {
     const filterParams: any = {
-      category: categoryData?.category?._id,
+      categoryId: categoryData?.category?._id || '',
       page,
       limit: 12,
     };
@@ -110,11 +110,14 @@ export default function CategoryPage() {
   }, [categoryData, filters, selectedPriceRange, page]);
   
   // Fetch products with filters
-  const { data: productsData, isLoading } = useProducts(productFilters);
+  const { data: productsData, isLoading } = useProductsByCategory(productFilters);
+
+  console.log('CategoryPage - productsData:', productsData);
   
   const products = productsData?.products || [];
-  const availableBrands = productsData?.filters?.brands || [];
+  const availableBrands = productsData?.brands || [];
   const subcategories = categoryTree?.categories || [];
+  const pagination = productsData?.pagination || {};
 
   const toggleBrand = (brand: string) => {
     setFilters(prev => ({
@@ -242,7 +245,7 @@ export default function CategoryPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 body-padding">
+    <div className="min-h-screen bg-gray-50 body-padding max-w-7xl mx-auto pb-10">
       {/* Header */}
       <nav className="mt-3">
         <Breadcrumbs
@@ -372,7 +375,7 @@ export default function CategoryPage() {
                   )}
                 </div>
                 <div className="text-sm text-gray-600">
-                  <span className="font-bold">{productsData?.total || 0}</span> Results
+                  <span className="font-bold">{pagination?.total || 0}</span> Results
                 </div>
               </div>
 
@@ -405,47 +408,59 @@ export default function CategoryPage() {
               )}
 
               {/* Pagination */}
-              {productsData?.totalPages > 1 && (
+              {pagination?.pages > 1 && (
                 <div className="flex justify-center items-center space-x-2 mb-8">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    disabled={page === 1}
-                    onClick={() => setPage(page - 1)}
+                    disabled={!pagination?.hasPrev}
+                    onClick={() => {
+                      setPage(page - 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                   >
                     Prev
                   </Button>
-                  {[...Array(Math.min(5, productsData.totalPages))].map((_, i) => {
+                  {[...Array(Math.min(5, pagination.pages))].map((_, i) => {
                     const pageNum = i + 1;
                     return (
                       <Button
                         key={pageNum}
                         size="sm"
                         variant={page === pageNum ? "default" : "ghost"}
-                        onClick={() => setPage(pageNum)}
+                        onClick={() => {
+                          setPage(pageNum);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                         className={page === pageNum ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
                       >
                         {pageNum}
                       </Button>
                     );
                   })}
-                  {productsData.totalPages > 5 && (
+                  {pagination.pages > 5 && (
                     <>
                       <span className="text-gray-500">...</span>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => setPage(productsData.totalPages)}
+                        onClick={() => {
+                          setPage(pagination.pages);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                       >
-                        {productsData.totalPages}
+                        {pagination.pages}
                       </Button>
                     </>
                   )}
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    disabled={page === productsData.totalPages}
-                    onClick={() => setPage(page + 1)}
+                    disabled={!pagination?.hasNext}
+                    onClick={() => {
+                      setPage(page + 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                   >
                     Next
                   </Button>

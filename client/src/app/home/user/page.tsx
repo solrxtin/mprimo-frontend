@@ -270,7 +270,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {recentViews.slice((recentViewsPage - 1) * itemsPerPage, recentViewsPage * itemsPerPage).map((product:any) => (
             <div key={product._id} className="h-full">
               <ProductCard product={product} />
@@ -323,7 +323,7 @@ export default function DashboardPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {recomendationsData.products.slice((recommendationsPage - 1) * itemsPerPage, recommendationsPage * itemsPerPage).map((product: any) => (
             <div key={product._id} className="h-full">
               <ProductCard product={product} />

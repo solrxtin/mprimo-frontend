@@ -47,7 +47,6 @@ const Header = () => {
   
   // Initialize cart sync
   useCartSync();
-
   const handleSellClick = () => {
     setIsSell(!isSell);
   };
@@ -290,9 +289,11 @@ const Header = () => {
                 >
                   <div className="relative">
                     <ShoppingCart className="w-5 h-5" />
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-[14px] h-[14px] flex items-center justify-center leading-none font-semibold">
-                      {cartLength ?? 0}
-                    </span>
+                    {cartLength > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-[14px] h-[14px] flex items-center justify-center leading-none font-semibold">
+                        {cartLength}
+                      </span>
+                    )}
                   </div>
                 </Link>
               </div>

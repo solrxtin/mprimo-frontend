@@ -25,9 +25,7 @@ export const useAddToCart = () => {
 };
 
 export const useCartLength = () => {
-  const cartLength = useCartStore((state) => state.summary.totalItems);
-  
-  return cartLength;
+  return useCartStore((state) => state.summary.totalItems);
 };
 
 

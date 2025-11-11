@@ -4,10 +4,14 @@ let isRefreshing = false;
 
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     const {user} = useUserStore.getState();
-    const headers = {
-      ...options.headers,
-      "Content-Type": "application/json",
-    };
+    
+    // Don't set Content-Type for FormData (browser will set it with boundary)
+    const headers = options.body instanceof FormData 
+      ? { ...options.headers }
+      : {
+          ...options.headers,
+          "Content-Type": "application/json",
+        };
   
     const response = await fetch(url, { 
       ...options, 
@@ -27,10 +31,16 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   
         if (refreshResponse.ok) {
           isRefreshing = false;
-          // Retry the original request
+          // Retry the original request with same header logic
+          const retryHeaders = options.body instanceof FormData 
+            ? { ...options.headers }
+            : {
+                ...options.headers,
+                "Content-Type": "application/json",
+              };
           return fetch(url, { 
             ...options, 
-            headers,
+            headers: retryHeaders,
             credentials: "include" 
           });
         } else {

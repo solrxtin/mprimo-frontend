@@ -1,5 +1,3 @@
-
-// Example query using TanStack Query (React Query)
 import { toastConfigError } from '@/app/config/toast.config';
 import { useUserStore } from '@/stores/useUserStore';
 import { AllProduct, AProduct, AProductBySlug } from '@/utils/config';
@@ -412,6 +410,26 @@ export const fetchAProducts = async (slug:string) => {
   }
   const data = await response.json();
   return data;
+};
+
+
+const fetchAuctionProduct = async (productId: string) => {
+  const response = await fetch(`http://localhost:5800/api/v1/products/${productId}/bids`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch product');
+  }
+  const data = await response.json();
+  return data;
+};
+
+export const useFetchAuctionProduct = (productId: string) => {
+  return useQuery({
+    queryKey: ['auctionProduct', productId],
+    queryFn: () => fetchAuctionProduct(productId),
+    enabled: !!productId,
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
 };
 
 

@@ -6,6 +6,8 @@ export interface User {
     _doc: Document
     email: string;
     password?: string;
+    businessName?: string;
+    country: string;
     profile: {
         firstName: string;
         lastName: string;

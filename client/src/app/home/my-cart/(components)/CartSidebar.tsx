@@ -20,19 +20,30 @@ const CartSidebar = (props: Props) => {
     data,
     error,
   } = useValidateCart();
+  const { summary } = useCartStore();
+  const hasValidatedRef = React.useRef(false);
+  const prevItemsCountRef = React.useRef(summary.totalItems);
 
   useEffect(() => {
+    // Reset validation flag when items count changes
+    if (prevItemsCountRef.current !== summary.totalItems) {
+      hasValidatedRef.current = false;
+      prevItemsCountRef.current = summary.totalItems;
+    }
+
+    if (summary.totalItems === 0 || hasValidatedRef.current) return;
+
     const runValidation = async () => {
       try {
         const result = await validateCart();
-        console.log(result)
+        hasValidatedRef.current = true;
       } catch (err) {
         console.error("Validation failed:", err);
       }
     };
 
     runValidation();
-  }, [validateCart]);
+  }, [summary.totalItems]);
 
     if (isValidating) {
       return (<CartTotalSkeleton />)

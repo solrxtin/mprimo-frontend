@@ -36,7 +36,8 @@ const RefreshVerificationPage = () => {
   }, []);
 
   const handleContinueVerification = () => {
-    window.location.href = verificationStatus?.onboardingUrl || '/vendor/verification';
+    const country = verificationStatus?.country || 'NG';
+    router.push(`/vendor/verification/${country}`);
   };
 
   return (

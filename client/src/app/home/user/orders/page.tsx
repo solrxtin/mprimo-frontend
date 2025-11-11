@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useUserOrders, useCancelOrder } from "@/hooks/useOrders"
-import { Loader2, Package, Truck, CheckCircle, XCircle } from "lucide-react"
+import { Loader2, Package, Truck, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-react"
 import { format } from "date-fns"
 
 
@@ -52,12 +52,12 @@ const getStatusIcon = (status: string) => {
   
 
 
-
 export default function OrdersPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [currentPage, setCurrentPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState<string | undefined>()
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set())
   
   const { data: ordersData, isLoading, error } = useUserOrders(currentPage, 10, statusFilter)
   const cancelOrderMutation = useCancelOrder()
@@ -87,6 +87,16 @@ export default function OrdersPage() {
     router.push(`/home/user/orders/${orderId}`);
   };
 
+  const toggleOrderExpansion = (orderId: string) => {
+    const newExpanded = new Set(expandedOrders);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+    }
+    setExpandedOrders(newExpanded);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -106,8 +116,8 @@ export default function OrdersPage() {
     )
   }
 
-  const orders = ordersData?.data?.orders || [];
-  const totalPages = ordersData?.data?.totalPages || 1;
+  const orders = ordersData?.orders || [];
+  const totalPages = ordersData?.totalPages || 1;
   return (
     <div className="min-h-screen bg-gray-50">
    <Breadcrumbs
@@ -123,12 +133,12 @@ export default function OrdersPage() {
           <div className="bg-white rounded-lg border overflow-hidden">
             {/* Desktop Header */}
             <div className="hidden md:grid md:grid-cols-12 gap-4 p-4 bg-gray-50 border-b font-medium text-gray-700">
-              <div className="col-span-1">SN</div>
-              <div className="col-span-4">PRODUCT</div>
-              <div className="col-span-2">CONDITION</div>
-              <div className="col-span-2">STATUS</div>
+              <div className="col-span-2">ORDER ID</div>
               <div className="col-span-2">DATE</div>
-              <div className="col-span-1">ACTIONS</div>
+              <div className="col-span-2">STATUS</div>
+              <div className="col-span-2">TOTAL</div>
+              <div className="col-span-2">ITEMS</div>
+              <div className="col-span-2">ACTIONS</div>
             </div>
 
             {/* Orders */}
@@ -140,125 +150,165 @@ export default function OrdersPage() {
                 </div>
               ) : (
                 orders.map((order: any, index: number) => {
-                  const firstItem = order.items[0];
                   const itemCount = order.items.length;
+                  const isExpanded = expandedOrders.has(order._id);
                   
                   return (
-                    <div key={order._id} className="p-4">
-                      {/* Mobile Layout */}
-                      <div className="md:hidden space-y-3">
-                        <div className="flex space-x-3">
-                          <Image
-                            src={firstItem?.productId?.images?.[0] || "/placeholder.svg"}
-                            alt={firstItem?.productId?.name || "Product"}
-                            width={60}
-                            height={60}
-                            className="rounded-lg object-cover"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-sm leading-tight">
-                              {firstItem?.productId?.name}
-                              {itemCount > 1 && ` +${itemCount - 1} more`}
-                            </h3>
-                            <p className="text-xs text-gray-500 mt-1">#{order._id.slice(-8)}</p>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                {order.shipping?.trackingNumber}
-                              </span>
-                              <Badge className={getStatusColor(order.status)}>
-                                <span className="flex items-center gap-1">
-                                  {getStatusIcon(order.status)}
-                                  {order.status}
-                                </span>
-                              </Badge>
+                    <div key={order._id} className="border-b last:border-b-0">
+                      {/* Order Summary */}
+                      <div className="p-4 hover:bg-gray-50 transition-colors">
+                        {/* Mobile Layout */}
+                        <div className="md:hidden">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <p className="font-medium text-sm">#{order._id.slice(-8)}</p>
+                              <p className="text-xs text-gray-500">{format(new Date(order.createdAt), 'MMM dd, yyyy')}</p>
                             </div>
+                            <Badge className={getStatusColor(order.status)}>
+                              <span className="flex items-center gap-1">
+                                {getStatusIcon(order.status)}
+                                {order.status}
+                              </span>
+                            </Badge>
                           </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-500">
-                            {format(new Date(order.createdAt), 'MMM dd, yyyy')}
-                          </span>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="link" 
-                              className="text-blue-600"
-                              onClick={() => handleViewDetails(order._id)}
-                            >
-                              View Details
-                            </Button>
-                            {(order.status === 'pending' || order.status === 'processing') && (
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="font-medium">${order.paymentId?.amount || '0.00'}</span>
+                            <span className="text-sm text-gray-600">{itemCount} item{itemCount > 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => toggleOrderExpansion(order._id)}
+                                className="text-blue-600 p-0"
+                              >
+                                {isExpanded ? 'Hide' : 'Show'} Items
+                                {isExpanded ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+                              </Button>
                               <Button 
                                 size="sm" 
                                 variant="link" 
-                                className="text-red-600"
+                                className="text-blue-600 p-0"
+                                onClick={() => handleViewDetails(order._id)}
+                              >
+                                View Details
+                              </Button>
+                            </div>
+                            <div className="flex gap-2">
+                              {(order.status === 'pending' || order.status === 'processing') && (
+                                <Button 
+                                  size="sm" 
+                                  variant="link" 
+                                  className="text-red-600 p-0"
+                                  onClick={() => handleCancelOrder(order._id)}
+                                  disabled={cancelOrderMutation.isPending}
+                                >
+                                  Cancel
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Desktop Layout */}
+                        <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
+                          <div className="col-span-2">
+                            <p className="font-medium">#{order._id.slice(-8)}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-sm">{format(new Date(order.createdAt), 'MMM dd, yyyy')}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <Badge className={getStatusColor(order.status)}>
+                              <span className="flex items-center gap-1">
+                                {getStatusIcon(order.status)}
+                                {order.status}
+                              </span>
+                            </Badge>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="font-medium">${order.paymentId?.amount || '0.00'}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-sm">{itemCount} item{itemCount > 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="col-span-2 flex gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => toggleOrderExpansion(order._id)}
+                              className="text-blue-600 p-0"
+                            >
+                              {isExpanded ? 'Hide' : 'Items'}
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </Button>
+                            <Button 
+                              variant="link" 
+                              className="text-blue-600 text-sm p-0"
+                              onClick={() => handleViewDetails(order._id)}
+                            >
+                              Details
+                            </Button>
+                            {/* {(order.status === 'pending' || order.status === 'processing') && (
+                              <Button 
+                                variant="link" 
+                                className="text-red-600 text-sm p-0"
                                 onClick={() => handleCancelOrder(order._id)}
                                 disabled={cancelOrderMutation.isPending}
                               >
                                 Cancel
                               </Button>
-                            )}
+                            )} */}
                           </div>
                         </div>
                       </div>
 
-                      {/* Desktop Layout */}
-                      <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
-                        <div className="col-span-1 text-center">{(currentPage - 1) * 10 + index + 1}</div>
-                        <div className="col-span-4 flex items-center space-x-3">
-                          <Image
-                            src={firstItem?.productId?.images?.[0] || "/placeholder.svg"}
-                            alt={firstItem?.productId?.name || "Product"}
-                            width={60}
-                            height={60}
-                            className="rounded-lg object-cover"
-                          />
-                          <div>
-                            <h3 className="font-medium">
-                              {firstItem?.productId?.name}
-                              {itemCount > 1 && ` +${itemCount - 1} more`}
-                            </h3>
-                            <p className="text-sm text-gray-500">#{order._id.slice(-8)}</p>
+                      {/* Expandable Order Details */}
+                      {isExpanded && (
+                        <div className="px-4 pb-4 bg-gray-50 border-t">
+                          <div className="space-y-3">
+                            {/* Shipping Info */}
+                            <div className="flex flex-col md:flex-row md:justify-between text-sm">
+                              <div>
+                                <p className="font-medium text-gray-700">Shipping Address:</p>
+                                <p className="text-gray-600">
+                                  {order.shipping?.address?.street}, {order.shipping?.address?.city}, {order.shipping?.address?.state} {order.shipping?.address?.postalCode}
+                                </p>
+                              </div>
+                              <div className="mt-2 md:mt-0">
+                                <p className="font-medium text-gray-700">Tracking:</p>
+                                <p className="text-gray-600">{order.shipping?.trackingNumber}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Items List */}
+                            <div>
+                              <p className="font-medium text-gray-700 mb-2">Items:</p>
+                              <div className="space-y-2">
+                                {order.items.map((item: any, itemIndex: number) => (
+                                  <div key={itemIndex} className="flex items-center space-x-3 p-2 bg-white rounded border">
+                                    <Image
+                                      src={item.productId?.images?.[0] || "/placeholder.svg"}
+                                      alt={item.productId?.name || "Product"}
+                                      width={40}
+                                      height={40}
+                                      className="rounded object-cover"
+                                    />
+                                    <div className="flex-1">
+                                      <p className="font-medium text-sm">{item.productId?.name}</p>
+                                      <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-medium text-sm">${item.price}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="col-span-2">
-                          <span className="bg-gray-100 px-3 py-1 rounded text-sm">
-                            {order.shipping?.trackingNumber}
-                          </span>
-                        </div>
-                        <div className="col-span-2">
-                          <Badge className={getStatusColor(order.status)}>
-                            <span className="flex items-center gap-1">
-                              {getStatusIcon(order.status)}
-                              {order.status}
-                            </span>
-                          </Badge>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-sm">
-                            {format(new Date(order.createdAt), 'MMM dd, yyyy')}
-                          </span>
-                        </div>
-                        <div className="col-span-1 flex gap-1">
-                          <Button 
-                            variant="link" 
-                            className="text-blue-600 text-sm p-0"
-                            onClick={() => handleViewDetails(order._id)}
-                          >
-                            View
-                          </Button>
-                          {(order.status === 'pending' || order.status === 'processing') && (
-                            <Button 
-                              variant="link" 
-                              className="text-red-600 text-sm p-0"
-                              onClick={() => handleCancelOrder(order._id)}
-                              disabled={cancelOrderMutation.isPending}
-                            >
-                              Cancel
-                            </Button>
-                          )}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   )
                 })

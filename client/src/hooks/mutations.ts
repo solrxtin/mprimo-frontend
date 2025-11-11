@@ -1,6 +1,6 @@
 import { useMutation, UseMutationResult } from "@tanstack/react-query";
 import { toast } from "react-toastify";
-import { IUser } from "@/types/user.type";
+import { User } from "@/types/user.type";
 import { toastConfigError } from "@/app/config/toast.config";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Vendor from "@/types/vendor.type";
@@ -26,12 +26,12 @@ interface verificationData {
 
 interface SignUpResponse {
   message: string;
-  user: IUser;
+  user: User;
 }
 
 const signUpUser = async (
   data: SignUpData
-): Promise<{ message: string; user: IUser }> => {
+): Promise<{ message: string; user: User }> => {
   const response = await fetch("http://localhost:5800/api/v1/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -55,7 +55,7 @@ export const useSignUp = () => {
 
 const verifyData = async (
   data: verificationData
-): Promise<{ message: string; user: IUser }> => {
+): Promise<{ message: string; user: User }> => {
   const response = await fetch("http://localhost:5800/api/v1/auth/verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -108,7 +108,7 @@ const loginUser = async (
   data: LoginData
 ): Promise<{
   message: string;
-  user: IUser;
+  user: User;
   vendor: Vendor;
   has2faEnabled: boolean;
 }> => {
@@ -387,5 +387,33 @@ const addVendorResponse = async ({
 export const useAddVendorResponse = () => {
   return useMutation({
     mutationFn: addVendorResponse,
+  });
+};
+
+
+const makeBid = async (
+  userId: string,
+  productId: string,
+  maxBid: number
+): Promise<{ message: string; currentAmountUsd: number; userBidUsd: number }> => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/${productId}/bids`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, maxBid }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    toast.error(errorData.message);
+    throw new Error(errorData.message);
+  }
+
+  return response.json();
+};
+
+export const useMakeBid = () => {
+  return useMutation({
+    mutationFn: ({ productId, userId, maxBid }: { productId: string; userId: string; maxBid: number }) =>
+      makeBid(userId, productId, maxBid),
   });
 };

@@ -15,7 +15,7 @@ import Wishlist from "@/components/client-component/Wishlist";
 import SocketService from "@/utils/socketService";
 import { useRouter } from "next/navigation";
 
-const AuctionCountdown = ({ auction }: { auction: any }) => {
+export const AuctionCountdown = ({ auction }: { auction: any }) => {
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
@@ -115,8 +115,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     }
   }, [productData]);
 
-  console.log(`Product data is: ${productData}`);
-
   // Initialize socket connection
   useEffect(() => {
     if (user?._id) {
@@ -180,8 +178,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     }, 0);
   }
 
-  console.log(`Selected variant: ${selectedVariant}`);
-
   const saleType = productData?.inventory?.listing?.type;
   const acceptOffer = productData?.inventory?.listing?.instant?.acceptOffer;
   const auction = productData?.inventory?.listing?.auction;
@@ -243,7 +239,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   }
 
   const handlePlaceBidClicked = async () => {
-    
+    router.push(`/home/auction/${productData._id}`);
   }
 
   const renderStars = (rating: number) => {
@@ -501,7 +497,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                       />
                     ) : (
                       <NumericFormat
-                        value={selectedVariant?.options[0]?.price}
+                        value={productData?.priceInfo?.displayPrice || 0}
                         displayType={"text"}
                         thousandSeparator={true}
                         prefix={
@@ -600,7 +596,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                 </button>
 
                 <button
-                  onClick={handleAddToCart}
+                  onClick={handlePlaceBidClicked}
                   disabled={
                     isLoading ||
                     productData.inventory.listing.auction?.isExpired ||

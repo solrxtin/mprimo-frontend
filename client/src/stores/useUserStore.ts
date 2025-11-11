@@ -10,6 +10,8 @@ import {
 interface UserState {
   user: User | null;
   setUser: (user: User | null) => void;
+  updateUser: (updates: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
   deviceId: string | null;
   setDeviceId: (deviceId: any) => void;
   wallet: ICryptoWallet | null;
@@ -37,6 +39,30 @@ export const useUserStore = create<UserState>()(
     (set, get) => ({
       user: null,
       setUser: (user: User | null) => set({ user }),
+      
+      updateUser: (updates: Partial<User>) => {
+        const currentUser = get().user;
+        if (currentUser) {
+          set({ user: { ...currentUser, ...updates } });
+        }
+      },
+
+      refreshUser: async () => {
+        try {
+          const response = await fetch('http://localhost:5800/api/v1/users/profile', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            set({ user: data.user });
+          }
+        } catch (error) {
+          console.error('Failed to refresh user:', error);
+        }
+      },
+
       deviceId: null,
       setDeviceId: (deviceId: string | null) => set({ deviceId }),
       wallet: null,
