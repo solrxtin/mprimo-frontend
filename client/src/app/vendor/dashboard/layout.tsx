@@ -67,7 +67,7 @@ export default function DashboardLayout({
     return null;
   }
 
-  if (user && user.role === "personal" && !user.canMakeSales) {
+  if (user && user.role === "user" && !user.canMakeSales) {
     toast.error(
       "You don't have permission to access this page. Please upgrade your account"
     );
@@ -99,24 +99,24 @@ export default function DashboardLayout({
   return (
     <div className="flex flex-col h-screen">
       <NotificationProvider>
+        <Header onOpenSidebar={() => setSidebarOpen(true)} />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar
             isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
             openLogoutModal={() => openLogoutModal()}
           />
-          <div className="flex-1 overflow-auto">
-            <Header onOpenSidebar={() => setSidebarOpen(true)} />
-            <main>{children}</main>
-          </div>
-
-          <LogoutModal
-            isOpen={isLogoutModalOpen}
-            onClose={closeLogoutModal}
-            logout={handleLogout}
-            isLoading={logoutMutation.isPending}
-          />
+          <main className="flex-1 overflow-auto">
+            <div className="max-w-7xl mx-auto">{children}</div>
+          </main>
         </div>
+
+        <LogoutModal
+          isOpen={isLogoutModalOpen}
+          onClose={closeLogoutModal}
+          logout={handleLogout}
+          isLoading={logoutMutation.isPending}
+        />
       </NotificationProvider>
     </div>
   );

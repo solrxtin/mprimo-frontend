@@ -82,7 +82,7 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
             <a
               href="/home"
               onClick={(e) => handleItemClick({ label: 'Home', href: '/home' }, e)}
-              className="flex items-start text-gray-500 hover:text-gray-700 transition-colors duration-200"
+              className="flex items-center text-gray-500 hover:text-gray-700 transition-colors duration-200"
               aria-label="Home"
             >
               {homeIcon} <span className="ml-1">Home</span> 
@@ -97,21 +97,21 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
 
         {/* Breadcrumb Items */}
         {displayItems.map((item, index) => (
-          <li key={index} className="flex items-center text-primary">
+          <li key={index} className="flex items-center">
             {item.isEllipsis ? (
-              <span className="text-gray-400 px-2">...</span>
+              <span className="text-gray-400 px-2 flex items-center">...</span>
             ) : (
               <>
                 {item.href && index < displayItems.length - 1 ? (
                   <a
                     href={item.href}
                     onClick={(e) => handleItemClick(item, e)}
-                    className="text-gray-500 hover:text-gray-700 transition-colors duration-200 hover:underline"
+                    className="text-gray-500 hover:text-gray-700 transition-colors duration-200 hover:underline flex items-center"
                   >
                     {item.label}
                   </a>
                 ) : (
-                  <span className="text-blue-500 font-medium" aria-current="page">
+                  <span className="text-blue-500 font-medium flex items-center" aria-current="page">
                     {item.label}
                   </span>
                 )}

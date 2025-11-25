@@ -1,73 +1,61 @@
 "use client";
 import {
-  Wallet,
+  Wallet, ArrowDownLeft
 } from "lucide-react";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import CryptoWallet from "./(components)/CryptoWallet";
-import FiatWallet from "./(components)/FiatWallet";
+import WithdrawalModal from '@/components/wallet/WithdrawalModal';
+import WalletSettings from '@/components/wallet/WalletSettings';
+import TransactionHistory from '@/components/wallet/TransactionHistory';
+import PaymentMethodManager from '@/components/wallet/PaymentMethodManager';
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 type Props = {};
 
 type WalletType = "fiat" | "crypto";
 
-type Transaction = {
-  id: string;
-  type: "credit" | "debit";
-  amount: number;
-  date: string;
-  description: string;
-  status: "completed" | "pending" | "failed";
-};
-
-
-const transactions: Transaction[] = [
-  {
-    id: "TRX-001",
-    type: "credit",
-    amount: 2500.0,
-    date: "2023-11-28",
-    description: "Payment for Order #12345",
-    status: "completed",
-  },
-  {
-    id: "TRX-002",
-    type: "debit",
-    amount: 1200.5,
-    date: "2023-11-25",
-    description: "Withdrawal to Bank Account",
-    status: "completed",
-  },
-  {
-    id: "TRX-003",
-    type: "credit",
-    amount: 750.25,
-    date: "2023-11-20",
-    description: "Payment for Order #12340",
-    status: "completed",
-  },
-  {
-    id: "TRX-004",
-    type: "debit",
-    amount: 500.0,
-    date: "2023-11-15",
-    description: "Platform Fee",
-    status: "completed",
-  },
-  {
-    id: "TRX-005",
-    type: "credit",
-    amount: 1800.75,
-    date: "2023-11-10",
-    description: "Payment for Order #12335",
-    status: "pending",
-  },
-];
-
-
+interface WalletData {
+  balances: {
+    available: number;
+    pending: number;
+    escrow: number;
+    frozen: number;
+  };
+  currency: string;
+}
 
 const WalletPage = (props: Props) => {
   const [activeWallet, setActiveWallet] = useState<WalletType>("fiat");
+  const [showWithdrawal, setShowWithdrawal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
+  const [walletData, setWalletData] = useState<WalletData>({ 
+    balances: { available: 0, pending: 0, escrow: 0, frozen: 0 }, 
+    currency: 'USD' 
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchWalletData();
+  }, []);
+
+  const fetchWalletData = async () => {
+    try {
+      const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/user', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      console.log('Wallet data fetched:', data);
+      if (data.success) {
+        setWalletData(data.wallet);
+      }
+    } catch (error) {
+      console.error('Failed to fetch wallet data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="bg-[#f6f6f6] rounded-lg py-4 lg:p-6 min-h-screen font-[family-name:var(--font-alexandria)]">
@@ -79,23 +67,21 @@ const WalletPage = (props: Props) => {
               Manage your wallet and track your income
             </p>
           </div>
-          <button className="flex px-7.5 py-4 items-center gap-2 bg-[#002f7a] text-white rounded-md ml-2">
-            <div>Wallet</div>
-            <svg
-              width="20"
-              height="15"
-              viewBox="0 0 20 15"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowWithdrawal(true)}
+              className="flex px-4 py-2 items-center gap-2 bg-green-600 text-white rounded-md hover:bg-green-700"
             >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M0.399902 2.5C0.399902 1.11929 1.51919 0 2.8999 0H12.8999C14.2806 0 15.3999 1.11929 15.3999 2.5V4H16.8999C18.2806 4 19.3999 5.11929 19.3999 6.5V12.5C19.3999 13.8807 18.2806 15 16.8999 15H6.8999C5.51919 15 4.3999 13.8807 4.3999 12.5V11H2.8999C1.51919 11 0.399902 9.88071 0.399902 8.5V2.5ZM5.3999 12.5C5.3999 13.3284 6.07148 14 6.8999 14H16.8999C17.7283 14 18.3999 13.3284 18.3999 12.5V6.5C18.3999 5.67157 17.7283 5 16.8999 5H6.8999C6.07148 5 5.3999 5.67157 5.3999 6.5V12.5ZM14.3999 4H6.8999C5.51919 4 4.3999 5.11929 4.3999 6.5V10H2.8999C2.07148 10 1.3999 9.32843 1.3999 8.5V2.5C1.3999 1.67157 2.07148 1 2.8999 1H12.8999C13.7283 1 14.3999 1.67157 14.3999 2.5V4ZM11.8999 8C11.0715 8 10.3999 8.67157 10.3999 9.5C10.3999 10.3284 11.0715 11 11.8999 11C12.7283 11 13.3999 10.3284 13.3999 9.5C13.3999 8.67157 12.7283 8 11.8999 8ZM9.3999 9.5C9.3999 8.11929 10.5192 7 11.8999 7C13.2806 7 14.3999 8.11929 14.3999 9.5C14.3999 10.8807 13.2806 12 11.8999 12C10.5192 12 9.3999 10.8807 9.3999 9.5Z"
-                fill="#FDFDFD"
-              />
-            </svg>
-          </button>
+              <ArrowDownLeft className="w-4 h-4" />
+              <div>Withdraw</div>
+            </button>
+            <button 
+              onClick={() => setShowSettings(true)}
+              className="flex px-4 py-2 items-center gap-2 bg-[#002f7a] text-white rounded-md hover:bg-blue-800"
+            >
+              <div>Settings</div>
+            </button>
+          </div>
         </div>
 
         {/* Wallet Type Selector */}
@@ -131,10 +117,53 @@ const WalletPage = (props: Props) => {
         </div>
 
         {activeWallet === "fiat" ? (
-          <FiatWallet transactions={transactions} />
+          <div>
+            {/* Balance Card */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-6 mb-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-blue-100 text-sm">Available Balance</p>
+                  <p className="text-3xl font-bold">${walletData?.balances?.available.toFixed(2)}</p>
+                  {walletData?.balances?.pending > 0 && (
+                    <p className="text-blue-200 text-sm mt-1">
+                      ${walletData?.balances?.pending.toFixed(2)} pending
+                    </p>
+                  )}
+                  {walletData?.balances?.escrow > 0 && (
+                    <p className="text-blue-200 text-sm">
+                      ${walletData?.balances?.escrow.toFixed(2)} in escrow
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowPaymentMethods(true)}
+                  className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
+                >
+                  Payment Methods
+                </button>
+              </div>
+            </div>
+            
+            {/* Transaction History */}
+            <TransactionHistory onRefresh={fetchWalletData} />
+          </div>
         ) : (
           <CryptoWallet />
-        )}          
+        )}
+
+        {/* Modals */}
+        {showWithdrawal && (
+          <WithdrawalModal
+            onClose={() => setShowWithdrawal(false)}
+            onSuccess={fetchWalletData}
+          />
+        )}
+        {showSettings && (
+          <WalletSettings onClose={() => setShowSettings(false)} />
+        )}
+        {showPaymentMethods && (
+          <PaymentMethodManager onClose={() => setShowPaymentMethods(false)} />
+        )}
       </div>
     </div>
   );

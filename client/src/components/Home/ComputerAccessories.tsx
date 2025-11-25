@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ProductType } from "@/types/product.type";
 import Link from "next/link";
 import { ProductCard } from "./ProductCard";
+import { filterAvailableProducts } from "@/utils/productUtils";
 
 const navCategories = [
   "All Accessories",
@@ -138,9 +139,10 @@ export default function ComputerAccessories() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {electronicsData.map((product: ProductType, index: number) => (
-            <ProductCard key={index} product={product} />
-          ))}
+          {filterAvailableProducts(electronicsData)
+            .map((product: ProductType, index: number) => (
+              <ProductCard key={index} product={product} />
+            ))}
         </div>
       )}
     </div>

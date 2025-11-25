@@ -24,6 +24,7 @@ import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useProducts, useCategoryBySlug, useCategoryTree, useProductsByCategory } from "@/hooks/useProducts";
 import { ProductType } from "@/types/product.type";
 import { ProductCard } from "@/components/Home/ProductCard";
+import { filterAvailableProducts } from "@/utils/productUtils";
 
 interface FilterState {
   category?: string;
@@ -393,9 +394,10 @@ export default function CategoryPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-6 mb-8">
-                  {products.map((product: ProductType) => (
-                    <ProductCard key={product._id} product={product} />
-                  ))}
+                  {filterAvailableProducts(products)
+                    .map((product: ProductType) => (
+                      <ProductCard key={product._id} product={product} />
+                    ))}
                   {products.length === 0 && (
                     <div className="col-span-full text-center py-12">
                       <p className="text-gray-500">No products found matching your filters.</p>

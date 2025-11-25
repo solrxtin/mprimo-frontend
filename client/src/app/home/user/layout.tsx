@@ -38,7 +38,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Sidebar openLogoutModal={openLogoutModal} />
         </div>
 
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto">{children}</div>
+        </main>
         <LogoutModal
           isOpen={isLogoutModalOpen}
           onClose={closeLogoutModal}

@@ -1,26 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProductListing } from '@/contexts/ProductLisitngContext';
 import { useProductMapper } from './SubmitProduct';
-import { useCreateProduct } from '@/hooks/useCreateProduct';
-import { useProductValidation } from '@/hooks/useProductValidation';
-import { useRefreshProducts } from '@/hooks/useRefreshProducts';
+import { useCreateProduct, useDeleteDraft } from '@/hooks/mutations';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { toastConfigSuccess, toastConfigError } from '@/app/config/toast.config';
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Save } from 'lucide-react';
+import { ProductFormValidator } from '@/utils/productFormValidation';
+import { DraftManager } from '@/utils/draftManager';
 
 interface Props {
   onSaveDraft?: () => void;
 }
 
 export default function FinalSubmission({ onSaveDraft }: Props) {
-  const { productDetails, setProductDetails, setStep } = useProductListing();
+  const { 
+    productDetails, 
+    setProductDetails, 
+    setStep, 
+    draftId,
+    saveDraftEnhanced,
+    completionPercentage 
+  } = useProductListing();
   const { mapProductDetailsToSchema } = useProductMapper();
-  const createProduct = useCreateProduct();
-  const { validateProduct, errors, hasErrors } = useProductValidation();
-  const { refreshProducts } = useRefreshProducts();
+  const createProductMutation = useCreateProduct();
+  const deleteDraftMutation = useDeleteDraft();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationSummary, setValidationSummary] = useState({
+    isValid: false,
+    errors: [] as string[],
+    warnings: [] as string[]
+  });
+
+  // Update validation summary when product details change
+  useEffect(() => {
+    const mappedData = mapProductDetailsToSchema();
+    const validation = ProductFormValidator.validateComplete(mappedData);
+    
+    setValidationSummary({
+      isValid: validation.isValid,
+      errors: Object.values(validation.errors),
+      warnings: Object.values(validation.warnings)
+    });
+  }, [productDetails, mapProductDetailsToSchema]);
 
   const handleSubmit = async () => {
     try {
@@ -30,8 +53,8 @@ export default function FinalSubmission({ onSaveDraft }: Props) {
       const mappedData = mapProductDetailsToSchema();
       console.log('Mapped product data:', mappedData);
       
-      // Validate the mapped data
-      const validation = validateProduct(mappedData);
+      // Final validation
+      const validation = ProductFormValidator.validateComplete(mappedData);
       
       if (!validation.isValid) {
         toast.error('Please fix validation errors before submitting', toastConfigError);
@@ -40,41 +63,67 @@ export default function FinalSubmission({ onSaveDraft }: Props) {
       }
 
       // Submit to backend
-      const result = await createProduct.mutateAsync(mappedData);
+      const result = await createProductMutation.mutateAsync(mappedData);
       
-      if (result.success) {
-        toast.success('Product created successfully!', toastConfigSuccess);
+      toast.success('Product created successfully!', toastConfigSuccess);
+      
+      // Clean up drafts
+      try {
+        // Always remove local draft
+        DraftManager.removeLocalDraft(draftId);
         
-        // Refresh products list
-        refreshProducts();
+        // Check if server draft exists before attempting deletion
+        const existingDrafts = DraftManager.getLocalDrafts();
+        const serverDraftExists = existingDrafts.some((d: any) => d.draftId === draftId && d.savedToServer);
         
-        // Clear form data
-        setProductDetails({});
-        setStep(1);
-        
-        // Redirect to products page
-        router.push('/vendor/dashboard/products');
+        if (serverDraftExists) {
+          await deleteDraftMutation.mutateAsync(draftId);
+        }
+      } catch (error) {
+        console.warn('Failed to clean up draft:', error);
+        // Don't block the success flow for draft cleanup failures
       }
-    } catch (error) {
+      
+      // Clear form data
+      setProductDetails({});
+      setStep(1);
+      
+      // Redirect to products page
+      router.push('/vendor/dashboard/products');
+    } catch (error: any) {
       console.error('Error creating product:', error);
-      toast.error('Failed to create product. Please try again.', toastConfigError);
+      toast.error(error.message || 'Failed to create product. Please try again.', toastConfigError);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getValidationSummary = () => {
-    const mappedData = mapProductDetailsToSchema();
-    const validation = validateProduct(mappedData);
-    return validation;
+  const handleSaveDraft = async () => {
+    try {
+      await saveDraftEnhanced(true);
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+    }
   };
-
-  const validationSummary = getValidationSummary();
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-sm">
       <h2 className="text-2xl font-bold mb-6">Review & Submit Product</h2>
       
+      {/* Completion Progress */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold">Form Completion</h3>
+          <span className="text-sm text-gray-600">{completionPercentage}% Complete</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+            style={{ width: `${completionPercentage}%` }}
+          ></div>
+        </div>
+      </div>
+
       {/* Validation Status */}
       <div className="mb-6">
         <div className={`p-4 rounded-lg border ${
@@ -99,7 +148,18 @@ export default function FinalSubmission({ onSaveDraft }: Props) {
             <div className="space-y-1">
               {validationSummary.errors.map((error, index) => (
                 <p key={index} className="text-sm text-red-700">
-                  • {error.message}
+                  • {error}
+                </p>
+              ))}
+            </div>
+          )}
+          
+          {validationSummary.warnings.length > 0 && (
+            <div className="space-y-1 mt-2">
+              <p className="text-sm font-medium text-yellow-700">Warnings:</p>
+              {validationSummary.warnings.map((warning, index) => (
+                <p key={index} className="text-sm text-yellow-700">
+                  • {warning}
                 </p>
               ))}
             </div>
@@ -193,15 +253,14 @@ export default function FinalSubmission({ onSaveDraft }: Props) {
 
       {/* Action Buttons */}
       <div className="flex gap-4 justify-end">
-        {onSaveDraft && (
-          <button
-            onClick={onSaveDraft}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-            disabled={isSubmitting}
-          >
-            Save as Draft
-          </button>
-        )}
+        <button
+          onClick={handleSaveDraft}
+          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center gap-2"
+          disabled={isSubmitting}
+        >
+          <Save size={16} />
+          Save as Draft
+        </button>
         
         <button
           onClick={() => setStep(1)}

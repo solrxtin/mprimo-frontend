@@ -8,6 +8,8 @@ import ProductModal from "./(components)/ProductModal";
 import ChatList from "./(components)/ChatList";
 import { useChats, useMessages } from "@/hooks/queries";
 import MessageListSkeleton from "./(components)/MessageListSkeleton";
+import SocketService from "@/utils/socketService";
+import { useUserStore } from "@/stores/useUserStore";
 
 interface ProductModal {
   isOpen: boolean;
@@ -33,6 +35,7 @@ export const formatMessageTime = (date: Date): string => {
 
 const Page = () => {
   const { data: chatsData, isLoading } = useChats();
+  const { user } = useUserStore();
   const [selectedChat, setSelectedChat] = useState<any>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [participantName, setParticipantName] = useState<string>("");
@@ -43,8 +46,52 @@ const Page = () => {
     isOpen: false,
     product: null,
   });
+  const [newMessages, setNewMessages] = useState<{[chatId: string]: any[]}>({});
 
   const groupedChats = chatsData?.groupedChats || [];
+
+  // Socket.io connection and event handlers
+  useEffect(() => {
+    if (user?._id) {
+      const socket = SocketService.connect(user._id);
+      
+      // Authenticate user
+      socket.emit('authenticate', { userId: user._id });
+      
+      // Listen for persisted messages
+      socket.on('persisted-message', (message: any) => {
+        console.log('Received persisted-message:', message);
+        setNewMessages(prev => ({
+          ...prev,
+          [message.chatId]: [...(prev[message.chatId] || []), message]
+        }));
+      });
+
+      socket.on('error', (message: any) => {
+        console.error('Socket error:', message);
+      })
+      
+      // Listen for flagged messages
+      socket.on('messageFlagged', (data: any) => {
+        console.log('Message flagged:', data.flaggedReason);
+      });
+      
+      return () => {
+        socket.off('persisted-message');
+        socket.off('messageFlagged');
+      };
+    }
+  }, [user?._id]);
+
+  // Join chat room when selecting a chat
+  useEffect(() => {
+    if (selectedChat?.chatId) {
+      SocketService.joinRoom(selectedChat.chatId);
+      return () => {
+        SocketService.leaveRoom(selectedChat.chatId);
+      };
+    }
+  }, [selectedChat?.chatId]);
 
   const handleChatSelect = (chat: any, product: any, group?: any) => {
     console.log("Selected chat:", chat);
@@ -61,6 +108,22 @@ const Page = () => {
   const handleProductSwitch = (newChat: any, newProduct: any) => {
     setSelectedChat(newChat);
     setSelectedProduct(newProduct);
+  };
+
+  const handleSendMessage = (messageText: string) => {
+    if (!selectedChat || !user || !currentGroup) return;
+    
+    const socket = SocketService.getSocket();
+    if (socket) {
+      const messageData = {
+        senderId: user._id,
+        receiverId: currentGroup._id,
+        message: messageText,
+        chatId: selectedChat.chatId,
+      };
+
+      socket.emit('send_message', messageData);
+    }
   };
 
   return (
@@ -179,13 +242,14 @@ const Page = () => {
                 {/* Messages */}
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <div className="flex-1 overflow-y-auto">
-                    <Messages selectedChat={selectedChat} />
+                    <Messages 
+                      selectedChat={selectedChat} 
+                      newMessages={newMessages[selectedChat?.chatId] || []}
+                    />
                   </div>
                   <SendMessage
                     userId={selectedChat.senderId}
-                    onSend={(message) => {
-                      console.log(`Sending message`);
-                    }}
+                    onSend={handleSendMessage}
                   />
                 </div>
               </div>
@@ -237,15 +301,14 @@ const Page = () => {
                 {selectedChat ? (
                   <>
                     <div className="flex-1 overflow-y-auto">
-                      <Messages selectedChat={selectedChat} />
+                      <Messages 
+                        selectedChat={selectedChat} 
+                        newMessages={newMessages[selectedChat?.chatId] || []}
+                      />
                     </div>
                     <SendMessage
                       userId={selectedChat.senderId}
-                      onSend={(message) => {
-                        console.log(
-                          `Sending message to ${selectedChat.senderName}: ${message}`
-                        );
-                      }}
+                      onSend={handleSendMessage}
                     />
                   </>
                 ) : (

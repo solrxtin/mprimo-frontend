@@ -241,6 +241,7 @@ const fetchVendorAnalytics= async (vendorId: string, range="7days") => {
     throw new Error('Failed to fetch user subscriptions');
   }
   const data = await response.json();
+  console.log("Vendor analytics data:", data);
   return data;
 };
 
@@ -279,6 +280,7 @@ const fetchVendorOrders = async (vendorId: string) => {
     throw new Error('Failed to fetch vendor orders');
   }
   const data = await response.json();
+  console.log("Data is")
   return data;
 };
 
@@ -427,6 +429,65 @@ export const useFetchAuctionProduct = (productId: string) => {
     queryKey: ['auctionProduct', productId],
     queryFn: () => fetchAuctionProduct(productId),
     enabled: !!productId,
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
+};
+
+const fetchPlans = async () => {
+  const response = await fetch('http://localhost:5800/api/v1/subscriptions/plans');
+  if (!response.ok) {
+    throw new Error('Failed to fetch plans');
+  }
+  const data = await response.json();
+  console.log('Backend Plans Response:', data);
+  return data.plans;
+};
+
+export const usePlans = () => {
+  return useQuery({
+    queryKey: ['plans'],
+    queryFn: fetchPlans,
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
+};
+
+const fetchVendorSubscription = async (vendorId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/subscriptions/vendor/${vendorId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch vendor subscription');
+  }
+  const data = await response.json();
+  console.log('Vendor Subscription Response:', data);
+  return data;
+};
+
+export const useVendorSubscription = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['vendorSubscription', vendorId],
+    queryFn: () => fetchVendorSubscription(vendorId),
+    enabled: !!vendorId,
+    refetchOnWindowFocus: false,
+    retry: 1
+  });
+};
+
+const fetchCountrySubscriptionPrice = async (vendorId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/subscriptions/countrySubscriptionPrice/${vendorId}`);
+  console.log(vendorId);
+  if (!response.ok) {
+    throw new Error('Failed to fetch country subscription price');
+  }
+  const data = await response.json();
+  return data;
+};
+
+export const useCountrySubscriptionPrice = (vendorId: string) => {
+  return useQuery({
+    queryKey: ['countrySubscriptionPrice', vendorId],
+    queryFn: () => fetchCountrySubscriptionPrice(vendorId),
+    enabled: !!vendorId,
     refetchOnWindowFocus: false,
     retry: 1
   });

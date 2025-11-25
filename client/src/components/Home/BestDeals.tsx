@@ -5,6 +5,7 @@ import { Heart, Star, ChevronRight, ArrowRight, Loader2 } from "lucide-react";
 import { useBestDeals } from "@/hooks/queries";
 import { ProductType } from "@/types/product.type";
 import Link from "next/link";
+import { filterAvailableProducts } from "@/utils/productUtils";
 
 // const products: Product[] = [
 //   {
@@ -291,7 +292,9 @@ const ProductCard = ({
 };
 
 export default function BestDeals() {
-  const { data: products = [], isLoading, isError, error } = useBestDeals();
+  const { data: allProducts = [], isLoading, isError, error } = useBestDeals();
+  // Filter products to only show those with images and available quantity
+  const products = filterAvailableProducts(allProducts);
   const otherProducts = products.slice(1);
 
   if (isLoading) {
@@ -357,11 +360,13 @@ export default function BestDeals() {
         {/* Products Grid */}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* Main Featured Product */}
-          <div className="lg:w-1/3">
-            <div className="h-full">
-              <ProductCard product={products[0]} isLarge={true} />
+          {products[0] && (
+            <div className="lg:w-1/3">
+              <div className="h-full">
+                <ProductCard product={products[0]} isLarge={true} />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Other Products Grid */}
           <div className="lg:w-2/3">

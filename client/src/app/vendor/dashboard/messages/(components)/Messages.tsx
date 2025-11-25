@@ -3,16 +3,19 @@ import MessageBubble from "./MessageBubble";
 import { useMessages } from "@/hooks/queries";
 import { useUserStore } from "@/stores/useUserStore";
 import MessageSkeletonList from "./MessageListSkeleton";
+import { useMessageRead } from "@/hooks/useMessageRead";
 
 
 interface MessagesProps {
   selectedChat: any;
+  newMessages?: any[];
 }
 
-const Messages = ({ selectedChat }: MessagesProps) => {
+const Messages = ({ selectedChat, newMessages = [] }: MessagesProps) => {
   const [shouldScroll, setShouldScroll] = useState(false);
   const [messagesPage, setMessagesPage] = useState(1);
   const {user} = useUserStore();
+  const { observeMessage } = useMessageRead(selectedChat?.chatId, user?._id);
 
   const { data: messagesData, isLoading: messagesLoading } = useMessages(
     selectedChat?.chatId,
@@ -74,11 +77,12 @@ const Messages = ({ selectedChat }: MessagesProps) => {
               Load older messages
             </button>
           )}
-          {messagesData.messages.map((message: any) => (
+          {[...messagesData.messages, ...newMessages].map((message: any) => (
             <MessageBubble
-              key={message._id}
+              key={message._id || message.id}
               message={message}
-              isSent={message.receiverId._id !== user?._id}
+              isSent={message.receiverId?._id !== user?._id || message.senderId === user?._id}
+              onMessageVisible={observeMessage}
             />
           ))}
         </div>

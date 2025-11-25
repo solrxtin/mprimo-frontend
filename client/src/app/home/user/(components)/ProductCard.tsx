@@ -28,15 +28,13 @@ const ProductCard = ({
       <div
         className={`group bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
           isLarge ? "p-4 sm:p-5 md:p-6 h-full" : "p-3 sm:p-4 h-full"
-        } border border-[#ADADAD4D] relative touch-manipulation ${
-          isLarge ? "flex flex-col" : "flex flex-col"
-        }`}
+        } border border-[#ADADAD4D] relative touch-manipulation flex flex-col w-full max-w-xs sm:max-w-none mx-auto`}
       >
         {/* Product Image */}
         <div className="mb-3 sm:mb-4">
           <div
             className={`bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg ${
-              isLarge ? "h-48 sm:h-64" : "h-24 md:h-34"
+              isLarge ? "h-48 sm:h-64" : "h-40 sm:h-32 md:h-40"
             } flex items-center justify-center overflow-hidden`}
           >
             <img

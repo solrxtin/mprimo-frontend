@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useProductListing } from "@/contexts/ProductLisitngContext";
-import { Plus, Trash2, TriangleAlert, X } from "lucide-react";
+import { Plus, Trash2, TriangleAlert, X, Grid } from "lucide-react";
 import NavigationButtons from "./NavigationButtons";
 import { useResponsive } from "@/hooks/useResponsive";
 import Input from "@/components/Input";
+import VariantCombinationBuilder from "./VariantCombinationBuilder";
+import ColorPicker from "./ColorPicker";
 
 type VariantOption = {
   value: string;
   price: number;
+  salePrice?: number;
   quantity: number;
   sku: string;
   isDefault?: boolean;
+  dimensions?: Record<string, string>;
 };
 
 type Variant = {
@@ -27,6 +31,7 @@ export default function ProductVariants({ onSaveDraft }: Props) {
   const { productDetails, updateProductDetails } = useProductListing();
   const [variants, setVariants] = useState<Variant[]>([]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [useCombinations, setUseCombinations] = useState(false);
   const { isMobileOrTablet } = useResponsive();
   const initialRenderRef = useRef(true);
 
@@ -72,10 +77,12 @@ export default function ProductVariants({ onSaveDraft }: Props) {
       isDefault: variants.length === 0, // First variant is default
       options: [{ 
         value: "", 
-        price: 0, 
+        price: 0,
+        salePrice: undefined,
         quantity: 0, 
         sku: `VAR-OPT-${Date.now()}`,
-        isDefault: true // First option is default
+        isDefault: true, // First option is default
+        dimensions: {}
       }],
     };
     setVariants([...variants, newVariant]);
@@ -115,9 +122,11 @@ export default function ProductVariants({ onSaveDraft }: Props) {
     const newOption = {
       value: "",
       price: 0,
+      salePrice: undefined,
       quantity: 0,
       sku: `${variant.name ? variant.name.substring(0, 3).toUpperCase() : 'VAR'}-OPT-${Date.now()}`,
-      isDefault: variant.options.length === 0 // First option is default
+      isDefault: variant.options.length === 0, // First option is default
+      dimensions: {}
     };
     updatedVariants[variantIndex].options.push(newOption);
     setVariants(updatedVariants);
@@ -143,6 +152,8 @@ export default function ProductVariants({ onSaveDraft }: Props) {
 
     if (field === "price" || field === "quantity") {
       (option as any)[field] = Number(value);
+    } else if (field === "salePrice") {
+      (option as any)[field] = value ? Number(value) : undefined;
     } else if (field === "value" || field === "sku") {
       (option as any)[field] = value as string;
       // Update SKU when option value changes
@@ -151,6 +162,12 @@ export default function ProductVariants({ onSaveDraft }: Props) {
       }
     } else if (field === "isDefault") {
       (option as any)[field] = value as boolean;
+      // If setting as default, unset other options in this variant
+      if (value) {
+        variant.options.forEach((opt, idx) => {
+          if (idx !== optionIndex) opt.isDefault = false;
+        });
+      }
     }
 
     setVariants(updatedVariants);
@@ -226,21 +243,78 @@ export default function ProductVariants({ onSaveDraft }: Props) {
     };
   }, [variants]);
 
+  const handleCombinationsChange = (combinations: any[], dimensionNames: string[]) => {
+    if (combinations.length > 0) {
+      const combinedVariant = {
+        name: dimensionNames.join(' & '),
+        isDefault: true,
+        options: combinations.map(combo => ({
+          value: Object.entries(combo.dimensions).map(([k, v]) => `${k}: ${v}`).join(', '),
+          price: combo.price,
+          salePrice: combo.salePrice,
+          quantity: combo.quantity,
+          sku: combo.sku,
+          isDefault: false,
+          dimensions: combo.dimensions
+        }))
+      };
+      
+      setVariants([combinedVariant]);
+      updateProductDetails('variantDimensions', dimensionNames);
+      updateProductDetails('combinations', combinations);
+    }
+  };
+
   return (
     <div className="p-4 border border-gray-400 rounded-lg w-full font-[family-name:var(--font-alexandria)]">
       <div className="flex justify-between items-center mb-4">
         <h3 className="">Product Variants</h3>
-        <button
-          type="button"
-          onClick={addVariant}
-          className="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-md text-sm cursor-pointer"
-        >
-          <Plus size={16} />
-          <span>Add Variant</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setUseCombinations(!useCombinations)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm ${
+              useCombinations ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            <Grid size={16} />
+            <span>Combinations</span>
+          </button>
+          {useCombinations && (
+            <button
+              type="button"
+              onClick={() => {
+                setUseCombinations(false);
+                setVariants([]);
+                updateProductDetails('variantDimensions', []);
+                updateProductDetails('combinations', []);
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-md text-sm"
+            >
+              <X size={16} />
+              <span>Cancel</span>
+            </button>
+          )}
+          {!useCombinations && (
+            <button
+              type="button"
+              onClick={addVariant}
+              className="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-md text-sm cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>Add Variant</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {variants.length === 0 ? (
+      {useCombinations ? (
+        <VariantCombinationBuilder 
+          onCombinationsChange={handleCombinationsChange}
+          initialCombinations={productDetails.combinations}
+          initialDimensions={productDetails.variantDimensions}
+        />
+      ) : variants.length === 0 ? (
         <div className="text-center py-8 border border-dashed border-gray-300 rounded-md">
           <div className="flex gap-x-2 items-center text-blue-500 justify-center p-2">
             <TriangleAlert size={16} />
@@ -294,26 +368,71 @@ export default function ProductVariants({ onSaveDraft }: Props) {
                       className="flex flex-wrap gap-2 items-end"
                     >
                       <div className="flex-1 min-w-[200px]">
-                        <Input
-                          id={`variant-${variantIndex}-option-${optionIndex}-value`}
-                          label="Option Value"
-                          type="text"
-                          value={option.value}
-                          onChange={(e) =>
-                            updateOptionValue(
-                              variantIndex,
-                              optionIndex,
-                              "value",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Option value (e.g., Small, Red)"
-                          error={
-                            errors[
-                              `variant-${variantIndex}-option-${optionIndex}-value`
-                            ]
-                          }
-                        />
+                        {variant.name.toLowerCase() === 'color' || variant.name.toLowerCase() === 'colour' ? (
+                          <div className="mb-5">
+                            <label className="block text-xs mb-2">Color</label>
+                            <div className="p-2 border border-gray-300 rounded-md bg-white">
+                              <ColorPicker
+                                selectedColors={option.value ? [option.value] : []}
+                                onChange={(colors) => {
+                                  updateOptionValue(
+                                    variantIndex,
+                                    optionIndex,
+                                    "value",
+                                    colors[0] || ""
+                                  );
+                                }}
+                                maxSelection={1}
+                              />
+                            </div>
+                          </div>
+                        ) : variant.name.toLowerCase() === 'size' ? (
+                          <div className="mb-5">
+                            <label className="block text-xs mb-2">Size</label>
+                            <select
+                              className="w-full p-2 border border-gray-300 rounded-md h-10"
+                              value={option.value}
+                              onChange={(e) =>
+                                updateOptionValue(
+                                  variantIndex,
+                                  optionIndex,
+                                  "value",
+                                  e.target.value
+                                )
+                              }
+                            >
+                              <option value="">Select Size</option>
+                              <option value="XS">XS</option>
+                              <option value="S">S</option>
+                              <option value="M">M</option>
+                              <option value="L">L</option>
+                              <option value="XL">XL</option>
+                              <option value="XXL">XXL</option>
+                              <option value="XXXL">XXXL</option>
+                            </select>
+                          </div>
+                        ) : (
+                          <Input
+                            id={`variant-${variantIndex}-option-${optionIndex}-value`}
+                            label="Option Value"
+                            type="text"
+                            value={option.value}
+                            onChange={(e) =>
+                              updateOptionValue(
+                                variantIndex,
+                                optionIndex,
+                                "value",
+                                e.target.value
+                              )
+                            }
+                            placeholder="Option value (e.g., Small, Red)"
+                            error={
+                              errors[
+                                `variant-${variantIndex}-option-${optionIndex}-value`
+                              ]
+                            }
+                          />
+                        )}
                       </div>
                       <div className="w-[120px]">
                         <Input
@@ -333,6 +452,28 @@ export default function ProductVariants({ onSaveDraft }: Props) {
                           error={
                             errors[
                               `variant-${variantIndex}-option-${optionIndex}-price`
+                            ]
+                          }
+                        />
+                      </div>
+                      <div className="w-[120px]">
+                        <Input
+                          id={`variant-${variantIndex}-option-${optionIndex}-salePrice`}
+                          label="Sale Price"
+                          type="number"
+                          value={option.salePrice?.toString() || ""}
+                          onChange={(e) =>
+                            updateOptionValue(
+                              variantIndex,
+                              optionIndex,
+                              "salePrice",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Sale Price"
+                          error={
+                            errors[
+                              `variant-${variantIndex}-option-${optionIndex}-salePrice`
                             ]
                           }
                         />

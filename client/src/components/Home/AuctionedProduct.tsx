@@ -3,6 +3,7 @@ import { ProductType } from "@/types/product.type";
 import { Heart, Star, Loader2 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
+import { filterAvailableProducts } from "@/utils/productUtils";
 
 const AuctionTimer = ({ product }: { product: ProductType }) => {
   const [timeLeft, setTimeLeft] = useState({
@@ -235,9 +236,10 @@ const AuctionedProduct = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {auctionProducts.map((product: ProductType) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
+          {filterAvailableProducts(auctionProducts)
+            .map((product: ProductType) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
         </div>
       )}
     </div>

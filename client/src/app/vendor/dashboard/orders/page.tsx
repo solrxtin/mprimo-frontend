@@ -26,7 +26,6 @@ const page = (props: Props) => {
   }
 
   const { data: analyticsData, isLoading: analyticsLoading } = useVendorAnalytics(vendor?._id!);
-  const { data: ordersData, isLoading: ordersLoading } = useVendorOrders(vendor?._id!, 1, 10);
 
   return (
     <div className="bg-[#f6f6f6] rounded-lg shadow-md p-2 md:p-4 lg:p-6 min-h-screen font-[family-name:var(--font-alexandria)]">
@@ -49,29 +48,33 @@ const page = (props: Props) => {
               <div className="col-span-3">
                 <AnalyticsCard
                   title="Total Orders"
-                  value={analyticsData?.data?.dashboard?.totalOrders?.value || 0}
-                  percentageIncrease={analyticsData?.data?.dashboard?.totalOrders?.percentageChange || 0}
+                  value={analyticsData?.analytics?.totalOrders?.value || 0}
+                  percentageIncrease={analyticsData?.analytics?.totalOrders?.percentageIncrease}
+                  period={analyticsData?.analytics?.totalOrders?.period}
                 />
               </div>
               <div className="col-span-3">
                 <AnalyticsCard
                   title="Completed Orders"
-                  value={ordersData?.data?.orders?.filter((o: any) => o.status === 'delivered').length || 0}
-                  percentageIncrease={5.2}
+                  value={analyticsData?.analytics?.completedOrders?.value || 0}
+                  percentageIncrease={analyticsData?.analytics?.completedOrders?.percentageIncrease}
+                  period={analyticsData?.analytics?.completedOrders?.period}
                 />
               </div>
               <div className="col-span-3">
                 <AnalyticsCard
                   title="Pending Orders"
-                  value={ordersData?.data?.orders?.filter((o: any) => ['pending', 'processing'].includes(o.status)).length || 0}
-                  percentageIncrease={-2.1}
+                  value={analyticsData?.analytics?.pendingOrders?.value || 0}
+                  percentageIncrease={analyticsData?.analytics?.pendingOrders?.percentageIncrease}
+                  period={analyticsData?.analytics?.pendingOrders?.period}
                 />
               </div>
               <div className="col-span-3">
                 <AnalyticsCard
-                  title="Failed Orders"
-                  value={ordersData?.data?.orders?.filter((o: any) => ['cancelled', 'failed'].includes(o.status)).length || 0}
-                  percentageIncrease={-8.5}
+                  title="Cancelled Orders"
+                  value={analyticsData?.analytics?.cancelledOrders?.value || 0}
+                  percentageIncrease={analyticsData?.analytics?.cancelledOrders?.percentageIncrease}
+                  period={analyticsData?.analytics?.cancelledOrders?.period}
                 />
               </div>
             </>
@@ -79,7 +82,7 @@ const page = (props: Props) => {
         </div>
 
         {/* Orders Table */}
-        <OrderTable orders={ordersData?.data?.orders || []} loading={ordersLoading} />
+        <OrderTable />
       </div>
     </div>
   );

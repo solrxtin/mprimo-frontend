@@ -23,6 +23,26 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
     { id: 2, label: "Additional Information" },
   ];
 
+  const getColorName = (value: string) => {
+    const colorMap: Record<string, string> = {
+      '#000000': 'Black',
+      '#ffffff': 'White',
+      '#ff0000': 'Red',
+      '#0000ff': 'Blue',
+      '#008000': 'Green',
+      '#ffff00': 'Yellow',
+      '#800080': 'Purple',
+      '#ffc0cb': 'Pink',
+      '#ffa500': 'Orange',
+      '#808080': 'Gray',
+      '#c0c0c0': 'Silver',
+      '#ffd700': 'Gold'
+    };
+    
+    const isHexColor = /^#[0-9A-F]{6}$/i.test(value);
+    return isHexColor ? (colorMap[value.toLowerCase()] || 'Color') : value;
+  };
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
@@ -143,17 +163,17 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
   );
 
   const AdditionalInfoTab = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-3">
       {/* Product Analytics */}
       <div>
         <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-4">
           Product Analytics
         </h3>
         <div className="space-y-3">
-          <div>
+          {/* <div>
             <span className="font-medium text-gray-900">Views:</span>
             <span className="text-gray-600 ml-2">{productData?.analytics?.views?.toLocaleString()}</span>
-          </div>
+          </div> */}
           <div>
             <span className="font-medium text-gray-900">Add to Cart:</span>
             <span className="text-gray-600 ml-2">{productData?.analytics?.addToCart}</span>
@@ -162,10 +182,10 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
             <span className="font-medium text-gray-900">Purchases:</span>
             <span className="text-gray-600 ml-2">{productData?.analytics?.purchases}</span>
           </div>
-          <div>
+          {/* <div>
             <span className="font-medium text-gray-900">Conversion Rate:</span>
             <span className="text-gray-600 ml-2">{productData?.analytics?.conversionRate}%</span>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -209,10 +229,16 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
               {variant.options?.map((option) => (
                 <div key={option._id} className="ml-4 text-sm space-y-1">
                   <div>
-                    <span className="text-gray-600">{option.value}:</span>
-                    <span className="text-gray-900 ml-2">₦{option.price?.toLocaleString()}</span>
-                    {option.salePrice && (
-                      <span className="text-gray-500 line-through ml-2">₦{option.salePrice?.toLocaleString()}</span>
+                    <span className="text-gray-600">{getColorName(option.value)}:</span>
+                    <span className="text-gray-900 ml-2">
+                      {(productData as any)?.priceInfo?.currencySymbol || '$'}
+                      {(option.displayPrice || option.salePrice || option.price)?.toLocaleString()}
+                    </span>
+                    {option.salePrice && option.price !== option.salePrice && (
+                      <span className="text-gray-500 line-through ml-2">
+                        {(productData as any)?.priceInfo?.currencySymbol || '$'}
+                        {((option.price || 0) * ((productData as any)?.priceInfo?.exchangeRate || 1))?.toLocaleString()}
+                      </span>
                     )}
                   </div>
                   <div className="text-gray-600">Qty: {option.quantity}</div>
@@ -247,7 +273,7 @@ const ProductDetailsTabs: React.FC<ProductInfoProps> = ({ productData }) =>  {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`pb-1 md:pb-3 px-1 font-medium text-base whitespace-nowrap transition-colors relative ${
+              className={`pb-0.5 md:pb-1 px-1 font-medium text-base whitespace-nowrap transition-colors relative ${
                 activeTab === tab.id
                   ? "text-gray-900 border-b-2 border-orange-400"
                   : "text-gray-500 hover:text-gray-700"

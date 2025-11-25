@@ -17,7 +17,8 @@ const Header = (props: Props) => {
 
 
   return (
-    <header className="sticky top-0 w-full flex justify-between px-2 md:px-3 lg:px-6 xl:px-10 py-4 bg-white z-10 shadow-sm">
+    <header className="w-full flex justify-between px-2 md:px-3 lg:px-6 xl:px-10 py-4 bg-white z-10 shadow-sm">
+      <h1 className="text-xl font-semibold text-[#211F1F]">Mprimo</h1>
       <div className="flex items-center gap-x-4">
         <button
           className="md:hidden text-gray-700"

@@ -6,6 +6,7 @@ import { AllProduct } from "@/utils/config";
 import { ProductType } from "@/types/product.type";
 import Link from "next/link";
 import { ProductCard } from "./ProductCard";
+import { filterAvailableProducts } from "@/utils/productUtils";
 
 const navCategories = [
   "All Products",
@@ -111,9 +112,10 @@ export default function FeaturedProducts() {
         {/* Products Grid */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {featuredProducts.map((product: ProductType) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
+          {filterAvailableProducts(featuredProducts)
+            .map((product: ProductType) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
         </div>
       </div>
     )

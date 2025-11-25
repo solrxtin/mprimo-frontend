@@ -18,118 +18,118 @@ type Attribute = {
   options?: string[];
 };
 
-const tailwindColorMap: Record<string, Record<string, string>> = {
-  "bg-red": {
-    "100": "#fee2e2",
-    "200": "#fecaca",
-    "300": "#fca5a5",
-    "400": "#f87171",
-    "500": "#ef4444",
-    "600": "#dc2626",
-    "700": "#b91c1c",
-    "800": "#991b1b",
-    "900": "#7f1d1d",
-  },
-  "bg-blue": {
-    "100": "#dbeafe",
-    "200": "#bfdbfe",
-    "300": "#93c5fd",
-    "400": "#60a5fa",
-    "500": "#3b82f6",
-    "600": "#2563eb",
-    "700": "#1d4ed8",
-    "800": "#1e40af",
-    "900": "#1e3a8a",
-  },
-  "bg-green": {
-    "100": "#dcfce7",
-    "200": "#bbf7d0",
-    "300": "#86efac",
-    "400": "#4ade80",
-    "500": "#22c55e",
-    "600": "#16a34a",
-    "700": "#15803d",
-    "800": "#166534",
-    "900": "#14532d",
-  },
-  "bg-yellow": {
-    "100": "#fef9c3",
-    "200": "#fef08a",
-    "300": "#fde047",
-    "400": "#facc15",
-    "500": "#eab308",
-    "600": "#ca8a04",
-    "700": "#a16207",
-    "800": "#854d0e",
-    "900": "#713f12",
-  },
-  "bg-purple": {
-    "100": "#f3e8ff",
-    "200": "#e9d5ff",
-    "300": "#d8b4fe",
-    "400": "#c084fc",
-    "500": "#a855f7",
-    "600": "#9333ea",
-    "700": "#7e22ce",
-    "800": "#6b21a8",
-    "900": "#581c87",
-  },
-  "bg-orange": {
-    "100": "#ffedd5",
-    "200": "#fed7aa",
-    "300": "#fdba74",
-    "400": "#fb923c",
-    "500": "#f97316",
-    "600": "#ea580c",
-    "700": "#c2410c",
-    "800": "#9a3412",
-    "900": "#7c2d12",
-  },
-  "bg-teal": {
-    "100": "#ccfbf1",
-    "200": "#99f6e4",
-    "300": "#5eead4",
-    "400": "#2dd4bf",
-    "500": "#14b8a6",
-    "600": "#0d9488",
-    "700": "#0f766e",
-    "800": "#115e59",
-    "900": "#134e4a",
-  },
-  "bg-gray": {
-    "100": "#f3f4f6",
-    "200": "#e5e7eb",
-    "300": "#d1d5db",
-    "400": "#9ca3af",
-    "500": "#6b7280",
-    "600": "#4b5563",
-    "700": "#374151",
-    "800": "#1f2937",
-    "900": "#111827",
-  },
-  "bg-black": {
-    "100": "#000000",
-    "200": "#000000",
-    "300": "#000000",
-    "400": "#000000",
-    "500": "#000000",
-    "600": "#000000",
-    "700": "#000000",
-    "800": "#000000",
-    "900": "#000000",
-  },
-  "bg-white": {
-    "100": "#ffffff",
-    "200": "#ffffff",
-    "300": "#ffffff",
-    "400": "#ffffff",
-    "500": "#ffffff",
-    "600": "#ffffff",
-    "700": "#ffffff",
-    "800": "#ffffff",
-    "900": "#ffffff",
-  },
-};
+// const tailwindColorMap: Record<string, Record<string, string>> = {
+//   "bg-red": {
+//     "100": "#fee2e2",
+//     "200": "#fecaca",
+//     "300": "#fca5a5",
+//     "400": "#f87171",
+//     "500": "#ef4444",
+//     "600": "#dc2626",
+//     "700": "#b91c1c",
+//     "800": "#991b1b",
+//     "900": "#7f1d1d",
+//   },
+//   "bg-blue": {
+//     "100": "#dbeafe",
+//     "200": "#bfdbfe",
+//     "300": "#93c5fd",
+//     "400": "#60a5fa",
+//     "500": "#3b82f6",
+//     "600": "#2563eb",
+//     "700": "#1d4ed8",
+//     "800": "#1e40af",
+//     "900": "#1e3a8a",
+//   },
+//   "bg-green": {
+//     "100": "#dcfce7",
+//     "200": "#bbf7d0",
+//     "300": "#86efac",
+//     "400": "#4ade80",
+//     "500": "#22c55e",
+//     "600": "#16a34a",
+//     "700": "#15803d",
+//     "800": "#166534",
+//     "900": "#14532d",
+//   },
+//   "bg-yellow": {
+//     "100": "#fef9c3",
+//     "200": "#fef08a",
+//     "300": "#fde047",
+//     "400": "#facc15",
+//     "500": "#eab308",
+//     "600": "#ca8a04",
+//     "700": "#a16207",
+//     "800": "#854d0e",
+//     "900": "#713f12",
+//   },
+//   "bg-purple": {
+//     "100": "#f3e8ff",
+//     "200": "#e9d5ff",
+//     "300": "#d8b4fe",
+//     "400": "#c084fc",
+//     "500": "#a855f7",
+//     "600": "#9333ea",
+//     "700": "#7e22ce",
+//     "800": "#6b21a8",
+//     "900": "#581c87",
+//   },
+//   "bg-orange": {
+//     "100": "#ffedd5",
+//     "200": "#fed7aa",
+//     "300": "#fdba74",
+//     "400": "#fb923c",
+//     "500": "#f97316",
+//     "600": "#ea580c",
+//     "700": "#c2410c",
+//     "800": "#9a3412",
+//     "900": "#7c2d12",
+//   },
+//   "bg-teal": {
+//     "100": "#ccfbf1",
+//     "200": "#99f6e4",
+//     "300": "#5eead4",
+//     "400": "#2dd4bf",
+//     "500": "#14b8a6",
+//     "600": "#0d9488",
+//     "700": "#0f766e",
+//     "800": "#115e59",
+//     "900": "#134e4a",
+//   },
+//   "bg-gray": {
+//     "100": "#f3f4f6",
+//     "200": "#e5e7eb",
+//     "300": "#d1d5db",
+//     "400": "#9ca3af",
+//     "500": "#6b7280",
+//     "600": "#4b5563",
+//     "700": "#374151",
+//     "800": "#1f2937",
+//     "900": "#111827",
+//   },
+//   "bg-black": {
+//     "100": "#000000",
+//     "200": "#000000",
+//     "300": "#000000",
+//     "400": "#000000",
+//     "500": "#000000",
+//     "600": "#000000",
+//     "700": "#000000",
+//     "800": "#000000",
+//     "900": "#000000",
+//   },
+//   "bg-white": {
+//     "100": "#ffffff",
+//     "200": "#ffffff",
+//     "300": "#ffffff",
+//     "400": "#ffffff",
+//     "500": "#ffffff",
+//     "600": "#ffffff",
+//     "700": "#ffffff",
+//     "800": "#ffffff",
+//     "900": "#ffffff",
+//   },
+// };
 
 interface Props {
   onSaveDraft?: () => void;
@@ -283,9 +283,9 @@ export default function ProductSpecifications(props: Props) {
     // Get current specifications
     const specs = productDetails.productSpecifications || {};
 
-    // Check required attributes
+    // Check required attributes (skip color as it's moved to variants/pricing)
     requiredAttributes.forEach((attr) => {
-      if (!specs[attr.name]) {
+      if (attr.name.toLowerCase() !== 'color' && attr.name.toLowerCase() !== 'colour' && !specs[attr.name]) {
         errors[attr.name] = `${attr.name} is required`;
       }
     });
@@ -336,114 +336,6 @@ export default function ProductSpecifications(props: Props) {
     }
   };
 
-  const handleColorSelection = (color: string) => {
-    setSelectedColor(color);
-    if (color === "bg-white") {
-      updateProductDetails("color", "#ffffff");
-    } else if (color === "bg-black") {
-      updateProductDetails("color", "#000000");
-    }
-    setSelectedShade("");
-  };
-
-  // Update the handleShadeSelection function
-  const handleShadeSelection = (shade: string) => {
-    setSelectedShade(shade);
-
-    // Get the base color (remove the -500 suffix)
-    const baseColor = selectedColor.split("-").slice(0, -1).join("-");
-
-    // Get the hex value from the map
-    const hexColor = tailwindColorMap[baseColor]?.[shade] || "";
-    updateProductDetails("color", hexColor);
-  };
-
-  const ColorPicker = () => {
-    // Main colors array
-    const mainColors = [
-      "bg-yellow-500",
-      "bg-blue-500",
-      "bg-red-500",
-      "bg-green-500",
-      "bg-black",
-      "bg-white",
-      "bg-gray-500",
-      "bg-purple-500",
-      "bg-orange-500",
-      "bg-teal-500",
-    ];
-    // Shades array
-    const shades = [
-      "100",
-      "200",
-      "300",
-      "400",
-      "500",
-      "600",
-      "700",
-      "800",
-      "900",
-    ];
-
-    return (
-      <>
-        <p className="text-[12px] mt-4">Select colour</p>
-        <div className="flex flex-col gap-2 mt-2">
-          {/* Main colors row */}
-          <div className="flex flex-wrap gap-2">
-            {mainColors.map((color) => (
-              <div
-                key={color}
-                className={`w-6 h-6 rounded-full cursor-pointer ${
-                  color === "bg-white" ? "border border-gray-400" : ""
-                } ${color} ${
-                  selectedColor === color
-                    ? "ring-2 ring-offset-2 ring-blue-500"
-                    : ""
-                }`}
-                onClick={() => handleColorSelection(color)}
-              />
-            ))}
-          </div>
-
-          {/* Shades row - only show if a main color is selected */}
-          {selectedColor && (
-            <div className="flex gap-2">
-              {shades.map((shade) => {
-                // Extract the color name without the "bg-" prefix and "-500" suffix
-                const colorName = selectedColor.split("-")[1];
-
-                // Handle special cases
-                if (
-                  selectedColor === "bg-black" ||
-                  selectedColor === "bg-white"
-                ) {
-                  return;
-                }
-
-                // For other colors, use inline styles with the tailwindColorMap
-                return (
-                  <div
-                    key={shade}
-                    className={`w-6 h-6 rounded-full cursor-pointer border ${
-                      selectedShade === shade
-                        ? "border-black border-2"
-                        : "border-gray-300"
-                    }`}
-                    style={{
-                      backgroundColor:
-                        tailwindColorMap[`bg-${colorName}`]?.[shade] || "",
-                    }}
-                    onClick={() => handleShadeSelection(shade)}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </>
-    );
-  };
 
   const renderOnMobileOrTablet = () => {
     return (
@@ -522,7 +414,6 @@ export default function ProductSpecifications(props: Props) {
             <div className="text-gray-500 text-xs">
               Note: If you have more specifications, you can add them below.
             </div>
-            <ColorPicker />
             <div className="mt-4">
               <p className="text">Add addittional specifications</p>
               <button
@@ -543,21 +434,33 @@ export default function ProductSpecifications(props: Props) {
             {Object.keys(additionalSpecifications).length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-2 xl:gap-x-4">
                 {Object.keys(additionalSpecifications).map((key) => (
-                  <Input
-                    label={key}
-                    type="text"
-                    id={key}
-                    className="col-span-2 md:col-span-1"
-                    placeholder={`Enter ${key.toLowerCase()}`}
-                    key={key}
-                    value={additionalSpecifications[key]}
-                    onChange={(e) =>
-                      setAdditionalSpecifications({
-                        ...additionalSpecifications,
-                        [key]: e.target.value,
-                      })
-                    }
-                  />
+                  <div key={key} className="col-span-2 md:col-span-1 relative">
+                    <Input
+                      label={key}
+                      type="text"
+                      id={key}
+                      className="w-full"
+                      placeholder={`Enter ${key.toLowerCase()}`}
+                      value={additionalSpecifications[key]}
+                      onChange={(e) =>
+                        setAdditionalSpecifications({
+                          ...additionalSpecifications,
+                          [key]: e.target.value,
+                        })
+                      }
+                    />
+                    <button
+                      onClick={() => {
+                        const updated = { ...additionalSpecifications };
+                        delete updated[key];
+                        setAdditionalSpecifications(updated);
+                        updateProductDetails("additionalSpecifications", updated);
+                      }}
+                      className="absolute top-0 right-0 text-red-500 hover:text-red-700 text-sm"
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -721,7 +624,7 @@ export default function ProductSpecifications(props: Props) {
                     Note: If you have more specifications, you can add them
                     below.
                   </div>
-                  <ColorPicker />
+
                   <div className="mt-4">
                     <p className="text">Add additional specifications</p>
                     <button
@@ -742,25 +645,37 @@ export default function ProductSpecifications(props: Props) {
                   {Object.keys(additionalSpecifications).length > 0 && (
                     <div className="mt-4 grid grid-cols-2 gap-2 xl:gap-4">
                       {Object.keys(additionalSpecifications).map((key) => (
-                        <Input
-                          label={key}
-                          type="text"
-                          id={key}
-                          className="col-span-1"
-                          placeholder={`Enter ${key.toLowerCase()}`}
-                          key={key}
-                          value={additionalSpecifications[key]}
-                          onChange={(e) => {
-                            setAdditionalSpecifications({
-                              ...additionalSpecifications,
-                              [key]: e.target.value,
-                            })
-                            updateProductDetails("additionalSpecifications", {
-                              ...additionalSpecifications,
-                              [key]: e.target.value,
-                            })
-                          }}
-                        />
+                        <div key={key} className="col-span-1 relative">
+                          <Input
+                            label={key}
+                            type="text"
+                            id={key}
+                            className="w-full"
+                            placeholder={`Enter ${key.toLowerCase()}`}
+                            value={additionalSpecifications[key]}
+                            onChange={(e) => {
+                              setAdditionalSpecifications({
+                                ...additionalSpecifications,
+                                [key]: e.target.value,
+                              })
+                              updateProductDetails("additionalSpecifications", {
+                                ...additionalSpecifications,
+                                [key]: e.target.value,
+                              })
+                            }}
+                          />
+                          <button
+                            onClick={() => {
+                              const updated = { ...additionalSpecifications };
+                              delete updated[key];
+                              setAdditionalSpecifications(updated);
+                              updateProductDetails("additionalSpecifications", updated);
+                            }}
+                            className="absolute top-0 right-0 text-red-500 hover:text-red-700 text-sm"
+                          >
+                            ×
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}

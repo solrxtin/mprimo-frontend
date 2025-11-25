@@ -11,16 +11,24 @@ interface MessageProps {
     senderId: any;
   };
   isSent: boolean;
+  onMessageVisible?: (element: HTMLElement) => void;
 }
 
-const MessageBubble: React.FC<MessageProps> = ({ message, isSent }) => {
+const MessageBubble: React.FC<MessageProps> = ({ message, isSent, onMessageVisible }) => {
   // Format time to display as HH:MM
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
+    <div 
+      className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}
+      ref={(el) => {
+        if (el && !isSent && !message.read && onMessageVisible) {
+          onMessageVisible(el);
+        }
+      }}
+    >
       <div 
         className={`max-w-[80%] rounded-2xl p-3 shadow-sm ${
           isSent 

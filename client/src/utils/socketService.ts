@@ -1,82 +1,58 @@
 import { io, Socket } from 'socket.io-client';
 
-/**
- * Socket service to handle Socket.IO connections
- */
 class SocketService {
   private socket: Socket | null = null;
-  private static instance: SocketService;
+  private userId: string | null = null;
 
-  private constructor() {}
-
-  public static getInstance(): SocketService {
-    if (!SocketService.instance) {
-      SocketService.instance = new SocketService();
+  connect(userId: string): Socket {
+    if (this.socket?.connected && this.userId === userId) {
+      return this.socket;
     }
-    return SocketService.instance;
-  }
 
-  // Connect to the Socket.IO server
-  public connect(userId: string): Socket {
-    if (!this.socket) {
-      // Replace with your actual Socket.IO endpoint
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5800';
-      this.socket = io(socketUrl, {
-        withCredentials: true,
-        transports: ['websocket', 'polling'],
-        auth: {
-          userId
-        }
-      });
-      this.setupEventHandlers();
-    }
-    
-    return this.socket;
-  }
-
-  // Set up default event handlers
-  private setupEventHandlers(): void {
-    if (!this.socket) return;
+    this.userId = userId;
+    this.socket = io('http://localhost:5800', {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
 
     this.socket.on('connect', () => {
-      console.log('Socket.IO connected');
+      console.log('Connected to server');
+      this.socket?.emit('authenticate', { userId });
     });
 
     this.socket.on('disconnect', () => {
-      console.log('Socket.IO disconnected');
+      console.log('Disconnected from server');
     });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('Socket.IO connection error:', error);
-    });
-  }
-
-  // Join a specific room (e.g., for wallet updates)
-  public joinRoom(room: string): void {
-    if (this.socket) {
-      this.socket.emit('join_room', room);
-    }
-  }
-
-  // Leave a specific room
-  public leaveRoom(room: string): void {
-    if (this.socket) {
-      this.socket.emit('leave_room', room);
-    }
-  }
-
-  // Disconnect from the Socket.IO server
-  public disconnect(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-  }
-
-  // Get the socket instance
-  public getSocket(): Socket | null {
     return this.socket;
+  }
+
+  getSocket(): Socket | null {
+    return this.socket;
+  }
+
+  joinRoom(roomId: string): void {
+    this.socket?.emit('join_room', roomId);
+  }
+
+  leaveRoom(roomId: string): void {
+    this.socket?.emit('leave_room', roomId);
+  }
+
+  sendMessage(messageData: {
+    senderId: string;
+    receiverId: string;
+    message: string;
+    chatId: string;
+  }): void {
+    this.socket?.emit('send_message', messageData);
+  }
+
+  disconnect(): void {
+    this.socket?.disconnect();
+    this.socket = null;
+    this.userId = null;
   }
 }
 
-export default SocketService.getInstance();
+export default new SocketService();

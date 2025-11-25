@@ -32,8 +32,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AddCardModal from "@/components/users/settings/AddCardModal";
+import { toast } from "react-hot-toast";
 
 type SettingsSection =
   | "main"
@@ -52,7 +53,9 @@ const settingsNavigation = [
 ];
 
 export default function SettingsPage() {
-  const [currentSection, setCurrentSection] = useState<SettingsSection>("main");
+  const searchParams = useSearchParams();
+  const initialSection = searchParams.get('section') as SettingsSection || 'main';
+  const [currentSection, setCurrentSection] = useState<SettingsSection>(initialSection);
   const [showPassword, setShowPassword] = useState(false);
   const updateNotificationPreferences = useUpdateNotificationPreferences();
   const { data: addressData } = useAddresses();
@@ -151,7 +154,7 @@ export default function SettingsPage() {
   };
 
   const handleAddAddress = () => {
-    addAddressMutation.mutate(newAddress, {
+    addAddressMutation.mutate({ address: newAddress }, {
       onSuccess: () => {
         setNewAddress({
           street: "",
@@ -165,6 +168,17 @@ export default function SettingsPage() {
         setSelectedCountry("");
         setSelectedState("");
         setShowAddForm(false);
+        
+        // Check if user came from buy now flow
+        const buyNowReturn = localStorage.getItem('buyNowReturn');
+        if (buyNowReturn) {
+          const returnData = JSON.parse(buyNowReturn);
+          localStorage.removeItem('buyNowReturn');
+          toast.success('Address added! Redirecting back to product...');
+          setTimeout(() => {
+            router.push(returnData.path);
+          }, 1500);
+        }
       },
     });
   };

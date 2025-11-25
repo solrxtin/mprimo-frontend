@@ -26,6 +26,51 @@ interface UserProfile {
   }>;
 }
 
+interface FiatWallet {
+  _id: string;
+  userId: string;
+  balances: {
+    available: number;
+    pending: number;
+    escrow: number;
+    frozen: number;
+  };
+  currency: string;
+  limits: {
+    dailyTopUp: number;
+    monthlyTopUp: number;
+    singleTransaction: number;
+  };
+  paymentMethods: any[];
+  settings: {
+    autoTopUpThreshold: number;
+    autoTopUp: boolean;
+    autoTopUpAmount: number;
+    dailySpendingLimit: number;
+    notifications: boolean;
+  };
+  stripeCustomerId: string;
+  verification: {
+    level: string;
+    kycStatus: string;
+    documents: any[];
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ShippingAddress {
+  id: string;
+  _id: string;
+  city: string;
+  country: string;
+  isDefault: boolean;
+  postalCode: string;
+  state: string;
+  street: string;
+  type: string;
+}
+
 interface Card {
   gateway: string;
   last4: string;
@@ -50,10 +95,11 @@ interface RecentView {
 }
 
 const userApi = {
-  getProfile: async (): Promise<{ user: UserProfile; fiatWallet: number; shippingDefaultAddress: any }> => {
+  getProfile: async (): Promise<{ success: boolean; message: string; user: UserProfile; fiatWallet: FiatWallet; shippingDefaultAddress: ShippingAddress }> => {
     const response = await fetchWithAuth(`${API_BASE}/users/profile`);
     if (!response.ok) throw new Error('Failed to fetch profile');
-    return response.json();
+    const data = await response.json();
+    return data;
   },
 
   getRecentViews: async (limit = 10): Promise<{ recentViews: RecentView[] }> => {
@@ -119,6 +165,16 @@ const userApi = {
   getCards: async (): Promise<{ cards: Card[]; defaultGateway: string }> => {
     const response = await fetchWithAuth(`${API_BASE}/users/cards`);
     if (!response.ok) throw new Error('Failed to fetch cards');
+    return response.json();
+  },
+
+  getRecentActivities: async (page = 1, limit = 10) => {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    
+    const response = await fetchWithAuth(`${API_BASE}/users/activities?${params.toString()}`);
+    if (!response.ok) throw new Error('Failed to fetch recent activities');
     return response.json();
   },
 };
@@ -213,5 +269,14 @@ export const useUserCards = (enabled: boolean = true) => {
     queryFn: userApi.getCards,
     enabled: enabled,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useUserRecentActivities = (page = 1, limit = 10, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['userRecentActivities', page, limit],
+    queryFn: () => userApi.getRecentActivities(page, limit),
+    enabled: enabled,
+    staleTime: 2 * 60 * 1000,
   });
 };

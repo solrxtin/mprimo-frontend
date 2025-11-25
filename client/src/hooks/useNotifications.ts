@@ -1,63 +1,128 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
-import { toastConfigError, toastConfigSuccess } from '@/app/config/toast.config';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
-interface NotificationPreferences {
-  stockAlert: boolean;
-  orderStatus: boolean;
-  pendingReviews: boolean;
-  paymentUpdates: boolean;
-  newsletter: boolean;
-}
+const BASE_URL = 'http://localhost:5800/api/v1/notifications';
 
-interface Notification {
-  _id: string;
-  title: string;
-  message: string;
-  type: string;
-  isRead: boolean;
-  createdAt: string;
-}
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5800/api/v1';
-
-const notificationApi = {
-  getNotifications: async (): Promise<{ notifications: Notification[] }> => {
-    const response = await fetchWithAuth(`${API_BASE}/users/notifications`);
-    if (!response.ok) throw new Error('Failed to fetch notifications');
-    return response.json();
-  },
-
-  updatePreferences: async (preferences: NotificationPreferences) => {
-    const response = await fetchWithAuth(`${API_BASE}/users/notifications/preferences`, {
-      method: 'PATCH',
-      body: JSON.stringify(preferences),
-    });
-    if (!response.ok) throw new Error('Failed to update preferences');
-    return response.json();
-  },
-};
-
+// Queries
 export const useNotifications = () => {
   return useQuery({
     queryKey: ['notifications'],
-    queryFn: notificationApi.getNotifications,
-    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      const response = await fetchWithAuth(BASE_URL);
+      return response.json();
+    },
+    retry: false,
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 };
 
-export const useUpdateNotificationPreferences = () => {
+export const useNotificationById = (id: string) => {
+  return useQuery({
+    queryKey: ['notification', id],
+    queryFn: async () => {
+      const response = await fetchWithAuth(`${BASE_URL}/${id}`);
+      return response.json();
+    },
+    enabled: !!id
+  });
+};
+
+// Mutations
+export const useMarkNotificationAsRead = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: notificationApi.updatePreferences,
+    mutationFn: async (id: string) => {
+      const response = await fetchWithAuth(`${BASE_URL}/${id}`, {
+        method: 'PATCH'
+      });
+      return response.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      toast.success('Notification preferences updated', toastConfigSuccess);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+};
+
+export const useMarkAllNotificationsAsRead = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetchWithAuth(BASE_URL, {
+        method: 'PATCH'
+      });
+      return response.json();
     },
-    onError: () => {
-      toast.error('Failed to update preferences', toastConfigError);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+};
+
+export const useDeleteNotification = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetchWithAuth(`${BASE_URL}/${id}`, {
+        method: 'DELETE'
+      });
+      return response.json();
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+};
+
+export const useDeleteAllNotifications = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetchWithAuth(BASE_URL, {
+        method: 'DELETE'
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+};
+
+export const useBulkMarkAsRead = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const response = await fetchWithAuth(`${BASE_URL}/bulk`, {
+        method: 'PATCH',
+        body: JSON.stringify({ ids })
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+};
+
+export const useBulkDeleteNotifications = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const response = await fetchWithAuth(`${BASE_URL}/bulk`, {
+        method: 'DELETE',
+        body: JSON.stringify({ ids })
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
   });
 };

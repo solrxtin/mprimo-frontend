@@ -1,133 +1,34 @@
-import { toastConfigError } from "@/app/config/toast.config";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "react-toastify";
+import { useMutation } from '@tanstack/react-query';
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
-interface ProductData {
-  name: string;
-  brand: string;
-  description: string;
-  condition: "new" | "used" | "refurbished";
-  conditionDescription?: string;
-  category: {
-    main: string;
-    sub: string[];
-    path: string[];
-  };
-  country: string;
-  inventory: {
-    sku?: string;
-    lowStockAlert?: number;
-    listing: {
-      type: "instant" | "auction";
-      instant?: {
-        acceptOffer: boolean;
-      };
-      auction?: {
-        startBidPrice: number;
-        reservePrice: number;
-        buyNowPrice?: number;
-        startTime: Date;
-        endTime: Date;
-        quantity: number;
-        bidIncrement?: number;
-      };
-    };
-  };
-  images: string[];
-  specifications: Array<{
-    key: string;
-    value: string;
-  }>;
-  shipping: {
-    weight: number;
-    unit: "kg" | "lbs";
-    dimensions: {
-      length: number;
-      width: number;
-      height: number;
-    };
-    restrictions?: string[];
-  };
-  variants?: Array<{
-    name: string;
-    isDefault?: boolean;
-    options: Array<{
-      value: string;
-      price: number;
-      salePrice: number;
-      quantity: number;
-      sku: string;
-      isDefault?: boolean;
-    }>;
-  }>;
+interface CreateProductResponse {
+  success: boolean;
+  product: any;
+  message: string;
 }
+
+const createProductAPI = async (productData: any): Promise<CreateProductResponse> => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/products', {
+    method: 'POST',
+    body: JSON.stringify(productData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to create product');
+  }
+
+  return response.json();
+};
 
 export const useCreateProduct = () => {
   return useMutation({
-    mutationFn: async (productData: ProductData) => {
-      console.log('Sending product data:', productData);
-      
-      const response = await fetchWithAuth(
-        "http://localhost:5800/api/v1/products",
-        {
-          method: "POST",
-          body: JSON.stringify(productData),
-        }
-      );
-      
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        console.error('Product creation failed:', responseData);
-        toast.error(responseData.message || 'Failed to create product', toastConfigError);
-        throw new Error(responseData.message || 'Failed to create product');
-      }
-
-      toast.success('Product created successfully!');
-      return responseData;
+    mutationFn: createProductAPI,
+    onSuccess: (data) => {
+      console.log('Product created successfully:', data);
     },
-  });
-};
-
-// Hook for creating multiple products
-export const useCreateMultipleProducts = () => {
-  return useMutation({
-    mutationFn: async (productsData: ProductData[]) => {
-      const results = [];
-      const errors = [];
-      
-      for (let i = 0; i < productsData.length; i++) {
-        try {
-          const response = await fetchWithAuth(
-            "http://localhost:5800/api/v1/products",
-            {
-              method: "POST",
-              body: JSON.stringify(productsData[i]),
-            }
-          );
-          
-          const responseData = await response.json();
-          
-          if (!response.ok) {
-            errors.push({ index: i, error: responseData.message });
-          } else {
-            results.push(responseData);
-          }
-        } catch (error) {
-          errors.push({ index: i, error: 'Network error' });
-        }
-      }
-      
-      if (errors.length > 0) {
-        toast.error(`${errors.length} products failed to create`, toastConfigError);
-      }
-      
-      if (results.length > 0) {
-        toast.success(`${results.length} products created successfully!`);
-      }
-      
-      return { results, errors };
+    onError: (error) => {
+      console.error('Failed to create product:', error);
     },
   });
 };

@@ -10,6 +10,8 @@ import { useDeleteDraft } from "@/hooks/mutations";
 import { useProductStore } from "@/stores/useProductStore";
 import { useRouter } from "next/navigation";
 import { ClipLoader } from "react-spinners";
+import ProductPreviewModal from "@/components/ProductPreviewModal";
+import { useState } from "react";
 
 type NavigationButtonsProps = {
   onNext?: () => boolean | Promise<boolean>;
@@ -38,6 +40,7 @@ export default function NavigationButtons({
   const deleteDraftMutation = useDeleteDraft();
   const { listedProducts, setListedProducts } = useProductStore();
   const router = useRouter();
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleBack = () => {
     if (onBack) {
@@ -62,7 +65,11 @@ export default function NavigationButtons({
     }
   };
 
-  const handleSubmitClick = async () => {
+  const handlePreviewClick = () => {
+    setShowPreview(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     try {
       const mappedData = mapProductDetailsToSchema();
       const result = await createProductMutation.mutateAsync(mappedData);
@@ -78,9 +85,9 @@ export default function NavigationButtons({
           (draft: any) => draft.draftId !== draftId
         );
 
-
         localStorage.setItem("productDrafts", JSON.stringify(updatedDrafts));
         setListedProducts([result.product, ...listedProducts]);
+        setShowPreview(false);
         router.push("/vendor/dashboard/products");
       }
     } catch (error: any) {
@@ -116,26 +123,14 @@ export default function NavigationButtons({
           Save to Draft
         </button>
         <button
-          onClick={isLastStep ? handleSubmitClick : handleNext}
-          disabled={
-            nextDisabled || (isLastStep && createProductMutation.isPending)
-          }
+          onClick={isLastStep ? handlePreviewClick : handleNext}
+          disabled={nextDisabled}
           className={`flex items-center justify-center gap-x-2 border hover:bg-[#2563eb]/80 bg-[#2563eb] w-xs text-gray-50 text-sm px-4 py-2 rounded-md cursor-pointer transition duration-300 ease-in-out ${
-            nextDisabled || (isLastStep && createProductMutation.isPending)
-              ? "opacity-50 cursor-not-allowed"
-              : ""
+            nextDisabled ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
           <span>
-            {isLastStep ? (
-              createProductMutation.isPending ? (
-                <ClipLoader size={20} color="white" />
-              ) : (
-                "Publish Product"
-              )
-            ) : (
-              "Next"
-            )}
+            {isLastStep ? "Preview Product" : "Next"}
           </span>
           <ArrowRight
             size={16}
@@ -152,6 +147,14 @@ export default function NavigationButtons({
           </div>
         )}
       </>
+      
+      <ProductPreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        onConfirm={handleConfirmSubmit}
+        productDetails={productDetails}
+        isSubmitting={createProductMutation.isPending}
+      />
     </div>
   );
 }

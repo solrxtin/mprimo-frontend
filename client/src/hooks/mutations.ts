@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { User } from "@/types/user.type";
 import { toastConfigError } from "@/app/config/toast.config";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import Vendor from "@/types/vendor.type";
+import {IVendor} from "@/types/vendor.type";
 import ICryptoWallet from "@/types/wallet.type";
 
 interface SignUpData {
@@ -109,7 +109,7 @@ const loginUser = async (
 ): Promise<{
   message: string;
   user: User;
-  vendor: Vendor;
+  vendor: IVendor;
   has2faEnabled: boolean;
 }> => {
   const response = await fetch("http://localhost:5800/api/v1/auth/login", {
@@ -362,7 +362,7 @@ export const useToggleHelpful = () => {
 const addVendorResponse = async ({ 
   productId, 
   reviewId, 
-  vendorId ,
+  vendorId,
   response
 }: { 
   productId: string; 
@@ -373,6 +373,7 @@ const addVendorResponse = async ({
   const res = await fetchWithAuth(
     `http://localhost:5800/api/v1/product/${productId}/review/${reviewId}/response`,
     {
+
       method: 'POST',
       body: JSON.stringify({ response, vendorId }),
     }
@@ -415,5 +416,314 @@ export const useMakeBid = () => {
   return useMutation({
     mutationFn: ({ productId, userId, maxBid }: { productId: string; userId: string; maxBid: number }) =>
       makeBid(userId, productId, maxBid),
+  });
+};
+
+// Update draft mutation
+const updateDraft = async ({ id, draft }: { id: string; draft: any }): Promise<{ message: string }> => {
+  const response = await fetchWithAuth(
+    `http://localhost:5800/api/v1/products/drafts/${id}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(draft),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to update draft");
+  }
+
+  return response.json();
+};
+
+export const useUpdateDraft = () => {
+  return useMutation({
+    mutationFn: updateDraft,
+  });
+};
+
+// Create product mutation
+const createProduct = async (productData: any): Promise<{ product: any; message: string }> => {
+  const response = await fetchWithAuth(
+    "http://localhost:5800/api/v1/products",
+    {
+      method: "POST",
+      body: JSON.stringify(productData),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to create product");
+  }
+
+  return response.json();
+};
+
+export const useCreateProduct = () => {
+  return useMutation({
+    mutationFn: createProduct,
+  });
+};
+
+
+const createAdvertisement = async (data: {
+  vendorId: string;
+  productId: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  adType: string;
+}) => {
+  const { vendorId, ...body } = data;
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/advertisements/${vendorId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to create advertisement');
+  }
+  return response.json();
+};
+
+export const useCreateAdvertisement = () => {
+  return useMutation({
+    mutationFn: createAdvertisement,
+  });
+};
+
+// Stripe Elements mutations
+const createPaymentIntent = async (data: {
+  vendorId: string;
+  priceId: string;
+}) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/stripe/create-payment-intent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to create payment intent');
+  }
+  return response.json();
+};
+
+export const useCreatePaymentIntent = () => {
+  return useMutation({
+    mutationFn: createPaymentIntent,
+  });
+};
+
+// Add payment method mutation (updated for Stripe)
+const addPaymentMethod = async (data: {
+  type: 'card' | 'bank_transfer' | 'mobile_money';
+  metadata?: {
+    last4?: string;
+    brand?: string;
+    bankName?: string;
+    accountNumber?: string;
+  };
+  isDefault: boolean;
+  paymentMethodId?: string;
+  paystackAuthorizationCode?: string;
+}) => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/payment-methods', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to add payment method');
+  }
+  return response.json();
+};
+
+export const useAddPaymentMethod = () => {
+  return useMutation({
+    mutationFn: addPaymentMethod,
+  });
+};
+
+// Wallet top-up mutation
+const initiateTopUp = async (data: {
+  amount: number;
+  method: 'card' | 'bank_transfer';
+  paymentMethodId?: string;
+}) => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/topup', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to initiate top-up');
+  }
+  return response.json();
+};
+
+export const useInitiateTopUp = () => {
+  return useMutation({
+    mutationFn: initiateTopUp,
+  });
+};
+
+// Create setup intent for payment method
+const createSetupIntent = async () => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/setup-intent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to create setup intent');
+  }
+  return response.json();
+};
+
+export const useCreateSetupIntent = () => {
+  return useMutation({
+    mutationFn: createSetupIntent,
+  });
+};
+
+// Buy Now mutations
+const buyNow = async (data: {
+  productId: string;
+  variantId: string;
+  optionId?: string;
+  quantity?: number;
+}) => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/buy-now', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to initiate buy now');
+  }
+  return response.json();
+};
+
+export const useBuyNow = () => {
+  return useMutation({
+    mutationFn: buyNow,
+  });
+};
+
+const createBuyNowPaymentIntent = async (data: {
+  productId: string;
+  variantId: string;
+  optionId?: string;
+  quantity?: number;
+  paymentMethod: string;
+  tokenType?: string;
+}) => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/buy-now/payment-intent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to create payment intent');
+  }
+  return response.json();
+};
+
+export const useCreateBuyNowPaymentIntent = () => {
+  return useMutation({
+    mutationFn: createBuyNowPaymentIntent,
+  });
+};
+
+// Delete payment method mutation
+const deletePaymentMethod = async (paymentMethodId: string) => {
+  const response = await fetchWithAuth(`http://localhost:5800/api/v1/wallets/payment-methods/${paymentMethodId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to delete payment method');
+  }
+  return response.json();
+};
+
+export const useDeletePaymentMethod = () => {
+  return useMutation({
+    mutationFn: deletePaymentMethod,
+  });
+};
+
+// Create order from buy now
+const createBuyNowOrder = async (data: {
+  validatedItems: Array<{
+    productId: string;
+    variantId: string;
+    optionId?: string;
+    quantity?: number;
+    price: number;
+    vendorPrice: number;
+    total: number;
+  }>;
+  pricing: {
+    subtotal: number;
+    tax: number;
+    shipping: number;
+    total: number;
+    currency: string;
+  };
+  paymentData: any;
+  address: any;
+}) => {
+  const response = await fetchWithAuth('http://localhost:5800/api/v1/orders/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ...data, isBuyNow: true })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to create order');
+  }
+  return response.json();
+};
+
+export const useCreateBuyNowOrder = () => {
+  return useMutation({
+    mutationFn: createBuyNowOrder,
   });
 };

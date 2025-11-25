@@ -52,6 +52,8 @@ const ShippingDetails = (props: Props) => {
       width: productDetails?.shippingDetails?.productDimensions?.width || "",
       height: productDetails?.shippingDetails?.productDimensions?.height || "",
     },
+    dimensionUnit: productDetails?.shippingDetails?.dimensionUnit || "cm",
+    restrictions: productDetails?.shippingDetails?.restrictions || ["none"],
     warranty: {
       status: productDetails?.shippingDetails?.warranty?.status || "",
       period: productDetails?.shippingDetails?.warranty?.period || "",
@@ -79,6 +81,9 @@ const ShippingDetails = (props: Props) => {
     if ((shippingDetails.productDimensions?.length || shippingDetails.productDimensions?.width || shippingDetails.productDimensions?.height) && 
         (!shippingDetails.productDimensions?.length || !shippingDetails.productDimensions?.width || !shippingDetails.productDimensions?.height) && deepest?.productDimensionsRequired) {
       newErrors.productDimensions = "Please enter the length, width, and height of the product"
+      if (!shippingDetails.dimensionUnit && deepest?.productDimensionsRequired ) {
+        newErrors.dimensionUnit = "Dimension unit is required";
+      }
     }
     if (!shippingDetails.warranty?.status || shippingDetails.warranty?.status === "") {
       newErrors.warrantyStatus = "Warranty status is required";
@@ -234,12 +239,44 @@ const ShippingDetails = (props: Props) => {
             helperText="The unit of weight for the product."
           />
         </div>
+        <Select
+          label="Shipping Restrictions"
+          value={shippingDetails.restrictions[0] || "none"}
+          onChange={(value) => {
+            const updatedShipping = {
+              ...shippingDetails,
+              restrictions: [value],
+            };
+            setShippingDetails(updatedShipping);
+            updateProductDetails("shippingDetails", updatedShipping);
+          }}
+          options={["none", "hazardous", "fragile", "perishable", "oversized", "local"]}
+          placeholder="Select shipping restrictions"
+          helperText="Select any special handling requirements for this product."
+        />
       </div>
       <div className="relative w-full my-5">
         <label className="absolute -top-2 left-1/2 transform -translate-x-1/2 px-1 text-xs bg-white text-black z-10">
           Product Dimensions
         </label>
         <div className="border border-gray-300 rounded-md p-4 pt-6">
+          <div className="mb-3">
+            <Select
+              label="Dimension Unit"
+              value={shippingDetails.dimensionUnit}
+              onChange={(value) => {
+                const updatedShipping = {
+                  ...shippingDetails,
+                  dimensionUnit: value,
+                };
+                setShippingDetails(updatedShipping);
+                updateProductDetails("shippingDetails", updatedShipping);
+              }}
+              options={["mm", "cm", "in"]}
+              placeholder="Select unit"
+              helperText="The unit for length, width, and height measurements."
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             <Input
               label="Length"

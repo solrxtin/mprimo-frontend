@@ -12,9 +12,9 @@ const ProductSelector: React.FC<Props> = ({ products, onSelect }) => {
   const [page, setPage] = useState(1);
   const pageSize = 5;
 
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = products?.filter((p) =>
+    p?.name?.toLowerCase().includes(search.toLowerCase())
+  ) || [];
 
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
@@ -26,7 +26,7 @@ const ProductSelector: React.FC<Props> = ({ products, onSelect }) => {
   };
 
   function getCategoryName(product: ProductType): string {
-    const sub = product.category.sub;
+    const sub = product.category?.sub;
 
     if (
       Array.isArray(sub) &&
@@ -38,7 +38,7 @@ const ProductSelector: React.FC<Props> = ({ products, onSelect }) => {
       return (sub[0] as PopulatedCategory).name;
     }
 
-    const main = product.category.main;
+    const main = product.category?.main;
 
     if (typeof main === "object" && "name" in main) {
       return (main as PopulatedCategory).name;
@@ -96,13 +96,11 @@ const ProductSelector: React.FC<Props> = ({ products, onSelect }) => {
                     />
                   </td>
 
-                  <td className=" p-2">{product.name}</td>
-                  <td className=" p-2">
-                    {getCategoryName(product)}
-                  </td>
+                  <td className=" p-2">{product.name || 'N/A'}</td>
+                  <td className=" p-2">{getCategoryName(product)}</td>
                   <td className=" p-2 font-medium">
-                    {product.inventory.listing.type === "auction"
-                      ? `${product.variants[0].options[0].price}`
+                    {product.inventory?.listing?.type === "auction"
+                      ? `${product.variants?.[0]?.options?.[0]?.price || 'N/A'}`
                       : "N/A"}
                   </td>
                 </tr>

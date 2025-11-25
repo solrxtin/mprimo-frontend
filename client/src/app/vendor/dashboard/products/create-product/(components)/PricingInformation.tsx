@@ -4,6 +4,7 @@ import Input from "./Input";
 import NavigationButtons from "./NavigationButtons";
 import { useProductListing } from "@/contexts/ProductLisitngContext";
 import { useResponsive } from "@/hooks/useResponsive";
+import ColorPicker from "./ColorPicker";
 
 type Props = {
   onSaveDraft?: () => void;
@@ -23,11 +24,13 @@ const PricingInformation = (props: Props) => {
       buyNowPrice: productDetails?.pricingInformation?.auction?.buyNowPrice || "",
       startTime: productDetails?.pricingInformation?.auction?.startTime || "",
       endTime: productDetails?.pricingInformation?.auction?.endTime || "",
+      colors: productDetails?.pricingInformation?.auction?.colors || [],
     },
     instantSale: {
       price: productDetails?.pricingInformation?.instantSale?.price || "" as string | number,
       salePrice: productDetails?.pricingInformation?.instantSale?.salePrice || "" as string | number,
       acceptOffer: productDetails?.pricingInformation?.instantSale?.acceptOffer || false as boolean,
+      colors: productDetails?.pricingInformation?.instantSale?.colors || [],
     },
   });
   const [errors, setErrors] = React.useState<{ [key: string]: string }>({});
@@ -68,6 +71,9 @@ const PricingInformation = (props: Props) => {
       if (pricingInformation.auction.endTime === "") {
         newErrors.endTime = "End time is required";
       }
+      if (!pricingInformation.auction.colors || pricingInformation.auction.colors.length === 0) {
+        newErrors.colors = "Please select at least one color for auction";
+      }
       if (!hasVariants && pricingInformation.storeQuantity === "") {
         newErrors.storeQuantity = "Store quantity is required";
       }
@@ -89,6 +95,9 @@ const PricingInformation = (props: Props) => {
         ) {
           newErrors.salePrice =
             "Sale price must be less than or equal to product price";
+        }
+        if (!pricingInformation.instantSale.colors || pricingInformation.instantSale.colors.length === 0) {
+          newErrors.colors = "Please select at least one color for instant sale";
         }
       } else {
         // Validate that variants have pricing
@@ -121,16 +130,39 @@ const PricingInformation = (props: Props) => {
           buyNowPrice: productDetails.pricingInformation.auction?.buyNowPrice || "",
           startTime: productDetails.pricingInformation.auction?.startTime || "",
           endTime: productDetails.pricingInformation.auction?.endTime || "",
+          colors: productDetails.pricingInformation.auction?.colors || [],
         },
         instantSale: {
           price: productDetails.pricingInformation.instantSale?.price || "",
           salePrice: productDetails.pricingInformation.instantSale?.salePrice || "",
           acceptOffer: productDetails.pricingInformation.instantSale?.acceptOffer || false,
+          colors: productDetails.pricingInformation.instantSale?.colors || [],
         },
       });
       setListingType(productDetails.pricingInformation.listingType);
     }
   }, [productDetails]);
+
+  // Clear instant sale colors when variants are added
+  React.useEffect(() => {
+    const hasVariants = productDetails.variants && productDetails.variants.length > 0;
+    if (hasVariants && pricingInformation.instantSale.colors && pricingInformation.instantSale.colors.length > 0) {
+      setPricingInformation(prev => ({
+        ...prev,
+        instantSale: {
+          ...prev.instantSale,
+          colors: []
+        }
+      }));
+      updateProductDetails("pricingInformation", {
+        ...pricingInformation,
+        instantSale: {
+          ...pricingInformation.instantSale,
+          colors: []
+        }
+      });
+    }
+  }, [productDetails.variants]);
 
   React.useEffect(() => {
     const handleValidateEvent = () => {
@@ -310,6 +342,38 @@ const PricingInformation = (props: Props) => {
           error={errors.storeQuantity}
           required={true}
         />
+        
+        {/* Color picker for auction items */}
+        <div className="mt-4">
+          <ColorPicker
+            selectedColors={pricingInformation.auction?.colors || []}
+            onChange={(colors) => {
+              setPricingInformation({
+                ...pricingInformation,
+                auction: {
+                  ...pricingInformation.auction,
+                  colors
+                }
+              });
+              updateProductDetails("pricingInformation", {
+                ...pricingInformation,
+                auction: {
+                  ...pricingInformation.auction,
+                  colors
+                }
+              });
+            }}
+          />
+        </div>
+        {errors.colors && (
+          <div className="text-red-500 text-sm mt-1">{errors.colors}</div>
+        )}
+        
+        {/* Show error for instant sale colors */}
+        {pricingInformation.listingType === "instantSale" && errors.colors && (
+          <div className="text-red-500 text-sm mt-1">{errors.colors}</div>
+        )}
+        
         {isMobileOrTablet && (
           <div className="mt-4">
             <NavigationButtons onNext={validatePricingInformation} onSaveDraft={props.onSaveDraft} />
@@ -324,7 +388,7 @@ const PricingInformation = (props: Props) => {
     if (hasVariants) {
       // Calculate price range and total quantity from variants
       const allOptions = productDetails.variants.flatMap((v: any) => v.options);
-      const prices = allOptions.map((o: any) => o.price).filter((p: any) => p > 0);
+      const prices = allOptions.map((o: any) => o.salePrice || o.price).filter((p: any) => p > 0);
       const quantities = allOptions.map((o: any) => o.quantity);
       
       const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
@@ -352,17 +416,17 @@ const PricingInformation = (props: Props) => {
           </div>
           
           <div className="bg-gray-50 p-4 rounded-md">
-            <h4 className="text-sm font-medium mb-2">Pricing Summary from Variants</h4>
+            <h4 className="text-sm  mb-2">Pricing Summary from Variants</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Price Range:</span>
-                <span className="font-medium">
+                <span className="">
                   {minPrice === maxPrice ? `$${minPrice}` : `$${minPrice} - $${maxPrice}`}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Total Quantity:</span>
-                <span className="font-medium">{totalQuantity}</span>
+                <span className="">{totalQuantity}</span>
               </div>
             </div>
             <p className="text-xs text-gray-600 mt-2">
@@ -471,6 +535,30 @@ const PricingInformation = (props: Props) => {
           required={true}
           helperText="The number of items available for sale."
         />
+        
+        {/* Color picker for instant sale items without variants */}
+        <div className="mb-2">
+          <ColorPicker
+            selectedColors={pricingInformation.instantSale?.colors || []}
+            onChange={(colors) => {
+              setPricingInformation({
+                ...pricingInformation,
+                instantSale: {
+                  ...pricingInformation.instantSale,
+                  colors
+                }
+              });
+              updateProductDetails("pricingInformation", {
+                ...pricingInformation,
+                instantSale: {
+                  ...pricingInformation.instantSale,
+                  colors
+                }
+              });
+            }}
+          />
+        </div>
+        
         {isMobileOrTablet && (
           <div className="mt-4">
             <NavigationButtons onNext={validatePricingInformation} onSaveDraft={props.onSaveDraft}/>
@@ -504,8 +592,8 @@ const PricingInformation = (props: Props) => {
         required={true}
         className="mb-4"
       />
-      {productDetails?.pricingInformation?.listingType === "auction" && renderAuctionFields()}
-      {productDetails?.pricingInformation?.listingType === "instantSale" && renderInstantSaleFields()}
+      {pricingInformation.listingType === "auction" && renderAuctionFields()}
+      {pricingInformation.listingType === "instantSale" && renderInstantSaleFields()}
     </div>
   );
 };

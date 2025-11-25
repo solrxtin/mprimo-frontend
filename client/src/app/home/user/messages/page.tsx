@@ -51,6 +51,7 @@ const Page = () => {
 
   const groupedChats = chatsData?.groupedChats || [];
 
+  console.log("Chats data:", chatsData);
   console.log("Grouped Chats:", groupedChats);
 
   // Handle focused chat from product page

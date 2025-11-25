@@ -119,7 +119,7 @@ export default function Sidebar({
       ></div>
 
       {/* Close button */}
-      <div className="absolute top-0 right-0 -ml-8 flex pt-4 pr-2 sm:-ml-10 sm:pr-4">
+      <div className="absolute top-0 right-0 -ml-8 flex pt-4 pr-2 sm:-ml-10 sm:pr-4 lg:hidden">
         <button
           onClick={onClose}
           type="button"
@@ -145,16 +145,11 @@ export default function Sidebar({
       </div>
 
       {/* Sidebar content */}
-      <div className="max-w-[260px] min-h-screen bg-[#F1F4F9] w-[220px] md:w-[230px] p-[16px] md:p-[18px] sticky top-0 overflow-y-auto">
+      <div className="max-w-[260px] h-full bg-[#F1F4F9] w-[220px] md:w-[230px] p-[16px] md:p-[18px]">
         <div className="relative">
           <div className="relative h-[90vh] overflow-y-auto flex flex-col justify-between">
             <div>
-              {/* Logo */}
-              <h1 className="text-xl font-semibold text-[#211F1F]">Mprimo</h1>
-
-              <div className="border border-[#98A2B3]/50 mb-4 mt-2" />
-
-              {/* Main Navigation */}
+                           {/* Main Navigation */}
               <div className="overflow-y-auto no-scrollbar flex-1">
                 {navItems.map((item) => (
                   <NavigationItem
@@ -168,7 +163,7 @@ export default function Sidebar({
             </div>
 
             {/* Logout Button */}
-            <div className="border-t pt-3 ">
+            <div className="border-t pt-3 mb-8">
               <button
                 onClick={() => router.push("/home")}
                 className="relative py-[8px] w-full pl-[12px] flex items-center text-[14px] text-[#667185] font-normal hover:bg-gray-100 rounded-[10px]"

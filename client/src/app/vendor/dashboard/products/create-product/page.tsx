@@ -52,59 +52,22 @@ const Page = (props: Props) => {
     totalAttributePages,
     setProductDetails,
     setStep,
-    setDraftId
+    setDraftId,
+    saveDraftEnhanced,
+    validateCurrentStep,
+    validationResults,
+    completionPercentage,
+    isLoading: contextLoading
   } = useProductListing();
 
   const { isMobile, isTablet, isMobileOrTablet } = useResponsive();
 
   const handleSaveDraft = async () => {
     try {
-      // Get existing drafts or initialize empty array
-      const existingDrafts = JSON.parse(
-        localStorage.getItem("productDrafts") || "[]"
-      );
-      const existingDraft = productDetails.productName
-        ? existingDrafts.find(
-            (d: any) =>
-              d.productDetails?.productName === productDetails.productName
-          )
-        : null;
-      const draftId = existingDraft?.draftId || `draft-${Date.now()}`;
-      const filteredDrafts = existingDrafts.filter(
-        (d: any) => d.draftId !== draftId
-      );
-
-      // Save to local storage first (immediate, no network delay)
-      const draft = {
-        draftId,
-        productDetails,
-        step,
-        lastUpdated: new Date().toISOString(),
-        savedOnMobile: isMobileOrTablet,
-      };
-
-      // Add new draft
-      localStorage.setItem(
-        "productDrafts",
-        JSON.stringify([...filteredDrafts, draft])
-      );
+      await saveDraftEnhanced(true);
       setActiveTab("drafts");
       setProductDetails({});
       setStep(1);
-      setDraftId(draftId)
-
-      // Also save to database for persistence across devices
-      saveDraftToServer(draft, {
-        onSuccess: () => {
-          toast.success("Draft saved successfully", toastConfigSuccess);
-        },
-        onError: () => {
-          toast.info(
-            "Draft saved locally, but could not be saved to your account",
-            toastConfigInfo
-          );
-        },
-      });
     } catch (error) {
       console.error("Error saving draft:", error);
       toast.error("Error saving draft", toastConfigError);
@@ -166,216 +129,60 @@ const Page = (props: Props) => {
   };
 
   const validateDesktopStep1 = async () => {
+    const validation = validateCurrentStep();
+    console.log('Desktop Step 1 Validation:', validation);
+    
+    // Also trigger legacy validation for backward compatibility
     const imageErrors: { [key: string]: string } = {};
     const { images } = productDetails;
 
-    // Validate images
     if (!images || images.length < 1) {
       imageErrors.imagesError = "Main product image is required";
     }
     if (images && images.length > 6) {
-      imageErrors.imagesError =
-        "You can only upload a maximum of 6 images in total";
+      imageErrors.imagesError = "You can only upload a maximum of 6 images in total";
     }
 
-    return new Promise<boolean>((resolve) => {
-      let detailValidated = false;
-      let resolved = false;
+    console.log('Image Errors:', imageErrors);
+    console.log('Product Details for Step 1:', productDetails);
 
-      const handleDetailsValidated = (e: Event) => {
-        const event = e as CustomEvent<{ isValid: boolean }>;
-        detailValidated = event.detail.isValid;
+    // Dispatch events for legacy components
+    document.dispatchEvent(
+      new CustomEvent("imageErrors", { detail: imageErrors })
+    );
+    document.dispatchEvent(new CustomEvent("validateDetails"));
 
-        document.removeEventListener(
-          "detailsValidated",
-          handleDetailsValidated
-        );
-
-        const imagesValid = Object.keys(imageErrors).length === 0;
-        const isValid = imagesValid && detailValidated;
-        
-        if (!resolved) {
-          resolved = true;
-          resolve(isValid);
-        }
-      };
-
-      // Attach listener for validation result first
-      document.addEventListener("detailsValidated", handleDetailsValidated);
-
-      // Then dispatch events
-      setTimeout(() => {
-        document.dispatchEvent(
-          new CustomEvent("imageErrors", { detail: imageErrors })
-        );
-        document.dispatchEvent(new CustomEvent("validateDetails"));
-      }, 100);
-
-      // Timeout fallback
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          document.removeEventListener(
-            "detailsValidated",
-            handleDetailsValidated
-          );
-          toast.error("Validation timeout. Please try again.", toastConfigError);
-          resolve(false);
-        }
-      }, 5000);
-    });
+    const isValid = validation.isValid && Object.keys(imageErrors).length === 0;
+    console.log('Step 1 Final Validation Result:', isValid);
+    return isValid;
   };
 
   const validateDesktopStep2 = async () => {
-    return new Promise<boolean>((resolve) => {
-      let specificationValid = false;
-      let pricingValid = false;
-      let variantsValid = true;
-      let specChecked = false;
-      let pricingChecked = false;
-      let variantsChecked = true;
-      let resolved = false;
+    const validation = validateCurrentStep();
+    console.log('Desktop Step 2 Validation:', validation);
+    console.log('Product Details for Step 2:', productDetails);
+    
+    // Trigger legacy validation events for backward compatibility
+    document.dispatchEvent(new CustomEvent("validateSpecifications"));
+    document.dispatchEvent(new CustomEvent("validatePricing"));
+    if (productDetails.variants && productDetails.variants.length > 0) {
+      document.dispatchEvent(new CustomEvent("validateVariants"));
+    }
 
-      const handleSpecificationsResult = (e: Event) => {
-        const event = e as CustomEvent<{ isValid: boolean }>;
-        specificationValid = event.detail.isValid;
-        specChecked = true;
-        checkAllResults();
-      };
-
-      const handlePricingResult = (e: Event) => {
-        const event = e as CustomEvent<{ isValid: boolean }>;
-        pricingValid = event.detail.isValid;
-        pricingChecked = true;
-        checkAllResults();
-      };
-
-      const handleVariantsResult = (e: Event) => {
-        const event = e as CustomEvent<{ isValid: boolean }>;
-        variantsValid = event.detail.isValid;
-        variantsChecked = true;
-        checkAllResults();
-      };
-
-      const checkAllResults = () => {
-        if (specChecked && pricingChecked && variantsChecked && !resolved) {
-          resolved = true;
-          
-          document.removeEventListener(
-            "specificationsValidated",
-            handleSpecificationsResult as EventListener
-          );
-          document.removeEventListener(
-            "pricingValidated",
-            handlePricingResult as EventListener
-          );
-          if (productDetails.variants && productDetails.variants.length > 0) {
-            document.removeEventListener(
-              "variantsValidated",
-              handleVariantsResult as EventListener
-            );
-          }
-
-          const result = specificationValid && pricingValid && variantsValid;
-          resolve(result);
-        }
-      };
-
-      document.addEventListener(
-        "specificationsValidated",
-        handleSpecificationsResult as EventListener
-      );
-      document.addEventListener(
-        "pricingValidated",
-        handlePricingResult as EventListener
-      );
-      
-      if (productDetails.variants && productDetails.variants.length > 0) {
-        document.addEventListener(
-          "variantsValidated",
-          handleVariantsResult as EventListener
-        );
-        variantsChecked = false;
-      }
-
-      setTimeout(() => {
-        document.dispatchEvent(new CustomEvent("validateSpecifications"));
-        document.dispatchEvent(new CustomEvent("validatePricing"));
-
-        if (productDetails.variants && productDetails.variants.length > 0) {
-          document.dispatchEvent(new CustomEvent("validateVariants"));
-        }
-      }, 100);
-
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          document.removeEventListener(
-            "specificationsValidated",
-            handleSpecificationsResult as EventListener
-          );
-          document.removeEventListener(
-            "pricingValidated",
-            handlePricingResult as EventListener
-          );
-          if (productDetails.variants && productDetails.variants.length > 0) {
-            document.removeEventListener(
-              "variantsValidated",
-              handleVariantsResult as EventListener
-            );
-          }
-          toast.error("Validation timeout. Please try again.", toastConfigError);
-          resolve(false);
-        }
-      }, 5000);
-    });
+    console.log('Step 2 Final Validation Result:', validation.isValid);
+    return validation.isValid;
   };
 
   const validateDesktopStep3 = () => {
-    return new Promise<boolean>((resolve) => {
-      let resolved = false;
-      let shippingValid = false;
-      let shippingChecked = false;
+    const validation = validateCurrentStep();
+    console.log('Desktop Step 3 Validation:', validation);
+    console.log('Product Details for Step 3:', productDetails);
+    
+    // Trigger legacy validation for backward compatibility
+    document.dispatchEvent(new CustomEvent("validateShipping"));
 
-      const handleShippingResult = (e: CustomEvent) => {
-        shippingValid = e.detail.isValid;
-        shippingChecked = true;
-        checkResults();
-      };
-
-      const checkResults = () => {
-        if (shippingChecked && !resolved) {
-          resolved = true;
-          document.removeEventListener(
-            "shippingValidated",
-            handleShippingResult as EventListener
-          );
-          // SEO is optional, so we only validate shipping
-          resolve(shippingValid);
-        }
-      };
-
-      document.addEventListener(
-        "shippingValidated",
-        handleShippingResult as EventListener
-      );
-
-      setTimeout(() => {
-        document.dispatchEvent(new CustomEvent("validateShipping"));
-      }, 100);
-
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          document.removeEventListener(
-            "shippingValidated",
-            handleShippingResult as EventListener
-          );
-          toast.error("Validation timeout. Please try again.", toastConfigError);
-          resolve(false);
-        }
-      }, 5000);
-    });
+    console.log('Step 3 Final Validation Result:', validation.isValid);
+    return validation.isValid;
   };
 
   const handleShowPreviewClicked = () => {
@@ -398,7 +205,9 @@ const Page = (props: Props) => {
         case 3:
           return <ProductSpecifications onSaveDraft={handleSaveDraft} />;
         case 4:
-          return <ProductVariants onSaveDraft={handleSaveDraft} />;
+          return productDetails?.pricingInformation?.listingType === "instantSale" ? 
+            <ProductVariants onSaveDraft={handleSaveDraft} /> : 
+            <PricingInformation onSaveDraft={handleSaveDraft} />;
         case 5:
           return <PricingInformation onSaveDraft={handleSaveDraft} />;
         case 6:
@@ -448,8 +257,8 @@ const Page = (props: Props) => {
               <div className="flex flex-col gap-y-8 w-full lg:w-1/2">
                 {/* Pricing Information */}
                 <PricingInformation />
-                {/* Product Variants */}
-                <ProductVariants />
+                {/* Product Variants - only show for instant sale */}
+                {productDetails?.pricingInformation?.listingType === "instantSale" && <ProductVariants />}
                 <NavigationButtons
                   onNext={async () => {
                     const isValid = await validateDesktopStep2();
