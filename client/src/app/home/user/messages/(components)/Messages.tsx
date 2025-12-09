@@ -38,6 +38,15 @@ const Messages = ({ selectedChat, newMessages = [] }: MessagesProps) => {
     }
   }, [messagesData?.messages]);
 
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    setTimeout(() => {
+      if (messagesRef.current) {
+        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+      }
+    }, 100);
+  }, [newMessages, selectedChat?.chatId, messagesData?.messages]);
+
   if (messagesLoading) {
     return (
       <MessageSkeletonList />
@@ -81,7 +90,7 @@ const Messages = ({ selectedChat, newMessages = [] }: MessagesProps) => {
             <MessageBubble
               key={message._id || message.id}
               message={message}
-              isSent={message.receiverId?._id !== user?._id || message.senderId === user?._id}
+              isSent={message.senderId === user?._id || message.senderId?._id === user?._id}
               onMessageVisible={observeMessage}
             />
           ))}

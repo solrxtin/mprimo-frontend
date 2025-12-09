@@ -14,7 +14,7 @@ const SendMessage = ({ userId, onSend }: { userId: string, onSend: (message: str
     return (
       <form 
         onSubmit={handleSubmit}
-        className="border-t border-gray-200 p-3 bg-white flex items-center gap-2 rounded-b-2xl"
+        className="border-t border-gray-200 p-3 flex items-center gap-2 rounded-b-2xl"
       >
         <button 
           type="button"

@@ -140,20 +140,46 @@ const ChatList = ({ groupedChats, onChatSelect, formatMessageTime, filterType, s
                       {/* Latest Message Preview - Only when collapsed */}
                       {!isProductExpanded && productChat.lastMessage && (
                         <div className="px-3 pb-3">
-                          <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                          <div 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onChatSelect(productChat, productChat.product, group);
+                              setParticipantName(group.participantName);
+                              setExpandedProducts(new Set());
+                              setExpandedGroups(new Set());
+                            }}
+                            className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-300 cursor-pointer transition-all group"
+                          >
                             <div className="flex items-start gap-2">
-                              <MessageCircle size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                              <MessageCircle size={14} className="text-gray-400 mt-0.5 flex-shrink-0 group-hover:text-blue-500 transition-colors" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-gray-600 line-clamp-2">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className={`text-xs font-semibold ${
+                                    productChat.lastMessageIsFromSelf
+                                      ? 'text-blue-600' 
+                                      : 'text-purple-600'
+                                  }`}>
+                                    {productChat.lastMessageIsFromSelf ? 'You' : group.participantName}
+                                  </span>
+                                  <span className="text-xs text-gray-400">•</span>
+                                  <span className="text-xs text-gray-400">
+                                    {productChat.lastMessageTime && formatMessageTime(new Date(productChat.lastMessageTime))}
+                                  </span>
+                                </div>
+                                <p className={`text-sm line-clamp-2 ${
+                                  productChat.unreadCount > 0 
+                                    ? 'text-gray-900 font-medium' 
+                                    : 'text-gray-600'
+                                }`}>
                                   {productChat.lastMessage}
                                 </p>
                                 <div className="flex items-center justify-between mt-2">
-                                  <span className="text-xs text-gray-400">
-                                    Latest message
+                                  <span className="text-xs text-blue-600 font-medium group-hover:text-blue-700">
+                                    Click to open
                                   </span>
                                   {productChat.unreadCount > 0 && (
-                                    <span className="text-xs text-blue-600 font-medium">
-                                      {productChat.unreadCount} unread
+                                    <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-medium animate-pulse">
+                                      {productChat.unreadCount} new
                                     </span>
                                   )}
                                 </div>

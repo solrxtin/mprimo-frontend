@@ -63,6 +63,7 @@ type Props = {
   participantName: string;
   currentGroup?: any;
   onProductSwitch?: (chat: any, product: any) => void;
+  isOnline?: boolean;
 };
 
 const ChatContainerHeader = (props: Props) => {
@@ -87,7 +88,7 @@ const ChatContainerHeader = (props: Props) => {
                 {props.chat?.senderName}
               </h1>
               <div className="text-xs">
-                {props.chat?.onlineStatus ? (
+                {props.isOnline ? (
                   <div className="relative">
                     <p className="bg-green-100 text-green-800 p-1 px-2 rounded-md">
                       online

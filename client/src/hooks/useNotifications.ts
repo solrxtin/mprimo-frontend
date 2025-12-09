@@ -126,3 +126,20 @@ export const useBulkDeleteNotifications = () => {
     }
   });
 };
+
+export const useUpdateNotificationPreferences = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (preferences: any) => {
+      const response = await fetchWithAuth(`${BASE_URL}/preferences`, {
+        method: 'PUT',
+        body: JSON.stringify(preferences)
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+};

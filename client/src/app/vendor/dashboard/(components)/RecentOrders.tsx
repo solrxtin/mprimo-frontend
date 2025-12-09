@@ -42,7 +42,7 @@ const RecentOrders = ({ currency }: { currency: string}) => {
     <div className="bg-white px-6 py-4 rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-6">
         <h1 className="font-bold text-2xl text-gray-600">Recent Orders</h1>
-        {data && data.orders && data.orders?.length > 0 && (
+        {data?.orders && data.orders.length > 0 && (
           <button
             className="flex cursor-pointer text-blue-600 text-sm items-center disabled:cursor-not-allowed"
             disabled={isOrderdsLoading}
@@ -53,7 +53,7 @@ const RecentOrders = ({ currency }: { currency: string}) => {
         )}
       </div>
 
-      {data && data.orders && data.orders?.length > 0 && (
+      {data?.orders && data.orders.length > 0 && (
         <>
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto">
@@ -132,7 +132,7 @@ const RecentOrders = ({ currency }: { currency: string}) => {
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order?.items.length} item(s)
+                        {order?.items?.length} item(s)
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                         <button
@@ -192,7 +192,7 @@ const RecentOrders = ({ currency }: { currency: string}) => {
                   </div>
                   <div className="text-sm text-gray-500 mb-1">
                     <span className="font-medium">
-                      {order.items.length} items
+                      {order?.items?.length} items
                     </span>
                   </div>
                   <div className="mt-2 flex justify-end">
@@ -210,7 +210,7 @@ const RecentOrders = ({ currency }: { currency: string}) => {
           </div>
         </>
       )}
-      {data && data.orders && data.orders?.length === 0 && (!products || products.length === 0) && (
+      {data?.orders?.length === 0 && (!products || products.length === 0) && (
         <div className="flex flex-col justify-center items-center gap-y-5 h-40">
           <p className="font-semibold text-2xl">No data available</p>
           <p className="text-sm text-gray-500">Add a product to get started</p>
@@ -226,7 +226,7 @@ const RecentOrders = ({ currency }: { currency: string}) => {
         </div>
       )}
 
-      {data && data.orders && data.orders?.length === 0 && products?.length > 0 && (
+      {data?.orders?.length === 0 && products && products.length > 0 && (
         <div className="text-center py-10 px-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 animate-fade-in">
           <Box size={24} className="mx-auto text-gray-500 mb-2" />
           <p className="text-lg font-semibold text-gray-700 mb-1">

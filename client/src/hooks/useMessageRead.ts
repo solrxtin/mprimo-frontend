@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import SocketService from '@/utils/socketService';
 
 export const useMessageRead = (chatId: string | null, userId: string | null) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -7,9 +8,11 @@ export const useMessageRead = (chatId: string | null, userId: string | null) => 
 
   const markAsRead = async (chatId: string) => {
     try {
-      await fetchWithAuth(`http://localhost:5800/api/v1/messages/chat/${chatId}/read`, {
-        method: 'PATCH'
-      });
+      // Emit socket event for real-time update
+      const socket = SocketService.getSocket();
+      if (socket) {
+        socket.emit('messages-read', { chatId, userId });
+      }
     } catch (error) {
       console.error('Failed to mark messages as read:', error);
     }

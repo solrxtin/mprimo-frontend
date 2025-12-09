@@ -20,7 +20,6 @@ const fetchAllProducts = async () => {
     throw new Error('Failed to fetch user subscriptions');
   }
   const data = await response.json();
-  console.log("Vendor products:", data);
   return data.products;
 };
 

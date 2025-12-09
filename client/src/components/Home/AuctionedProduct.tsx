@@ -62,6 +62,15 @@ const AuctionTimer = ({ product }: { product: ProductType }) => {
   }
 
   const isUpcoming = !auction.isStarted;
+  const hasStarted = timeLeft.days === 0 && timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0 && isUpcoming;
+
+  if (hasStarted) {
+    return (
+      <div className="text-xs mt-2 p-2 bg-green-50 rounded">
+        <span className="font-medium text-green-600">Started</span>
+      </div>
+    );
+  }
 
   return (
     <div className="text-xs mt-2 p-2 bg-blue-50 rounded">

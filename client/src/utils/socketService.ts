@@ -31,8 +31,8 @@ class SocketService {
     return this.socket;
   }
 
-  joinRoom(roomId: string): void {
-    this.socket?.emit('join_room', roomId);
+  joinRoom(roomId: string, userId?: string): void {
+    this.socket?.emit('join_room', roomId, userId);
   }
 
   leaveRoom(roomId: string): void {

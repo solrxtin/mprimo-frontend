@@ -25,7 +25,7 @@ export default function FeaturedProducts() {
       throw new Error("Failed to fetch featured products");
     }
     const data = await response.json();
-    console.log("Featured products data:", data);
+    console.log("Featured product is: ", data)
     return data.products;
   };
 

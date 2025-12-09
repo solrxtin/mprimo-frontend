@@ -61,6 +61,7 @@ const fetchBestDeals = async () => {
     throw new Error('Failed to fetch best deals');
   }
   const data = await response.json();
+
   return data.products;
 };
 
@@ -200,7 +201,6 @@ const fetchProductsOnAuction = async (queryData: AuctionQueryDataType) => {
     throw new Error('Failed to fetch products on auction');
   }
   const data = await response.json();
-  console.log("Products on auction data:", data);
   return data.products;
 };
 

@@ -122,7 +122,7 @@ export const useProductsByCategory = (filters: CategoryProductFilters) => {
 };
 
 const updateProduct = async (productId: string, productData: any) => {
-  const response = await fetchWithAuth(`/api/v1/products/${productId}`, {
+  const response = await fetchWithAuth(`${API_BASE_URL}/products/${productId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -136,14 +136,15 @@ const updateProduct = async (productId: string, productData: any) => {
   return response.json();
 };
 
-const placeBid = async (productId: string, maxBid: number) => {
-  const response = await fetchWithAuth(`/api/v1/products/bid/${productId}`, {
+const placeBid = async (productId: string, amount: number) => {
+  const response = await fetchWithAuth(`${API_BASE_URL}/products/${productId}/bids`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ maxBid }),
+    body: JSON.stringify({ amount }),
   });
+  console.log(response)
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to place bid');

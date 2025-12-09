@@ -21,9 +21,7 @@ const Page = (props: Props) => {
   const socket = useSocket();
   const { data, isLoading } = useVendorAnalytics(vendor?._id!);
 
-  const [vendorCurrency] = useState(
-    data?.dashboard?.salesTotal?.currency || ""
-  );
+  const vendorCurrency = data?.dashboard?.salesTotal?.currency || "";
 
   useUserNotifications(true);
 

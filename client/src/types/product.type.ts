@@ -81,7 +81,8 @@ type ReviewType = {
 
 type BidType = {
   userId: string;
-  amount: number;
+  maxAmount: number;
+  currentAmount: number;
   createdAt: Date;
   isWinning?: boolean;
 };

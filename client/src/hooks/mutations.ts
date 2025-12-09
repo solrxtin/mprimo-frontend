@@ -393,14 +393,13 @@ export const useAddVendorResponse = () => {
 
 
 const makeBid = async (
-  userId: string,
   productId: string,
-  maxBid: number
-): Promise<{ message: string; currentAmountUsd: number; userBidUsd: number }> => {
+  amount: number
+): Promise<{ success: boolean; message: string; bidAmountUSD: number }> => {
   const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/${productId}/bids`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, maxBid }),
+    body: JSON.stringify({ amount }),
   });
 
   if (!response.ok) {
@@ -414,8 +413,8 @@ const makeBid = async (
 
 export const useMakeBid = () => {
   return useMutation({
-    mutationFn: ({ productId, userId, maxBid }: { productId: string; userId: string; maxBid: number }) =>
-      makeBid(userId, productId, maxBid),
+    mutationFn: ({ productId, amount }: { productId: string; amount: number }) =>
+      makeBid(productId, amount),
   });
 };
 

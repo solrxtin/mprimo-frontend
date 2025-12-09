@@ -15,7 +15,7 @@ const Messages = ({ selectedChat, newMessages = [] }: MessagesProps) => {
   const [shouldScroll, setShouldScroll] = useState(false);
   const [messagesPage, setMessagesPage] = useState(1);
   const {user} = useUserStore();
-  const { observeMessage } = useMessageRead(selectedChat?.chatId, user?._id);
+  const { observeMessage } = useMessageRead(selectedChat?.chatId, user?._id || null);
 
   const { data: messagesData, isLoading: messagesLoading } = useMessages(
     selectedChat?.chatId,
@@ -37,6 +37,15 @@ const Messages = ({ selectedChat, newMessages = [] }: MessagesProps) => {
       setShouldScroll(container.scrollHeight > container.clientHeight);
     }
   }, [messagesData?.messages]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    setTimeout(() => {
+      if (messagesRef.current) {
+        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+      }
+    }, 100);
+  }, [newMessages, selectedChat?.chatId, messagesData?.messages]);
 
   if (messagesLoading) {
     return (
@@ -81,7 +90,7 @@ const Messages = ({ selectedChat, newMessages = [] }: MessagesProps) => {
             <MessageBubble
               key={message._id || message.id}
               message={message}
-              isSent={message.receiverId?._id !== user?._id || message.senderId === user?._id}
+              isSent={message.senderId === user?._id || message.senderId?._id === user?._id}
               onMessageVisible={observeMessage}
             />
           ))}

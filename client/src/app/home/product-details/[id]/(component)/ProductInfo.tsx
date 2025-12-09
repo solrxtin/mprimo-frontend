@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Star, Heart, X, MessageSquare, Tag } from "lucide-react";
 import { ProductType, VariantType } from "@/types/product.type";
 import { NumericFormat } from "react-number-format";
+import { convertFromUSD, getCurrencySymbol } from "@/utils/currencyService";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
 import { useUserStore } from "@/stores/useUserStore";
@@ -531,7 +532,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   };
 
   const handlePlaceBidClicked = async () => {
-    if (!user) {
+    if (!user || !user._id) {
       openModal();
       return;
     }
@@ -857,38 +858,111 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
               {/* Price and Actions */}
               <div>
-                <div className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900">
-                  {saleType === "instant" ? (
-                    <NumericFormat
-                      value={getSelectedOptionPrice()}
-                      displayType={"text"}
-                      thousandSeparator={true}
-                      prefix={
-                        (productData as any)?.priceInfo?.currencySymbol ||
-                        getSelectedOptionCurrency()
-                      }
-                      decimalScale={2}
-                      fixedDecimalScale={true}
-                    />
-                  ) : (
-                    <NumericFormat
-                      value={
-                        selectedVariant?.options[0]?.displayPrice ||
-                        selectedVariant?.options[0]?.salePrice ||
-                        selectedVariant?.options[0]?.price ||
-                        0
-                      }
-                      displayType={"text"}
-                      thousandSeparator={true}
-                      prefix={
-                        (productData as any)?.priceInfo?.currencySymbol || "$"
-                      }
-                      decimalScale={2}
-                      fixedDecimalScale={true}
-                    />
-                  )}
-                </div>
-                <div className="text-xs md:text-sm text-gray-500">Buy now</div>
+                {saleType === "instant" ? (
+                  (() => {
+                    const variant = productData?.variants?.[0];
+                    const variantId = variant?._id || variant?.id || '';
+                    const optionId = selectedOptions[variantId];
+                    const option = variant?.options?.find(
+                      (opt: any) => (opt.id || opt._id) === optionId
+                    );
+                    const price = option?.price || 0;
+                    const salePrice = option?.salePrice || 0;
+                    const hasDiscount = salePrice > 0 && salePrice < price;
+                    
+                    return (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900">
+                            <NumericFormat
+                              value={getSelectedOptionPrice()}
+                              displayType={"text"}
+                              thousandSeparator={true}
+                              prefix={getSelectedOptionCurrency()}
+                              decimalScale={2}
+                              fixedDecimalScale={true}
+                            />
+                          </div>
+                          {hasDiscount && (
+                            <>
+                              <div className="text-sm md:text-base text-gray-400 line-through">
+                                <NumericFormat
+                                  value={price}
+                                  displayType={"text"}
+                                  thousandSeparator={true}
+                                  prefix={getSelectedOptionCurrency()}
+                                  decimalScale={2}
+                                  fixedDecimalScale={true}
+                                />
+                              </div>
+                              <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-medium">
+                                {Math.round(((price - salePrice) / price) * 100)}% OFF
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div className="text-xs md:text-sm text-gray-500">Buy now</div>
+                      </div>
+                    );
+                  })()
+                ) : saleType === "auction" ? (
+                  (() => {
+                    const winningBid = productData?.bids?.find((bid: any) => bid.isWinning);
+                    const highestBid = winningBid?.currentAmount || auction?.startBidPrice || 0;
+                    const isAuctionStarted = auction?.isStarted;
+                    const userCurrency = (productData as any)?.priceInfo?.currency || 'USD';
+                    const convertedAmount = (productData as any)?.priceInfo?.displayPrice || highestBid;
+                    const currencySymbol = (productData as any)?.priceInfo?.currencySymbol || '$';
+                    
+                    return (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900">
+                            <NumericFormat
+                              value={highestBid}
+                              displayType={"text"}
+                              thousandSeparator={true}
+                              prefix="$"
+                              decimalScale={2}
+                              fixedDecimalScale={true}
+                            />
+                          </div>
+                          {userCurrency !== 'USD' && (
+                            <div className="text-sm text-gray-500">
+                              ≈ <NumericFormat
+                                value={convertedAmount}
+                                displayType={"text"}
+                                thousandSeparator={true}
+                                prefix={currencySymbol}
+                                decimalScale={2}
+                                fixedDecimalScale={true}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs md:text-sm text-gray-500">
+                          {isAuctionStarted ? "Bid now" : "Buy now"}
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div>
+                    <div className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900">
+                      <NumericFormat
+                        value={
+                          (productData as any)?.priceInfo?.displayPrice
+                        }
+                        displayType={"text"}
+                        thousandSeparator={true}
+                        prefix="$"
+                        decimalScale={2}
+                        fixedDecimalScale={true}
+                      />
+                    </div>
+                    <div className="text-xs md:text-sm text-gray-500">Buy now</div>
+                  </div>
+                )}
               </div>
               {productData?.inventory?.listing?.type !== "auction" && (
                 <div className="flex items-center gap-2">
@@ -985,29 +1059,31 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
             </div>
           ) : (
             <div className="flex justify-between items-center gap-4">
-              <button
-                onClick={handleBuyNow}
-                disabled={
-                  isBuyingNow ||
-                  productData.inventory.listing.auction?.isExpired
-                }
-                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2
-                    ${
-                      isBuyingNow ||
-                      productData.inventory.listing.auction?.isExpired
-                        ? "bg-gray-400 cursor-not-allowed text-white"
-                        : "bg-orange-400 hover:bg-orange-500 cursor-pointer text-white"
-                    }`}
-              >
-                {isBuyingNow ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Buy Now"
-                )}
-              </button>
+              {!productData.inventory.listing.auction?.isStarted && (
+                <button
+                  onClick={handleBuyNow}
+                  disabled={
+                    isBuyingNow ||
+                    productData.inventory.listing.auction?.isExpired
+                  }
+                  className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2
+                      ${
+                        isBuyingNow ||
+                        productData.inventory.listing.auction?.isExpired
+                          ? "bg-gray-400 cursor-not-allowed text-white"
+                          : "bg-orange-400 hover:bg-orange-500 cursor-pointer text-white"
+                      }`}
+                >
+                  {isBuyingNow ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Buy Now"
+                  )}
+                </button>
+              )}
 
               <button
                 onClick={handlePlaceBidClicked}

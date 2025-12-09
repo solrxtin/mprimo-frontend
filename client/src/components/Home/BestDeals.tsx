@@ -293,8 +293,8 @@ const ProductCard = ({
 
 export default function BestDeals() {
   const { data: allProducts = [], isLoading, isError, error } = useBestDeals();
-  // Filter products to only show those with images and available quantity
-  const products = filterAvailableProducts(allProducts);
+  // Show all products without filtering
+  const products = allProducts || [];
   const otherProducts = products.slice(1);
 
   if (isLoading) {

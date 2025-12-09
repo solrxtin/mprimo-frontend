@@ -21,10 +21,11 @@ interface BidModal1Props {
 }
 
 export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacingBid }: BidModal1Props) => {
+  console.log("Product data is: ", productData)
   const { user } = useUserStore();
   const [paymentMethod, setPaymentMethod] = useState("");
   const [customBid, setCustomBid] = useState("");
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(2);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [bids, setBids] = useState<any[]>([]);
   const [loadingBids, setLoadingBids] = useState(false);
@@ -37,10 +38,10 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
   });
 
   const auction = productData?.inventory?.listing?.auction;
-  const startBidPrice = auction?.startBidPrice || 0;
+  const startBidPrice = (auction?.startBidPrice || 0) * productData?.priceInfo?.exchangeRate || 1;
   const currentHighestBid = bids.length > 0 ? Math.max(...bids.map((b: any) => b.currentAmount)) : startBidPrice;
   const minBidIncrement = auction?.bidIncrement || 1;
-  const currencySymbol = (productData?.country as any)?.currencySymbol || "$";
+  const currencySymbol = productData?.prifeInfo?.currencySymbol || "$";
 
   useEffect(() => {
     if (!auction || !isBid) return;
@@ -85,7 +86,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
 
   const handleFinalSubmit = () => {
     if (!onSubmitBid || !customBid) return;
-    const bidAmount = Number.parseInt(customBid);
+    const bidAmount = Number.parseFloat(customBid);
     if (bidAmount <= currentHighestBid) {
       alert(`Bid must be higher than ${currencySymbol}${currentHighestBid.toLocaleString()}`);
       return;

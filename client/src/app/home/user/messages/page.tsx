@@ -11,6 +11,8 @@ import MessageListSkeleton from "./(components)/MessageListSkeleton";
 import SocketService from "@/utils/socketService";
 import { useUserStore } from "@/stores/useUserStore";
 import { toastConfigError } from "@/app/config/toast.config";
+import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ProductModal {
   isOpen: boolean;
@@ -35,7 +37,8 @@ export const formatMessageTime = (date: Date): string => {
 };
 
 const Page = () => {
-  const { data: chatsData, isLoading } = useChats();
+  const queryClient = useQueryClient();
+  const { data: chatsData, isLoading, refetch: refetchChats } = useChats();
   const { user } = useUserStore();
   const [selectedChat, setSelectedChat] = useState<any>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -48,6 +51,7 @@ const Page = () => {
     product: null,
   });
   const [newMessages, setNewMessages] = useState<{[chatId: string]: any[]}>({});
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   const groupedChats = chatsData?.groupedChats || [];
 
@@ -77,46 +81,152 @@ const Page = () => {
       const socket = SocketService.connect(user._id);
       
       // Authenticate user
+      console.log('[Socket Emit] authenticate with userId:', user._id);
       socket.emit('authenticate', { userId: user._id });
+      
+
       
       // Listen for persisted messages
       socket.on('persisted-message', (message: any) => {
-        console.log('Received persisted-message:', message);
+        console.log('[Socket Event] persisted-message:', message);
         setNewMessages(prev => ({
           ...prev,
           [message.chatId]: [...(prev[message.chatId] || []), message]
         }));
+        refetchChats();
+      });
+      
+      // Listen for presence changes
+      socket.on('user-presence-changed', ({ userId, isOnline }: any) => {
+        console.log('[Socket Event] user-presence-changed:', { userId, isOnline });
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          if (isOnline) {
+            newSet.add(userId);
+          } else {
+            newSet.delete(userId);
+          }
+          return newSet;
+        });
+      });
+      
+      // Listen for user status responses
+      socket.on('user-status', ({ userId, isOnline }: any) => {
+        console.log('[Socket Event] user-status:', { userId, isOnline });
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          if (isOnline) {
+            newSet.add(userId);
+          } else {
+            newSet.delete(userId);
+          }
+          console.log('[Online Users Updated]', Array.from(newSet));
+          return newSet;
+        });
+      });
+      
+      // Listen for multiple users status
+      socket.on('users-status', (statuses: any[]) => {
+        console.log('[Socket Event] users-status:', statuses);
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          statuses.forEach(({ userId, isOnline }) => {
+            if (isOnline) {
+              newSet.add(userId);
+            } else {
+              newSet.delete(userId);
+            }
+          });
+          return newSet;
+        });
       });
 
       socket.on('error', (message: any) => {
-        console.error('Socket error:', message);
-      })
+        console.error('[Socket Event] error:', message);
+      });
       
       // Listen for flagged messages
       socket.on('messageFlagged', (data: any) => {
-        console.log('Message flagged:', data.flaggedReason);
+        console.log('[Socket Event] messageFlagged:', data.flaggedReason);
+      });
+      
+      // Listen for chat read events
+      socket.on('chat:read', ({ reader }: any) => {
+        console.log('[Socket Event] chat:read by:', reader);
+        // Update all messages cache pages to mark as read
+        if (selectedChat?.chatId) {
+          queryClient.setQueriesData(
+            { queryKey: ['messages', selectedChat.chatId], exact: false },
+            (oldData: any) => {
+              if (!oldData?.messages) return oldData;
+              return {
+                ...oldData,
+                messages: oldData.messages.map((msg: any) => 
+                  msg.read ? msg : { ...msg, read: true }
+                )
+              };
+            }
+          );
+          // Update newMessages state
+          setNewMessages(prev => {
+            const chatMessages = prev[selectedChat.chatId] || [];
+            return {
+              ...prev,
+              [selectedChat.chatId]: chatMessages.map(msg => 
+                msg.read ? msg : { ...msg, read: true }
+              )
+            };
+          });
+        }
+        refetchChats();
+      });
+      
+      // Listen for messages-read events
+      socket.on('messages-read', ({ chatId }: any) => {
+        console.log('[Socket Event] messages-read for chatId:', chatId);
+        refetchChats();
       });
       
       return () => {
         socket.off('persisted-message');
         socket.off('messageFlagged');
+        socket.off('chat:read');
+        socket.off('messages-read');
+        socket.off('user-presence-changed');
+        socket.off('user-status');
+        socket.off('users-status');
       };
     }
   }, [user?._id]);
 
-  // Join chat room when selecting a chat
+  // Join chat room, check online status, and mark as read when selecting a chat
   useEffect(() => {
-    if (selectedChat?.chatId) {
-      SocketService.joinRoom(selectedChat.chatId);
+    if (selectedChat?.chatId && user?._id && currentGroup?._id) {
+      SocketService.joinRoom(selectedChat.chatId, user._id);
+      
+      // Check if the other participant is online and mark chat as read
+      const socket = SocketService.getSocket();
+      if (socket) {
+        setTimeout(() => {
+          socket.emit('check-online', { userId: currentGroup._id });
+          socket.emit('messages-read', { chatId: selectedChat.chatId, userId: user._id });
+        }, 100);
+      }
+      
       return () => {
         SocketService.leaveRoom(selectedChat.chatId);
       };
     }
-  }, [selectedChat?.chatId]);
+  }, [selectedChat?.chatId, user?._id, currentGroup?._id]);
 
   const handleChatSelect = (chat: any, product: any, group?: any) => {
-    console.log("Selected chat:", chat);
-    console.log("Selected product:", product);
+    // Clear new messages for this chat when opening it
+    setNewMessages(prev => {
+      const updated = { ...prev };
+      delete updated[chat.chatId];
+      return updated;
+    });
+    
     setSelectedChat(chat);
     setSelectedProduct(product);
     if (group) {
@@ -259,15 +369,14 @@ const Page = () => {
                   participantName={participantName}
                   currentGroup={currentGroup}
                   onProductSwitch={handleProductSwitch}
+                  isOnline={currentGroup?._id ? onlineUsers.has(currentGroup._id) : false}
                 />
                 {/* Messages */}
                 <div className="flex-1 overflow-hidden flex flex-col">
-                  <div className="flex-1 overflow-y-auto">
-                    <Messages 
-                      selectedChat={selectedChat} 
-                      newMessages={newMessages[selectedChat?.chatId] || []}
-                    />
-                  </div>
+                  <Messages 
+                    selectedChat={selectedChat} 
+                    newMessages={newMessages[selectedChat?.chatId] || []}
+                  />
                   <SendMessage
                     userId={selectedChat.senderId}
                     onSend={handleSendMessage}
@@ -316,17 +425,16 @@ const Page = () => {
                   participantName={participantName}
                   currentGroup={currentGroup}
                   onProductSwitch={handleProductSwitch}
+                  isOnline={currentGroup?._id ? onlineUsers.has(currentGroup._id) : false}
                 />
               )}
               <div className="flex-1 overflow-hidden flex flex-col">
                 {selectedChat ? (
                   <>
-                    <div className="flex-1 overflow-y-auto">
-                      <Messages 
-                        selectedChat={selectedChat} 
-                        newMessages={newMessages[selectedChat?.chatId] || []}
-                      />
-                    </div>
+                    <Messages 
+                      selectedChat={selectedChat} 
+                      newMessages={newMessages[selectedChat?.chatId] || []}
+                    />
                     <div className="border-t bg-white">
                       <SendMessage
                         userId={selectedChat.senderId}
