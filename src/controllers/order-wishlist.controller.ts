@@ -55,7 +55,19 @@ export const orderController = {
         const product = item.productId as any;
         const productDoc = await Product.findById(product._id).session(session);
         
-        if (!productDoc || productDoc.inventory.quantity < item.quantity) {
+        if (!productDoc) {
+          await session.abortTransaction();
+          return res.status(400).json({ 
+            success: false, 
+            message: `Product not found: ${product.name}` 
+          });
+        }
+        
+        // Check stock from variants (assuming default variant for simplicity)
+        const defaultVariant = productDoc.variants?.find(v => v.isDefault) || productDoc.variants?.[0];
+        const defaultOption = defaultVariant?.options?.find(o => o.isDefault) || defaultVariant?.options?.[0];
+        
+        if (!productDoc || !defaultOption || defaultOption.quantity < item.quantity) {
           await session.abortTransaction();
           return res.status(400).json({ 
             success: false, 
@@ -73,10 +85,14 @@ export const orderController = {
           vendorId: product.vendorId
         });
         
+        // Update stock for the specific variant option
         stockUpdates.push({
           updateOne: {
-            filter: { _id: product._id },
-            update: { $inc: { 'inventory.quantity': -item.quantity } }
+            filter: { 
+              _id: product._id,
+              'variants.options._id': defaultOption._id
+            },
+            update: { $inc: { 'variants.$.options.$.quantity': -item.quantity } }
           }
         });
       }
@@ -97,28 +113,72 @@ export const orderController = {
         });
       }
       
-      // 5. Create order
+      // 5. Group items by vendor and create shipments
+      const itemsByVendor = new Map();
+      for (const item of orderItems) {
+        const vendorId = item.vendorId.toString();
+        if (!itemsByVendor.has(vendorId)) {
+          itemsByVendor.set(vendorId, []);
+        }
+        itemsByVendor.get(vendorId).push({
+          productId: item.productId,
+          variantId: 'default', // Would need actual variant handling
+          quantity: item.quantity,
+          price: item.price
+        });
+      }
+
+      const shipments = [];
+      const deliveryDate = new Date();
+      deliveryDate.setDate(deliveryDate.getDate() + 7);
+
+      for (const [vendorId, items] of itemsByVendor) {
+        shipments.push({
+          vendorId: new mongoose.Types.ObjectId(vendorId),
+          items,
+          origin: {
+            vendorLocation: {
+              country: 'US',
+              city: 'Unknown',
+              address: 'Unknown',
+              coordinates: {
+                latitude: 0,
+                longitude: 0
+              }
+            }
+          },
+          shipping: {
+            carrier: 'gig_logistics',
+            service: 'standard',
+            trackingNumber: `TRK${Date.now()}`,
+            status: 'pending',
+            estimatedDelivery: deliveryDate,
+            cost: { amount: 10, currency: 'USD' }
+          },
+          deliveryAddress: {
+            street: shippingAddress.street,
+            city: shippingAddress.city,
+            state: shippingAddress.state || '',
+            country: shippingAddress.country,
+            postalCode: shippingAddress.postalCode
+          }
+        });
+      }
+
+      // 6. Create order with shipments
       const order = new Order({
         userId: req.userId,
         items: orderItems,
-        payment: {
-          method: paymentMethod,
-          status: 'completed',
-          transactionId: paymentResult.transactionId,
-          amount: totalAmount,
-          currency: 'USD'
-        },
-        shipping: {
-          address: {
-            street: shippingAddress.street,
-            city: shippingAddress.city,
-            state: shippingAddress.state,
-            country: shippingAddress.country,
-            postalCode: shippingAddress.postalCode
+        shipments,
+        deliveryCoordination: {
+          estimatedDeliveryRange: {
+            earliest: deliveryDate,
+            latest: deliveryDate
           },
-          status: 'processing'
+          consolidatedDelivery: false
         },
-        status: 'confirmed'
+        paymentId: (paymentResult as any).paymentId || new mongoose.Types.ObjectId(), // Use payment ID or create mock
+        status: 'processing'
       });
       
       // 6. Execute all updates in transaction
@@ -159,8 +219,16 @@ export const orderController = {
           select: 'name images price'
         })
         .populate({
-          path: 'items.vendorId',
-          select: 'businessName'
+          path: 'shipments.vendorId',
+          select: 'businessInfo.name'
+        })
+        .populate({
+          path: 'shipments.items.productId',
+          select: 'name images'
+        })
+        .populate({
+          path: 'paymentId',
+          select: 'amount currency status method'
         })
         .sort({ createdAt: -1 })
         .limit(Number(limit))
@@ -197,8 +265,16 @@ export const orderController = {
         select: 'name images price specifications'
       })
       .populate({
-        path: 'items.vendorId',
-        select: 'businessName'
+        path: 'shipments.vendorId',
+        select: 'businessInfo'
+      })
+      .populate({
+        path: 'shipments.items.productId',
+        select: 'name images price specifications'
+      })
+      .populate({
+        path: 'paymentId',
+        select: 'amount currency status method'
       });
       
       if (!order) {
@@ -246,10 +322,11 @@ export const orderController = {
       }
       
       // Process refund if needed
-      if (order.payment.status === 'completed') {
+      const payment = order.paymentId as any;
+      if (payment && payment.status === 'completed') {
         const refundResult = await paymentService.processRefund({
-          transactionId: order.payment.transactionId,
-          amount: order.payment.amount
+          transactionId: payment.transactionId,
+          amount: payment.amount
         });
         
         if (!refundResult.success) {
@@ -259,17 +336,27 @@ export const orderController = {
             message: refundResult.message 
           });
         }
-        
-        order.payment.status = 'refunded';
       }
       
-      // Restore product stock
-      const stockUpdates = order.items.map(item => ({
-        updateOne: {
-          filter: { _id: item.productId },
-          update: { $inc: { 'inventory.quantity': item.quantity } }
+      // Restore product stock (simplified - would need variant info in real implementation)
+      const stockUpdates = [];
+      for (const item of order.items) {
+        const productDoc = await Product.findById(item.productId).session(session);
+        const defaultVariant = productDoc?.variants?.find(v => v.isDefault) || productDoc?.variants?.[0];
+        const defaultOption = defaultVariant?.options?.find(o => o.isDefault) || defaultVariant?.options?.[0];
+        
+        if (defaultOption) {
+          stockUpdates.push({
+            updateOne: {
+              filter: { 
+                _id: item.productId,
+                'variants.options._id': defaultOption._id
+              },
+              update: { $inc: { 'variants.$.options.$.quantity': item.quantity } }
+            }
+          });
         }
-      }));
+      }
       
       if (stockUpdates.length > 0) {
         await Product.bulkWrite(stockUpdates, { session });

@@ -181,6 +181,12 @@ export class SocketService {
         }
       });
 
+      // Handle messages read event
+      socket.on("messages-read", ({ chatId, userId }) => {
+        console.log(`Messages read in chat ${chatId} by user ${userId}`);
+        this.emitToRoom(chatId, "messages-read", { chatId, userId });
+      });
+
       socket.on("registerVendor", (vendorId: string) => {
         this.vendorSockets.set(vendorId, socket.id); // Map vendor ID to socket ID
         console.log(

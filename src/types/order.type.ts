@@ -41,33 +41,76 @@ export interface IRejectedItem {
   rejectedBy?: Types.ObjectId; 
 }
 
+export interface IShipment {
+  _id?: Types.ObjectId;
+  vendorId: Types.ObjectId;
+  items: Array<{
+    productId: Types.ObjectId;
+    variantId: string;
+    quantity: number;
+    price: number;
+  }>;
+  origin: {
+    vendorLocation: {
+      country: string;
+      city: string;
+      address: string;
+      coordinates?: {
+        latitude: number;
+        longitude: number;
+      };
+    };
+    warehouseId?: string;
+  };
+  shipping: {
+    carrier: string;
+    service: "standard" | "express" | "overnight";
+    trackingNumber?: string;
+    waybill?: string;
+    status: "pending" | "processing" | "picked_up" | "in_transit" | "out_for_delivery" | "delivered" | "failed";
+    estimatedPickup?: Date;
+    actualPickup?: Date;
+    estimatedDelivery: Date;
+    actualDelivery?: Date;
+    cost: {
+      amount: number;
+      currency: string;
+    };
+    customs?: {
+      declarationNumber?: string;
+      dutyPaid: boolean;
+      customsStatus: "pending" | "cleared" | "held";
+    };
+  };
+  deliveryAddress: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface IOrder extends Document {
   userId: Types.ObjectId;
   items: ItemType[];
   paymentId: Types.ObjectId | IPayment;
-  shipping: {
-    address: {
-      street: string;
-      city: string;
-      state: string;
-      country: string;
-      postalCode: string;
+  shipments: IShipment[];
+  deliveryCoordination: {
+    estimatedDeliveryRange: {
+      earliest: Date;
+      latest: Date;
     };
-    carrier: string;
-    trackingNumber: string;
-    status: "processing" | "shipped" | "delivered" | "returned";
-    estimatedDelivery: Date;
-    type: "normal" | "go-fast" | "go-faster";
+    consolidatedDelivery: boolean;
+    deliveryInstructions?: string;
   };
-  status:
-    | "pending"
-    | "paid"
-    | "shippedToWarehouse"
-    | "confirmed"
-    | "shipped"
-    | "delivered"
-    | "cancelled"
-    | "refunded";
+  status: "pending" | "processing" | "partially_shipped" | "shipped" | "delivered" | "cancelled";
   cancellationReason?: string;
   cancelledAt?: Date;
   confirmations?: IConfirmationEntry[];

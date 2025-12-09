@@ -39,113 +39,137 @@ const orderSchema = new mongoose.Schema<IOrder>(
       ref: "Payment",
       required: [true, "Payment ID is required"],
     },
-    shipping: {
-      address: {
+    shipments: [{
+      vendorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Vendor",
+        required: [true, "Vendor ID is required"]
+      },
+      items: [{
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: [true, "Product ID is required"]
+        },
+        variantId: {
+          type: String,
+          required: [true, "Variant ID is required"]
+        },
+        quantity: {
+          type: Number,
+          required: [true, "Quantity is required"],
+          min: [1, "Quantity must be at least 1"]
+        },
+        price: {
+          type: Number,
+          required: [true, "Price is required"],
+          min: [0.01, "Price must be positive"]
+        }
+      }],
+      origin: {
+        vendorLocation: {
+          country: { type: String, required: true },
+          city: { type: String, required: true },
+          address: { type: String, required: true },
+          coordinates: {
+            latitude: Number,
+            longitude: Number
+          }
+        },
+        warehouseId: String
+      },
+      shipping: {
+        carrier: {
+          type: String,
+          enum: ["gig_logistics", "fedex", "ups", "dhl", "other"],
+          default: "gig_logistics"
+        },
+        service: {
+          type: String,
+          enum: ["standard", "express", "overnight"],
+          default: "standard"
+        },
+        trackingNumber: String,
+        waybill: String,
+        status: {
+          type: String,
+          enum: ["pending", "processing", "picked_up", "in_transit", "out_for_delivery", "delivered", "failed"],
+          default: "pending"
+        },
+        estimatedPickup: Date,
+        actualPickup: Date,
+        estimatedDelivery: {
+          type: Date,
+          required: [true, "Estimated delivery is required"]
+        },
+        actualDelivery: Date,
+        cost: {
+          amount: {
+            type: Number,
+            required: [true, "Shipping cost is required"],
+            min: [0, "Shipping cost cannot be negative"]
+          },
+          currency: {
+            type: String,
+            required: [true, "Currency is required"],
+            default: "USD"
+          }
+        },
+        customs: {
+          declarationNumber: String,
+          dutyPaid: { type: Boolean, default: false },
+          customsStatus: {
+            type: String,
+            enum: ["pending", "cleared", "held"],
+            default: "pending"
+          }
+        }
+      },
+      deliveryAddress: {
         street: {
           type: String,
-          required: [true, "Street address is required"],
-          trim: true,
-          maxlength: [100, "Street address cannot exceed 100 characters"],
+          required: [true, "Street address is required"]
         },
         city: {
           type: String,
-          required: [true, "City is required"],
-          trim: true,
-          maxlength: [50, "City cannot exceed 50 characters"],
+          required: [true, "City is required"]
         },
-        state: {
-          type: String,
-          trim: true,
-          maxlength: [50, "State cannot exceed 50 characters"],
-        },
+        state: String,
         country: {
           type: String,
-          required: [true, "Country is required"],
-          trim: true,
-          maxlength: [50, "Country cannot exceed 50 characters"],
+          required: [true, "Country is required"]
         },
         postalCode: {
           type: String,
-          required: [true, "Postal code is required"],
-          validate: {
-            validator: function (v: string) {
-              return /^[a-zA-Z0-9\- ]{3,10}$/.test(v);
-            },
-            message: "Invalid postal code format",
-          },
+          required: [true, "Postal code is required"]
         },
-      },
-      carrier: {
-        type: String,
-        required: [
-          function (this: IOrder) {
-            return ["shipped", "delivered", "returned"].includes(
-              this.shipping?.status || ""
-            );
-          },
-          "Carrier is required when order is shipped",
-        ],
-        enum: ["fedex", "ups", "usps", "dhl", "other"],
-      },
-      trackingNumber: {
-        type: String,
-        required: [
-          function (this: IOrder) {
-            return ["shipped", "delivered", "returned"].includes(
-              this.shipping?.status || ""
-            );
-          },
-          "Tracking number is required when order is shipped",
-        ],
-        validate: {
-          validator: function (v: string) {
-            return /^[A-Z0-9]{8,20}$/.test(v);
-          },
-          message: "Invalid tracking number format",
-        },
-      },
-      status: {
-        type: String,
-        enum: {
-          values: [
-            "pending",
-            "paid",
-            "shippedToWarehouse",
-            "confirmed",
-            "shipped",
-            "delivered",
-            "cancelled",
-            "refunded",
-          ],
-          message: "Invalid shipping status",
-        },
-        default: "pending",
-      },
-      estimatedDelivery: {
-        type: Date,
-        validate: {
-          validator: function (this: IOrder, v: Date) {
-            if (this.shipping?.status === "shipped") {
-              return v > new Date();
-            }
-            return true;
-          },
-          message: "Estimated delivery must be in the future",
-        },
-      },
-      type: {
-        type: String,
-        enum: {
-          values: ["normal", "go-fast", "go-faster"],
-          message: "Invalid shipping type",
-        },
-        default: "normal",
+        coordinates: {
+          latitude: Number,
+          longitude: Number
         }
+      }
+    }],
+    deliveryCoordination: {
+      estimatedDeliveryRange: {
+        earliest: {
+          type: Date,
+          required: [true, "Earliest delivery date is required"]
+        },
+        latest: {
+          type: Date,
+          required: [true, "Latest delivery date is required"]
+        }
+      },
+      consolidatedDelivery: {
+        type: Boolean,
+        default: false
+      },
+      deliveryInstructions: String
     },
     status: {
       type: String,
       enum: {
-        values: ["pending", "processing", "delivered", "cancelled"],
+        values: ["pending", "processing", "partially_shipped", "shipped", "delivered", "cancelled"],
         message: "Invalid order status",
       },
       default: "pending",

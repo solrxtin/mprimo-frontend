@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import gigLogisticsService from '../services/gig-logistics.service';
 import { GigLogisticsConstants, formatGigLocation, createShipmentItem } from '../utils/gig-logistics.util';
+import Order from '../models/order.model';
+import { IShipment } from '../types/order.type';
+import mongoose from 'mongoose';
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -130,6 +133,50 @@ export const trackShipment = async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: trackingResponse.data,
+      message: 'Shipment tracking retrieved successfully',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const trackSingleShipment = async (req: Request, res: Response) => {
+  try {
+    const { orderId, shipmentId } = req.params;
+    
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const shipment = order.shipments.find((s: any) => s._id.toString() === shipmentId);
+    if (!shipment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shipment not found'
+      });
+    }
+
+    let trackingData = null;
+    if ((shipment as any).shipping.waybill) {
+      try {
+        const trackingResponse = await gigLogisticsService.trackShipment((shipment as any).shipping.waybill);
+        trackingData = trackingResponse.data;
+      } catch (error) {
+        console.warn('Failed to get tracking data:', error);
+      }
+    }
+    
+    res.json({
+      success: true,
+      shipment,
+      trackingData,
       message: 'Shipment tracking retrieved successfully',
     });
   } catch (error: any) {
@@ -306,6 +353,156 @@ export const determineShipmentType = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+export const updateShipmentStatus = async (req: Request, res: Response) => {
+  try {
+    const { orderId, shipmentId } = req.params;
+    const { status, trackingNumber, waybill, actualPickup, actualDelivery } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    const shipmentIndex = order.shipments.findIndex(
+      (s: any) => s._id.toString() === shipmentId
+    );
+
+    if (shipmentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shipment not found'
+      });
+    }
+
+    // Update shipment status
+    order.shipments[shipmentIndex].shipping.status = status;
+    if (trackingNumber) order.shipments[shipmentIndex].shipping.trackingNumber = trackingNumber;
+    if (waybill) order.shipments[shipmentIndex].shipping.waybill = waybill;
+    if (actualPickup) order.shipments[shipmentIndex].shipping.actualPickup = new Date(actualPickup);
+    if (actualDelivery) order.shipments[shipmentIndex].shipping.actualDelivery = new Date(actualDelivery);
+
+    // Update overall order status based on shipment statuses
+    const allShipments = order.shipments;
+    const deliveredCount = allShipments.filter((s: any) => s.shipping.status === 'delivered').length;
+    const shippedCount = allShipments.filter((s: any) => ['picked_up', 'in_transit', 'out_for_delivery'].includes(s.shipping.status)).length;
+    
+    if (deliveredCount === allShipments.length) {
+      order.status = 'delivered';
+    } else if (deliveredCount > 0 || shippedCount > 0) {
+      order.status = 'partially_shipped';
+    }
+
+    await order.save();
+
+    res.json({
+      success: true,
+      message: 'Shipment status updated successfully',
+      order
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const getOrderShipments = async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId)
+      .populate('shipments.vendorId', 'businessInfo')
+      .populate('shipments.items.productId', 'name images');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      shipments: order.shipments,
+      deliveryCoordination: order.deliveryCoordination,
+      message: 'Order shipments retrieved successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const trackOrderShipments = async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId)
+      .populate('shipments.vendorId', 'businessInfo')
+      .populate('shipments.items.productId', 'name images');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Get tracking info for each shipment
+    const trackingPromises = order.shipments.map(async (shipment: any) => {
+      if (shipment.shipping.waybill) {
+        try {
+          const trackingData = await gigLogisticsService.trackShipment(shipment.shipping.waybill);
+          return {
+            shipmentId: shipment._id,
+            vendorId: shipment.vendorId,
+            trackingData: trackingData.data,
+            status: shipment.shipping.status,
+            estimatedDelivery: shipment.shipping.estimatedDelivery
+          };
+        } catch (error) {
+          return {
+            shipmentId: shipment._id,
+            vendorId: shipment.vendorId,
+            trackingData: null,
+            status: shipment.shipping.status,
+            estimatedDelivery: shipment.shipping.estimatedDelivery,
+            error: 'Tracking data unavailable'
+          };
+        }
+      }
+      return {
+        shipmentId: shipment._id,
+        vendorId: shipment.vendorId,
+        trackingData: null,
+        status: shipment.shipping.status,
+        estimatedDelivery: shipment.shipping.estimatedDelivery
+      };
+    });
+
+    const trackingResults = await Promise.all(trackingPromises);
+
+    res.json({
+      success: true,
+      orderId,
+      deliveryCoordination: order.deliveryCoordination,
+      shipments: trackingResults,
+      message: 'Order tracking retrieved successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };

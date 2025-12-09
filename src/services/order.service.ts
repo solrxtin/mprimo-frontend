@@ -9,13 +9,14 @@ export class OrderService {
     orderId: string,
     status?:
       | "pending"
-      | "confirmed"
+      | "processing"
+      | "partially_shipped"
       | "shipped"
       | "delivered"
-      | "cancelled"
-      | "refunded",
-    shippingStatus?: "processing" | "shipped" | "delivered" | "returned",
-    options?: { trackingNumber?: string; carrier?: string }
+      | "cancelled",
+    shipmentId?: string,
+    shipmentStatus?: "pending" | "processing" | "picked_up" | "in_transit" | "out_for_delivery" | "delivered" | "failed",
+    options?: { trackingNumber?: string; carrier?: string; waybill?: string }
   ) {
     const order = await Order.findById(orderId);
 
@@ -23,16 +24,39 @@ export class OrderService {
       throw createError(404, "Order not found");
     }
 
-    if (!status || !shippingStatus) {
-      throw createError(400, "Status and/or shipping status is required");
-    }
-
-    // Update status
+    // Update overall order status
     if (status) order.status = status;
-    if (shippingStatus) order.shipping.status = shippingStatus;
 
-    if (options?.carrier) {
-      order.shipping.carrier = options.carrier;
+    // Update specific shipment status
+    if (shipmentId && shipmentStatus) {
+      const shipmentIndex = order.shipments.findIndex(
+        (s: any) => s._id.toString() === shipmentId
+      );
+      
+      if (shipmentIndex !== -1) {
+        order.shipments[shipmentIndex].shipping.status = shipmentStatus;
+        
+        if (options?.trackingNumber) {
+          order.shipments[shipmentIndex].shipping.trackingNumber = options.trackingNumber;
+        }
+        if (options?.carrier) {
+          order.shipments[shipmentIndex].shipping.carrier = options.carrier;
+        }
+        if (options?.waybill) {
+          order.shipments[shipmentIndex].shipping.waybill = options.waybill;
+        }
+
+        // Auto-update overall order status based on shipment statuses
+        const allShipments = order.shipments;
+        const deliveredCount = allShipments.filter((s: any) => s.shipping.status === 'delivered').length;
+        const shippedCount = allShipments.filter((s: any) => ['picked_up', 'in_transit', 'out_for_delivery'].includes(s.shipping.status)).length;
+        
+        if (deliveredCount === allShipments.length) {
+          order.status = 'delivered';
+        } else if (deliveredCount > 0 || shippedCount > 0) {
+          order.status = 'partially_shipped';
+        }
+      }
     }
 
     await order.save();
@@ -45,6 +69,10 @@ export class OrderService {
       {
         path: "userId",
         select: "profile email",
+      },
+      {
+        path: "shipments.vendorId",
+        select: "businessInfo.name",
       },
     ]);
   }
@@ -256,11 +284,21 @@ export class OrderService {
         },
       })
       .populate({
+        path: "shipments.vendorId",
+        select: "businessInfo",
+      })
+      .populate({
+        path: "shipments.items.productId",
+        select: "name images",
+      })
+      .populate({
         path: "userId",
         select: "profile email",
+      })
+      .populate({
+        path: "paymentId",
+        select: "amount currency status method",
       });
-
-    console.log(order);
 
     if (!order) {
       throw createError(404, "Order not found");
@@ -337,5 +375,84 @@ export class OrderService {
     ]);
   }
 
-  // Track order
+  static async updateShipmentStatus(
+    orderId: string,
+    shipmentId: string,
+    status: "pending" | "processing" | "picked_up" | "in_transit" | "out_for_delivery" | "delivered" | "failed",
+    trackingData?: {
+      trackingNumber?: string;
+      waybill?: string;
+      actualPickup?: Date;
+      actualDelivery?: Date;
+    }
+  ) {
+    const order = await Order.findById(orderId);
+    
+    if (!order) {
+      throw createError(404, "Order not found");
+    }
+
+    const shipmentIndex = order.shipments.findIndex(
+      (s: any) => s._id.toString() === shipmentId
+    );
+
+    if (shipmentIndex === -1) {
+      throw createError(404, "Shipment not found");
+    }
+
+    // Update shipment
+    order.shipments[shipmentIndex].shipping.status = status;
+    
+    if (trackingData) {
+      if (trackingData.trackingNumber) {
+        order.shipments[shipmentIndex].shipping.trackingNumber = trackingData.trackingNumber;
+      }
+      if (trackingData.waybill) {
+        order.shipments[shipmentIndex].shipping.waybill = trackingData.waybill;
+      }
+      if (trackingData.actualPickup) {
+        order.shipments[shipmentIndex].shipping.actualPickup = trackingData.actualPickup;
+      }
+      if (trackingData.actualDelivery) {
+        order.shipments[shipmentIndex].shipping.actualDelivery = trackingData.actualDelivery;
+      }
+    }
+
+    // Update overall order status
+    const allShipments = order.shipments;
+    const deliveredCount = allShipments.filter((s: any) => s.shipping.status === 'delivered').length;
+    const shippedCount = allShipments.filter((s: any) => ['picked_up', 'in_transit', 'out_for_delivery'].includes(s.shipping.status)).length;
+    
+    if (deliveredCount === allShipments.length) {
+      order.status = 'delivered';
+    } else if (deliveredCount > 0 || shippedCount > 0) {
+      order.status = 'partially_shipped';
+    }
+
+    await order.save();
+    return order;
+  }
+
+  static async getOrderShipments(orderId: string) {
+    const order = await Order.findById(orderId)
+      .populate({
+        path: "shipments.vendorId",
+        select: "businessInfo",
+      })
+      .populate({
+        path: "shipments.items.productId",
+        select: "name images",
+      });
+
+    if (!order) {
+      throw createError(404, "Order not found");
+    }
+
+    return {
+      orderId: order._id,
+      shipments: order.shipments,
+      deliveryCoordination: order.deliveryCoordination,
+      status: order.status
+    };
+  }
 }

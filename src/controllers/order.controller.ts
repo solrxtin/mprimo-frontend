@@ -14,6 +14,9 @@ import { StripeService } from "../services/stripe.service";
 import { CryptoPaymentService } from "../services/crypto-payment.service";
 import Payment, { VendorPayment } from "../models/payment.model";
 import { IPayment } from "../types/payment.type";
+import { IShipment } from "../types/order.type";
+import Vendor from "../models/vendor.model";
+import shippingService from "../services/shipping.service";
 
 const cryptoService = new CryptoPaymentService();
 
@@ -87,12 +90,134 @@ export const makeOrder = async (
       });
     }
 
-    const shipping = {
-      address: userAddress,
-      carrier: "fedex",
-      trackingNumber: generateTrackingNumber(),
-      status: "pending",
-      estimatedDelivery: generateEstimatedDelivery(),
+    // Group items by vendor
+    const itemsByVendor = new Map();
+    for (const item of validatedItems) {
+      const product = await Product.findById(item.productId).populate('vendorId');
+      if (!product) continue;
+      
+      const vendorId = (product.vendorId as any)._id.toString();
+      if (!itemsByVendor.has(vendorId)) {
+        itemsByVendor.set(vendorId, {
+          vendor: product.vendorId,
+          items: []
+        });
+      }
+      itemsByVendor.get(vendorId).items.push({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        price: item.price
+      });
+    }
+
+    // Create shipments for each vendor
+    const shipments: IShipment[] = [];
+    let earliestDelivery = new Date();
+    let latestDelivery = new Date();
+    earliestDelivery.setDate(earliestDelivery.getDate() + 30); // Initialize with far future
+    latestDelivery.setDate(latestDelivery.getDate() + 1); // Initialize with near future
+
+    for (const [vendorId, { vendor, items }] of itemsByVendor) {
+      const vendorDoc = await Vendor.findById(vendorId);
+      if (!vendorDoc) continue;
+
+      // Calculate shipping cost and delivery estimate
+      const shippingData = {
+        vendorLocation: {
+          latitude: 0,
+          longitude: 0,
+          address: vendorDoc.businessInfo?.address?.street || '',
+          country: vendorDoc.businessInfo?.address?.country || 'US'
+        },
+        buyerLocation: {
+          latitude: 0, // Would need to geocode userAddress
+          longitude: 0,
+          address: `${userAddress.street}, ${userAddress.city}`,
+          country: userAddress.country
+        },
+        items: items.map((item: any) => ({
+          name: 'Product', // Would get from product
+          description: 'Product description',
+          quantity: item.quantity,
+          weight: 1, // Would get from product
+          value: item.price * item.quantity
+        })),
+        vendorDetails: {
+          name: vendorDoc.businessInfo?.name || 'Vendor',
+          phoneNumber: '' // vendorDoc.businessInfo?.phoneNumber ||
+        },
+        buyerDetails: {
+          name: `${user?.profile?.firstName} ${user?.profile?.lastName}`,
+          phoneNumber: user?.profile?.phoneNumber || ''
+        }
+      };
+
+      let estimatedDelivery: Date;
+      let shippingCost = { amount: 10, currency: 'USD' }; // Default values
+      
+      try {
+        estimatedDelivery = await shippingService.getEstimatedDeliveryDate(shippingData);
+        const costResult = await shippingService.calculateShippingCost(shippingData);
+        if (costResult && costResult.data) {
+          shippingCost = {
+            amount: costResult.data.totalAmount || 10,
+            currency: costResult.data.currency || 'USD'
+          };
+        }
+      } catch (error) {
+        console.warn('Shipping calculation failed, using defaults:', error);
+        estimatedDelivery = generateEstimatedDelivery();
+      }
+
+      // Update delivery range
+      if (estimatedDelivery < earliestDelivery) {
+        earliestDelivery = estimatedDelivery;
+      }
+      if (estimatedDelivery > latestDelivery) {
+        latestDelivery = estimatedDelivery;
+      }
+
+      const shipment: IShipment = {
+        vendorId: new mongoose.Types.ObjectId(vendorId),
+        items,
+        origin: {
+          vendorLocation: {
+            country: vendorDoc.businessInfo?.address?.country || 'US',
+            city: vendorDoc.businessInfo?.address?.city || '',
+            address: vendorDoc.businessInfo?.address?.street || '',
+            coordinates: {
+              latitude: 0,
+              longitude: 0
+            }
+          }
+        },
+        shipping: {
+          carrier: 'gig_logistics',
+          service: 'standard',
+          trackingNumber: generateTrackingNumber(),
+          status: 'pending',
+          estimatedDelivery,
+          cost: shippingCost
+        },
+        deliveryAddress: {
+          street: userAddress.street,
+          city: userAddress.city,
+          state: userAddress.state || '',
+          country: userAddress.country,
+          postalCode: userAddress.postalCode
+        }
+      };
+
+      shipments.push(shipment);
+    }
+
+    const deliveryCoordination = {
+      estimatedDeliveryRange: {
+        earliest: earliestDelivery,
+        latest: latestDelivery
+      },
+      consolidatedDelivery: false
     };
 
     // Process payment first
@@ -125,7 +250,8 @@ export const makeOrder = async (
       order = await Order.create({
         userId,
         paymentId: payment._id,
-        shipping,
+        shipments,
+        deliveryCoordination,
         items: validatedItems,
         status: "processing",
       });
@@ -164,7 +290,8 @@ export const makeOrder = async (
       order = await Order.create({
         userId,
         paymentId: paymentRecord._id,
-        shipping,
+        shipments,
+        deliveryCoordination,
         items: validatedItems,
         status: "processing",
       });
@@ -390,8 +517,20 @@ export const getAllOrders = async (
         },
       })
       .populate({
+        path: "shipments.vendorId",
+        select: "businessInfo",
+      })
+      .populate({
+        path: "shipments.items.productId",
+        select: "name images",
+      })
+      .populate({
         path: "userId",
         select: "profile email",
+      })
+      .populate({
+        path: "paymentId",
+        select: "amount currency status method",
       });
 
     res.status(200).json({
@@ -421,64 +560,49 @@ export const getVendorOrders = async (
 
     const orders = await Order.aggregate([
       {
-        $lookup: {
-          from: "products",
-          localField: "items.productId",
-          foreignField: "_id",
-          as: "productDocs",
-        },
-      },
-      {
-        $unwind: "$items",
-      },
-      {
-        $lookup: {
-          from: "products",
-          localField: "items.productId",
-          foreignField: "_id",
-          as: "productDetails",
-        },
-      },
-      {
-        $unwind: "$productDetails",
-      },
-      {
         $match: {
-          "productDetails.vendorId": new mongoose.Types.ObjectId(vendorId),
-        },
-      },
-      {
-        $group: {
-          _id: "$_id",
-          userId: { $first: "$userId" },
-          payment: { $first: "$payment" },
-          shipping: { $first: "$shipping" },
-          status: { $first: "$status" },
-          createdAt: { $first: "$createdAt" },
-          items: {
-            $push: {
-              productId: "$items.productId",
-              quantity: "$items.quantity",
-              price: "$items.price",
-              product: {
-                name: "$productDetails.name",
-                image: "$productDetails.image",
-                vendorId: "$productDetails.vendorId",
-              },
-            },
-          },
-        },
+          "shipments.vendorId": vendorId
+        }
       },
       {
         $lookup: {
           from: "users",
           localField: "userId",
           foreignField: "_id",
-          as: "user",
-        },
+          as: "user"
+        }
       },
       {
-        $unwind: "$user",
+        $unwind: "$user"
+      },
+      {
+        $lookup: {
+          from: "payments",
+          localField: "paymentId",
+          foreignField: "_id",
+          as: "payment"
+        }
+      },
+      {
+        $unwind: { path: "$payment", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $addFields: {
+          vendorShipments: {
+            $filter: {
+              input: "$shipments",
+              cond: { $eq: ["$$this.vendorId", vendorId] }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "vendorShipments.items.productId",
+          foreignField: "_id",
+          as: "products"
+        }
       },
       {
         $project: {
@@ -486,15 +610,14 @@ export const getVendorOrders = async (
           status: 1,
           createdAt: 1,
           payment: 1,
-          shipping: 1,
-          items: 1,
+          shipments: "$vendorShipments",
           user: {
             _id: "$user._id",
             profile: "$user.profile",
-            email: "$user.email",
-          },
-        },
-      },
+            email: "$user.email"
+          }
+        }
+      }
     ]);
     return res.status(200).json({
       success: true,
@@ -551,7 +674,11 @@ export const changeShippingAddress = async (
       postalCode: address.postalCode,
     };
 
-    order.shipping.address = modifiedAddress;
+    // Update delivery address for all shipments
+    order.shipments.forEach((shipment: any) => {
+      shipment.deliveryAddress = modifiedAddress;
+    });
+    
     await order.save();
 
     res.status(200).json({
@@ -932,8 +1059,7 @@ const updateOrderStatus = async (
     const updatedOrder = await OrderService.updateOrderStatus(
       orderId,
       status,
-      shippingStatus,
-      { trackingNumber, carrier }
+      shippingStatus
     );
 
     await AuditLogService.log(
