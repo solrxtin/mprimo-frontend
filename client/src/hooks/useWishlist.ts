@@ -11,7 +11,7 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useEffect } from "react";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5800/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "https://mprimo-production.up.railway.app/api/v1";
 
 const wishlistApi = {
   getWishlist: async (): Promise<WishlistResponse> => {
@@ -72,6 +72,7 @@ const wishlistApi = {
 
 export const useWishlist = () => {
   const queryClient = useQueryClient();
+  const user = useUserStore((state) => state.user);
   const {
     setItems,
     addItem,
@@ -84,7 +85,7 @@ export const useWishlist = () => {
   const { data: wishlistData, isLoading } = useQuery({
     queryKey: ["wishlist"],
     queryFn: wishlistApi.getWishlist,
-    enabled: !!useUserStore.getState().user,
+    enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });

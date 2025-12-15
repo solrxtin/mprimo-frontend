@@ -3,7 +3,9 @@ import { toast } from 'react-toastify';
 import { toastConfigError, toastConfigSuccess } from '@/app/config/toast.config';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5800/api/v1';
+import { API_CONFIG } from '@/config/api.config';
+
+const API_BASE = API_CONFIG.BASE_URL;
 
 interface UserProfile {
   _id: string;

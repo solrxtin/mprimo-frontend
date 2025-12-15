@@ -1,6 +1,7 @@
 import { User } from "@/types/user.type";
 import ICryptoWallet from "@/types/wallet.type";
 import { create } from "zustand";
+import { API_CONFIG } from '@/config/api.config';
 import {
   persist,
   createJSONStorage,
@@ -49,7 +50,7 @@ export const useUserStore = create<UserState>()(
 
       refreshUser: async () => {
         try {
-          const response = await fetch('http://localhost:5800/api/v1/users/profile', {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/users/profile`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
             },

@@ -1,4 +1,6 @@
-export const API_BASE_URL = "http://localhost:5800/api/v1";
+import { API_CONFIG } from '@/config/api.config';
+
+export const API_BASE_URL = API_CONFIG.BASE_URL;
 
 export const getApiUrl = (endpoint: string) => API_BASE_URL + endpoint;
 

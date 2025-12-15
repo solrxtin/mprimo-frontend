@@ -21,22 +21,19 @@ const ProductModal = ({ isOpen, product, onClose }: ProductModalProps) => {
 
   if (!isOpen || !product) return null;
 
-  // Get pricing from variants using displayPrice and displayCurrency
+  // Get pricing from priceInfo for users (displayPrice and displayCurrency)
   const getPrice = () => {
-    if (selectedProduct?.variants?.length > 0) {
-      const option = selectedProduct.variants[0]?.options?.[0];
-      if (option) {
-        return {
-          price: option.displayPrice || option.price,
-          salePrice: option.displayPrice || option.salePrice,
-          currency: option.displayCurrency || product.country?.currency || 'NGN'
-        };
-      }
+    if (selectedProduct?.priceInfo) {
+      return {
+        price: selectedProduct.priceInfo.displayPrice,
+        salePrice: selectedProduct.priceInfo.displayPrice,
+        currency: selectedProduct.priceInfo.displayCurrency
+      };
     }
     return {
-      price: product.inventory?.listing?.instant?.price || 0,
-      salePrice: product.inventory?.listing?.instant?.salePrice || 0,
-      currency: product.country?.currency || 'NGN'
+      price: 0,
+      salePrice: 0,
+      currency: 'NGN'
     };
   };
 
@@ -51,85 +48,109 @@ const ProductModal = ({ isOpen, product, onClose }: ProductModalProps) => {
   const stock = getStock();
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white/95 backdrop-blur-md rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-white/20">
-        <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-gray-200/50 p-6 rounded-t-2xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 p-6 rounded-t-2xl">
           <div className="flex justify-between items-center">
-            <h3 className="text-xl font-bold text-gray-900">Product Details</h3>
+            <h3 className="text-xl font-bold text-white">Product Details</h3>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100/80 rounded-full transition-all duration-200 hover:scale-105"
+              className="p-2 hover:bg-white/20 rounded-full transition-all"
             >
-              <X size={20} className="text-gray-500" />
+              <X size={20} className="text-white" />
             </button>
           </div>
         </div>
         
-        <div className="p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-          {/* Product Images */}
-          <div className="relative">
-            <img
-              src={product.images?.[0] || '/placeholder.png'}
-              alt={product.name}
-              className="w-full h-64 object-cover rounded-xl shadow-lg"
-            />
-          </div>
-
-          {/* Product Info */}
-          <div className="space-y-2">
-            <div>
-              <h4 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h4>
-              <p className="text-gray-600 leading-relaxed">{selectedProduct?.description}</p>
+        <div className="p-6 space-y-6 max-h-[calc(90vh-80px)] overflow-y-auto">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Product Images */}
+            <div className="space-y-3">
+              <img
+                src={product.images?.[0] || '/placeholder.png'}
+                alt={product.name}
+                className="w-full h-72 object-cover rounded-xl shadow-lg"
+              />
+              {product.images?.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {product.images.slice(1, 5).map((img: string, idx: number) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`${product.name} ${idx + 2}`}
+                      className="w-20 h-20 object-contain rounded-lg border-2 border-gray-200 flex-shrink-0"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Pricing */}
-            <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-xl border border-green-200/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Price</p>
-                  <div className="flex items-center gap-2">
-                    {pricing.salePrice < pricing.price ? (
-                      <>
-                        <span className="text-2xl font-bold text-green-600">
-                          {pricing.currency} {pricing.salePrice}
-                        </span>
-                        <span className="text-lg text-gray-400 line-through">
-                          {pricing.currency} {pricing.price}
-                        </span>
-                        <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium">
-                          {Math.round(((pricing.price - pricing.salePrice) / pricing.price) * 100)}% OFF
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-2xl font-bold text-green-600">
-                        {pricing.currency} {pricing.price}
-                      </span>
-                    )}
-                  </div>
+            {/* Product Info */}
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h4>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    selectedProduct?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {selectedProduct?.status || 'N/A'}
+                  </span>
+                  {selectedProduct?.rating > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-yellow-400">★</span>
+                      <span className="text-sm font-medium">{selectedProduct.rating}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Stock</p>
-                  <p className={`text-lg font-semibold ${
+              </div>
+
+              {/* Pricing */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-xl border-2 border-green-200">
+                <p className="text-sm text-gray-600 mb-2">Price</p>
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span className="text-3xl font-bold text-green-600">
+                    {pricing.currency} {pricing.price.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-green-200">
+                  <span className="text-sm text-gray-600">Stock Available</span>
+                  <span className={`text-lg font-bold ${
                     stock < 5 ? 'text-red-600' : stock < 20 ? 'text-yellow-600' : 'text-green-600'
                   }`}>
                     {stock} units
-                  </p>
+                  </span>
+                </div>
+              </div>
+
+              {/* Product Details */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <span className="text-xs text-gray-500">Brand</span>
+                  <p className="text-sm font-semibold text-gray-900">{selectedProduct?.brand || 'N/A'}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <span className="text-xs text-gray-500">Condition</span>
+                  <p className="text-sm font-semibold text-gray-900 capitalize">{selectedProduct?.condition || 'N/A'}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <span className="text-xs text-gray-500">Category</span>
+                  <p className="text-sm font-semibold text-gray-900">{selectedProduct?.category?.main?.name || 'N/A'}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <span className="text-xs text-gray-500">SKU</span>
+                  <p className="text-sm font-semibold text-gray-900">{selectedProduct?.inventory?.sku || 'N/A'}</p>
                 </div>
               </div>
             </div>
-
-            {/* Product Details Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50/80 p-4 rounded-xl">
-                <span className="text-sm font-medium text-gray-700">Brand</span>
-                <p className="text-gray-900 font-semibold">{selectedProduct?.brand || 'N/A'}</p>
-              </div>
-              <div className="bg-gray-50/80 p-4 rounded-xl">
-                <span className="text-sm font-medium text-gray-700">Condition</span>
-                <p className="text-gray-900 font-semibold capitalize">{selectedProduct?.condition || 'N/A'}</p>
-              </div>
-            </div>
           </div>
+
+          {/* Description */}
+          {selectedProduct?.description && (
+            <div className="bg-blue-50 p-4 rounded-xl">
+              <h5 className="font-semibold text-gray-900 mb-2">Description</h5>
+              <p className="text-gray-700 text-sm leading-relaxed">{selectedProduct.description}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

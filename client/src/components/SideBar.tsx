@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useUserStore } from "@/stores/useUserStore";
 import { Notification1 } from "iconsax-react";
 
 // Define the base path for your user section
@@ -44,7 +45,8 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: notificationsData, error } = useNotifications();
+  const user = useUserStore((state) => state.user);
+  const { data: notificationsData, error } = useNotifications(!!user);
 
   const unreadCount = error
     ? 0

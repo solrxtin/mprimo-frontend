@@ -14,7 +14,9 @@ interface Address {
   isDefault: boolean;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5800/api/v1';
+import { API_CONFIG } from '@/config/api.config';
+
+const API_BASE = API_CONFIG.BASE_URL;
 
 const addressApi = {
   getAddresses: async (): Promise<{ addresses: Address[] }> => {

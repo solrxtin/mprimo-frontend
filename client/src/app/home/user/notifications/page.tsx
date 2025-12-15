@@ -10,6 +10,7 @@ import { MessageSquare, Trash2, CheckCheck } from "lucide-react";
 import { useNotifications, useDeleteNotification, useDeleteAllNotifications, useMarkNotificationAsRead, useBulkMarkAsRead, useBulkDeleteNotifications } from "@/hooks/useNotifications";
 import { toast } from "react-toastify";
 import NotificationModal from "@/components/NotificationModal";
+import { useUserStore } from "@/stores/useUserStore";
 
 interface Notification {
   _id: string;
@@ -30,7 +31,8 @@ interface Notification {
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { data: notificationsData, isLoading } = useNotifications();
+  const user = useUserStore((state) => state.user);
+  const { data: notificationsData, isLoading } = useNotifications(!!user);
   const deleteNotificationMutation = useDeleteNotification();
   const deleteAllNotificationsMutation = useDeleteAllNotifications();
   const markAsReadMutation = useMarkNotificationAsRead();

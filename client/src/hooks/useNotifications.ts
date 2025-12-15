@@ -1,16 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
-const BASE_URL = 'http://localhost:5800/api/v1/notifications';
+import { API_CONFIG } from '@/config/api.config';
+
+const BASE_URL = `${API_CONFIG.BASE_URL}/notifications`;
 
 // Queries
-export const useNotifications = () => {
+export const useNotifications = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
       const response = await fetchWithAuth(BASE_URL);
       return response.json();
     },
+    enabled,
     retry: false,
     staleTime: 30000,
     refetchOnWindowFocus: false
