@@ -24,6 +24,7 @@ export default function StripePaymentForm({
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +54,14 @@ export default function StripePaymentForm({
         toast.error(error.message || "Payment failed");
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
         toast.success("Payment successful!");
-        onSuccess(paymentIntent.id);
+        setIsCreatingOrder(true);
+        await onSuccess(paymentIntent.id);
       }
     } catch (error: any) {
       toast.error(error.message || "Payment failed");
     } finally {
       setIsProcessing(false);
+      setIsCreatingOrder(false);
     }
   };
 
@@ -93,13 +96,18 @@ export default function StripePaymentForm({
       <div className="flex gap-3">
         <Button
           type="submit"
-          disabled={!stripe || isProcessing}
+          disabled={!stripe || isProcessing || isCreatingOrder}
           className="flex-1 bg-blue-600 hover:bg-blue-700"
         >
           {isProcessing ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Processing...
+              Processing Payment...
+            </>
+          ) : isCreatingOrder ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Creating Order...
             </>
           ) : (
             `Pay ${currency} ${amount.toLocaleString()}`
@@ -109,7 +117,7 @@ export default function StripePaymentForm({
           type="button"
           variant="outline"
           onClick={onCancel}
-          disabled={isProcessing}
+          disabled={isProcessing || isCreatingOrder}
           className="flex-1"
         >
           Cancel

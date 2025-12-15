@@ -21,7 +21,6 @@ interface BidModal1Props {
 }
 
 export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacingBid }: BidModal1Props) => {
-  console.log("Product data is: ", productData)
   const { user } = useUserStore();
   const [paymentMethod, setPaymentMethod] = useState("");
   const [customBid, setCustomBid] = useState("");

@@ -157,5 +157,5 @@ export const getCurrencySymbol = (currencyCode: string): string => {
     BMD: '$'
   };
   
-  return currencyMap[currencyCode.toUpperCase()] || currencyCode;
+  return currencyMap[currencyCode.toUpperCase()] || currencyCode || '$';
 };

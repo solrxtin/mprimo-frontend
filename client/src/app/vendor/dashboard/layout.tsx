@@ -81,13 +81,16 @@ export default function DashboardLayout({
   const openLogoutModal = () => {
     setIsLogoutModalOpen(true);
   };
-  const handleLogout = () => {
+  const handleLogout = async () => {
     logoutMutation.mutate(undefined, {
-      onSuccess: (data) => {
-        // useUserStore.getState().resetStore();
-        resetAllStores();
-
-        router.push("/home");
+      onSuccess: async (data) => {
+        try {
+          await resetAllStores();
+          toast.success("Logged out successfully");
+        } finally {
+          closeLogoutModal();
+          setTimeout(() => router.push("/home"), 100);
+        }
       },
       onError: (error) => {
         console.error("Logout failed:", error);

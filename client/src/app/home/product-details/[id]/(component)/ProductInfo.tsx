@@ -91,8 +91,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   const { user } = useUserStore();
   const router = useRouter();
 
-  console.log("Product Data in ProductInfo:", productData);
-
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
@@ -108,8 +106,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   const [isPlacingBid, setIsPlacingBid] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
-  const [showStripeModal, setShowStripeModal] = useState(false);
-  const [stripePaymentData, setStripePaymentData] = useState<any>(null);
+
   const [buyNowOrderData, setBuyNowOrderData] = useState<any>(null);
   const [summaryData, setSummaryData] = useState<any>(null);
   const [walletData, setWalletData] = useState<any>(null);
@@ -165,7 +162,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     const option = variant.options?.find(
       (opt: any) => (opt.id || opt._id) === optionId && opt.value
     );
-    return option?.displayPrice || option?.salePrice || option?.price || 0;
+    const price = option?.salePrice || option?.price || 0;
+    const exchangeRate = (productData as any)?.priceInfo?.exchangeRate || 1;
+    return price * exchangeRate;
   };
 
   const getSelectedOptionCurrency = () => {
@@ -255,11 +254,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
       return;
     }
 
-    if (!user) {
-      openModal();
-      return;
-    }
-
     try {
       let selectedVariantObj;
       if (productData.variants && productData.variants.length > 0) {
@@ -284,10 +278,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
           optionId: option.id || option._id,
           variantName: variant.name,
           optionValue: option.value,
-          price: option.price,
+          price: option.salePrice || option.price,
         };
       }
-
       await addToCart(productData, quantity, selectedVariantObj);
     } catch (error: any) {
       toast.error(error.message || "Failed to add to cart");
@@ -353,9 +346,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
         quantity,
       };
 
-      // First, get buy now data to check wallet balance
       const buyNowData = await buyNowMutation.mutateAsync(orderData);
-      console.log("Buy Now Data Response:", buyNowData);
+      console.log("=== BUY NOW RESPONSE ===", JSON.stringify(buyNowData, null, 2));
 
       if (!buyNowData.success) {
         toast.error(buyNowData.message || "Failed to process buy now");
@@ -363,11 +355,16 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
         return;
       }
 
-      const { pricing, userFiatWallet } = buyNowData.buyNow;
-      setBuyNowOrderData(orderData);
-      setWalletData(userFiatWallet);
+      const { pricing, userFiatWallet, item, product } = buyNowData.buyNow;
+      const priceInfo = product?.priceInfo || (productData as any)?.priceInfo;
+      
+      setBuyNowOrderData({
+        ...orderData,
+        price: item.price,
+        exchangeRate: priceInfo?.exchangeRate,
+      });
+      setWalletData(userFiatWallet?.balances || userFiatWallet);
 
-      // Prepare summary data
       setSummaryData({
         product: {
           name: productData.name,
@@ -381,19 +378,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
         variant: {
           name: variant.name,
           value: option?.value,
-          price:
-            option?.displayPrice || option?.salePrice || option?.price || 0,
+          price: item.price,
         },
         quantity,
-        pricing: {
-          subtotal: pricing.subtotal,
-          tax: pricing.tax,
-          shipping: pricing.shipping,
-          total: pricing.total,
-        },
+        pricing,
         totalAmount: pricing.total,
-        currency: (productData as any)?.priceInfo?.currency || "USD",
-        currencySymbol: getSelectedOptionCurrency(),
+        currency: pricing.currency || "USD",
+        currencySymbol: pricing.currencySymbol || getSelectedOptionCurrency(),
       });
 
       setShowSummary(true);
@@ -406,40 +397,63 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   };
 
   const handleWalletPayment = async () => {
-    if (!buyNowOrderData || !summaryData) return;
+    if (!buyNowOrderData || !summaryData || !walletData) return;
 
     try {
-      const { userFiatWallet } = await buyNowMutation.mutateAsync(
-        buyNowOrderData
-      );
-
-      if (userFiatWallet && userFiatWallet.balance >= summaryData.totalAmount) {
+      const availableBalance = walletData?.available || 0;
+      
+      if (availableBalance >= summaryData.totalAmount) {
         const paymentIntent = await createPaymentIntentMutation.mutateAsync({
-          ...buyNowOrderData,
+          productId: buyNowOrderData.productId,
+          variantId: buyNowOrderData.variantId,
+          optionId: buyNowOrderData.optionId,
+          quantity: buyNowOrderData.quantity,
           paymentMethod: "wallet",
         });
 
         if (paymentIntent.success) {
+          const cleanedItems: any[] = [{
+            productId: buyNowOrderData.productId,
+            quantity: buyNowOrderData.quantity,
+          }];
+          if (buyNowOrderData.variantId) cleanedItems[0].variantId = buyNowOrderData.variantId;
+          if (buyNowOrderData.optionId) cleanedItems[0].optionId = buyNowOrderData.optionId;
+
+          const orderPaymentData: any = {
+            type: "wallet",
+            amount: summaryData.pricing.total,
+          };
+          if (paymentIntent.paymentData) {
+            Object.assign(orderPaymentData, paymentIntent.paymentData);
+          }
+
+          const shippingAddr = user?.addresses?.find(
+            (addr) => addr.type === "shipping" && addr.isDefault
+          );
+
           const order = await createOrderMutation.mutateAsync({
-            validatedItems: [
-              {
-                ...buyNowOrderData,
-                price: summaryData.variant.price,
-                vendorPrice: summaryData.variant.price,
-                total: summaryData.variant.price * summaryData.quantity,
-              },
-            ],
+            validatedItems: cleanedItems,
             pricing: {
-              ...summaryData.pricing,
+              subtotal: summaryData.pricing.subtotal,
+              shipping: summaryData.pricing.shipping,
+              tax: summaryData.pricing.tax,
+              total: summaryData.pricing.total,
               currency: summaryData.currency,
             },
-            paymentData: paymentIntent.paymentData,
-            address: user?.addresses?.find(
-              (addr) => addr.type === "shipping" && addr.isDefault
-            ),
+            paymentData: {
+              type: "wallet"
+            },
+            address: {
+              street: shippingAddr?.street,
+              city: shippingAddr?.city,
+              state: shippingAddr?.state,
+              country: shippingAddr?.country,
+              postalCode: shippingAddr?.postalCode,
+              type: shippingAddr?.type,
+            },
+            isBuyNow: true,
           });
 
-          console.log("Wallet Order Response:", order);
           if (order.success) {
             toast.success("Order placed successfully!");
             setShowSummary(false);
@@ -460,76 +474,34 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
   };
 
   const handleStripePayment = async () => {
-    if (!buyNowOrderData || !summaryData) return;
+    if (!buyNowOrderData || !summaryData || !productData.variants?.[0]) return;
 
     try {
-      const paymentIntent = await createPaymentIntentMutation.mutateAsync({
-        ...buyNowOrderData,
-        paymentMethod: "stripe",
-      });
+      const variant = productData.variants[0];
+      const option = variant.options?.find(
+        (opt: any) => (opt.id || opt._id) === buyNowOrderData.optionId
+      );
 
-      if (paymentIntent.success && paymentIntent.paymentData?.clientSecret) {
-        setStripePaymentData({
-          clientSecret: paymentIntent.paymentData.clientSecret,
-          paymentIntentId: paymentIntent.paymentData.paymentIntentId,
-          amount: summaryData.totalAmount,
-          currency: summaryData.currency,
-        });
-        setShowSummary(false);
-        setShowStripeModal(true);
-      } else {
-        toast.error(paymentIntent.message || "Failed to initialize payment");
+      if (!option) {
+        toast.error("Product option not found");
+        return;
       }
+
+      await addToCart(productData, buyNowOrderData.quantity, {
+        variantId: buyNowOrderData.variantId,
+        optionId: buyNowOrderData.optionId,
+        variantName: variant.name,
+        optionValue: option.value,
+        price: option.salePrice || option.price,
+      });
+      router.push('/home/checkout');
     } catch (error: any) {
-      console.error("Stripe payment error:", error);
-      toast.error(error.message || "Payment failed");
+      console.error("Add to cart error:", error);
+      toast.error(error.message || "Failed to proceed to checkout");
     }
   };
 
-  const handleStripePaymentSuccess = async () => {
-    if (!buyNowOrderData) {
-      toast.error("Order data not available");
-      return;
-    }
 
-    try {
-      const order = await createOrderMutation.mutateAsync({
-        validatedItems: [
-          {
-            ...buyNowOrderData,
-            price: summaryData.variant.price,
-            vendorPrice: summaryData.variant.price,
-            total: summaryData.variant.price * summaryData.quantity,
-          },
-        ],
-        pricing: {
-          ...summaryData.pricing,
-          currency: summaryData.currency,
-        },
-        paymentData: {
-          type: "stripe",
-          paymentIntentId: stripePaymentData?.paymentIntentId,
-        },
-        address: user?.addresses?.find(
-          (addr) => addr.type === "shipping" && addr.isDefault
-        ),
-      });
-
-      console.log("Stripe Order Response:", order);
-      if (order.message === "Order created successfully" || order.order) {
-        toast.success("Order placed successfully!");
-        setShowStripeModal(false);
-        setStripePaymentData(null);
-        setBuyNowOrderData(null);
-        router.push(`/home/user/orders/${order.order.id || order.order._id}`);
-      } else {
-        toast.error("Failed to create order");
-      }
-    } catch (error: any) {
-      console.error("Order creation error:", error);
-      toast.error(error.message || "Failed to create order");
-    }
-  };
 
   const handlePlaceBidClicked = async () => {
     if (!user || !user._id) {
@@ -866,8 +838,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                     const option = variant?.options?.find(
                       (opt: any) => (opt.id || opt._id) === optionId
                     );
-                    const price = option?.price || 0;
-                    const salePrice = option?.salePrice || 0;
+                    const exchangeRate = (productData as any)?.priceInfo?.exchangeRate || 1;
+                    const price = (option?.price || 0) * exchangeRate;
+                    const salePrice = (option?.salePrice || 0) * exchangeRate;
                     const hasDiscount = salePrice > 0 && salePrice < price;
                     
                     return (
@@ -878,7 +851,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                               value={getSelectedOptionPrice()}
                               displayType={"text"}
                               thousandSeparator={true}
-                              prefix={getSelectedOptionCurrency()}
+                              prefix={(productData as any)?.priceInfo?.currencySymbol || getSelectedOptionCurrency()}
                               decimalScale={2}
                               fixedDecimalScale={true}
                             />
@@ -890,7 +863,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                                   value={price}
                                   displayType={"text"}
                                   thousandSeparator={true}
-                                  prefix={getSelectedOptionCurrency()}
+                                  prefix={(productData as any)?.priceInfo?.currencySymbol || getSelectedOptionCurrency()}
                                   decimalScale={2}
                                   fixedDecimalScale={true}
                                 />
@@ -968,11 +941,19 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                 <div className="flex items-center gap-2">
                   <Wishlist
                     productData={productData}
-                    price={
-                      selectedVariant?.options?.[0]?.salePrice ||
-                      selectedVariant?.options?.[0]?.price ||
-                      0
-                    }
+                    price={(() => {
+                      const variant = productData?.variants?.[0];
+                      const optionId = selectedOptions[variant?._id || variant?.id || ''];
+                      const option = variant?.options?.find(
+                        (opt: any) => (opt.id || opt._id) === optionId
+                      );
+                      return option?.salePrice || option?.price || 0;
+                    })()}
+                    optionId={(() => {
+                      const variant = productData?.variants?.[0];
+                      return selectedOptions[variant?._id || variant?.id || ''];
+                    })()}
+                    variantId={productData?.variants?.[0]?._id || productData?.variants?.[0]?.id}
                   />
                   <span className="text-gray-600 text-sm">Add to Wishlist</span>
                 </div>
@@ -1127,7 +1108,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
           onPayWithWallet={handleWalletPayment}
           onPayWithStripe={handleStripePayment}
           orderData={summaryData}
-          walletBalance={walletData?.balances?.available || 0}
+          walletBalance={walletData?.available || 0}
           isProcessing={
             createPaymentIntentMutation.isPending ||
             createOrderMutation.isPending
@@ -1135,16 +1116,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
         />
       )}
 
-      {stripePaymentData && (
-        <BuyNowStripeModal
-          isOpen={showStripeModal}
-          onClose={() => setShowStripeModal(false)}
-          onSuccess={handleStripePaymentSuccess}
-          clientSecret={stripePaymentData.clientSecret}
-          amount={stripePaymentData.amount}
-          currency={stripePaymentData.currency}
-        />
-      )}
+
 
       {/* Offer Modal */}
       {showOfferModal && (

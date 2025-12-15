@@ -13,6 +13,12 @@ import {
   Trophy,
   ChevronLeft,
   ChevronRight,
+  Wallet,
+  LogIn,
+  LogOut,
+  UserCircle,
+  Star,
+  RotateCcw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -67,6 +73,8 @@ export default function DashboardPage() {
     data: activitiesData,
     isLoading: activitiesLoading,
   } = useUserRecentActivities(activitiesPage, 10);
+
+  console.log("Activities data is: ", activitiesData)
 
   const recentViews = recentViewsData?.recentViews || [];
   const recommendations = recomendationsData?.products || [];
@@ -161,19 +169,48 @@ export default function DashboardPage() {
     [recommendations, recommendationsPage]
   );
 
-  // Activity icon helper
-  const getActivityIcon = (activityText: string) => {
-    const text = (activityText || "").toLowerCase();
-    if (text.includes("order") || text.includes("purchased")) {
-      return <ShoppingCart className="w-5 h-5 text-green-600" />;
-    } else if (text.includes("bid")) {
-      return <Gavel className="w-5 h-5 text-purple-600" />;
-    } else if (text.includes("offer")) {
-      return <Tag className="w-5 h-5 text-orange-600" />;
-    } else if (text.includes("won")) {
-      return <Trophy className="w-5 h-5 text-yellow-600" />;
-    } else {
-      return <FileText className="w-5 h-5 text-blue-600" />;
+  // Activity icon and text formatter
+  const getActivityIcon = (activityType: string) => {
+    switch (activityType) {
+      case "order_created":
+        return <ShoppingCart className="w-5 h-5 text-green-600" />;
+      case "wallet_topup":
+        return <Wallet className="w-5 h-5 text-blue-600" />;
+      case "user_login":
+        return <LogIn className="w-5 h-5 text-green-500" />;
+      case "user_logout":
+        return <LogOut className="w-5 h-5 text-gray-500" />;
+      case "profile_updated":
+        return <UserCircle className="w-5 h-5 text-purple-600" />;
+      case "review_created":
+        return <Star className="w-5 h-5 text-yellow-500" />;
+      case "refund_received":
+        return <RotateCcw className="w-5 h-5 text-orange-600" />;
+      default:
+        return <FileText className="w-5 h-5 text-blue-600" />;
+    }
+  };
+
+  const formatActivityText = (activity: any) => {
+    const { activity: type, metadata } = activity;
+    
+    switch (type) {
+      case "order_created":
+        return `Order created - ${metadata?.itemCount || 0} item(s) for $${metadata?.orderAmount?.toFixed(2) || '0.00'} via ${metadata?.paymentMethod || 'payment'}`;
+      case "wallet_topup":
+        return `Wallet topped up - $${metadata?.topUpAmount?.toFixed(2) || '0.00'} ${metadata?.currency?.toUpperCase() || ''}`;
+      case "user_login":
+        return `Logged in from ${metadata?.device || 'device'} - ${metadata?.location || 'unknown location'}`;
+      case "user_logout":
+        return `Logged out from ${metadata?.device || 'device'}`;
+      case "profile_updated":
+        return `Profile updated - ${metadata?.fields?.join(', ') || 'fields modified'}`;
+      case "review_created":
+        return `Review created - ${metadata?.rating || 0} star${metadata?.rating !== 1 ? 's' : ''}${metadata?.hasComment ? ' with comment' : ''}`;
+      case "refund_received":
+        return `Refund received - $${metadata?.refundAmount?.toFixed(2) || '0.00'} for order`;
+      default:
+        return type?.replace(/_/g, ' ') || 'Activity';
     }
   };
 
@@ -365,7 +402,7 @@ export default function DashboardPage() {
                     ))
                   ) : activitiesData?.activities?.length > 0 ? (
                     activitiesData.activities.map((activity: any, index: number) => {
-                      const activityDate = new Date(activity.createdAt);
+                      const activityDate = new Date(activity.timestamp);
                       const activityTime = activityDate.toLocaleTimeString("en-US", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -385,7 +422,7 @@ export default function DashboardPage() {
                             <div className="flex items-center space-x-3">
                               {getActivityIcon(activity.activity)}
                               <div className="flex flex-col">
-                                <span className="text-sm">{activity.activity}</span>
+                                <span className="text-sm font-medium">{formatActivityText(activity)}</span>
                                 <div className="sm:hidden text-xs text-gray-500 mt-1">
                                   {activityTime} • {activityDateStr}
                                 </div>

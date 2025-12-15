@@ -1,9 +1,7 @@
-import { Document, Types } from "mongoose";
 
 
 export interface User {
     _id: string;
-    _doc: Document
     email: string;
     password?: string;
     businessName?: string;
@@ -49,13 +47,13 @@ export interface User {
         totalSpent?: number;
     };
     cart?: Array<{
-        product: Types.ObjectId;
+        product: string;
         quantity: number;
         price: number;
         selectedVariant: string;
         addedAt: Date;
     }>; 
-    wishlist?: Array<Types.ObjectId>;
+    wishlist?: Array<string>;
     createdAt?: Date;
     updatedAt?: Date;
     resetPasswordToken?: string;
@@ -69,5 +67,5 @@ export interface User {
         tempSecret?: string;
         backupCodes?: string[];
     };
-    vendorInfo: Types.ObjectId;
+    vendorInfo: string;
 }

@@ -44,34 +44,11 @@ export default function BuyNowSummary({
   walletBalance: initialWalletBalance,
   isProcessing
 }: BuyNowSummaryProps) {
-  const [walletBalance, setWalletBalance] = useState(initialWalletBalance || 0);
-  const [isLoadingWallet, setIsLoadingWallet] = useState(false);
-
-  useEffect(() => {
-    if (isOpen && !initialWalletBalance) {
-      fetchWalletBalance();
-    }
-  }, [isOpen]);
-
-  const fetchWalletBalance = async () => {
-    setIsLoadingWallet(true);
-    try {
-      const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/balance');
-      const data = await response.json();
-      if (data.success) {
-        setWalletBalance(data.balance || 0);
-      }
-    } catch (error) {
-      console.error('Failed to fetch wallet balance:', error);
-    } finally {
-      setIsLoadingWallet(false);
-    }
-  };
-
   if (!isOpen) return null;
 
   const { product, variant, quantity, totalAmount, currency, currencySymbol } = orderData;
-  const canPayWithWallet = walletBalance >= totalAmount;
+  const balance = Number(initialWalletBalance) || 0;
+  const canPayWithWallet = balance >= totalAmount;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
@@ -156,13 +133,9 @@ export default function BuyNowSummary({
         <div className="bg-gray-50 rounded-lg p-3 mb-6">
           <div className="flex justify-between items-center">
             <span className="text-gray-700">Wallet Balance:</span>
-            {isLoadingWallet ? (
-              <span className="text-gray-500">Loading...</span>
-            ) : (
-              <span className={`font-medium ${canPayWithWallet ? 'text-green-600' : 'text-red-600'}`}>
-                {currencySymbol}{(walletBalance || 0).toFixed(2)}
-              </span>
-            )}
+            <span className={`font-medium ${canPayWithWallet ? 'text-green-600' : 'text-red-600'}`}>
+              {currencySymbol}{balance.toFixed(2)}
+            </span>
           </div>
         </div>
 

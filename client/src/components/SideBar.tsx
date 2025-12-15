@@ -8,12 +8,13 @@ import {
   Star,
   Settings,
   LogOut,
-  MessageCircleMore,
   Bell,
+  MessageCircleMore,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "@/hooks/useNotifications";
+import { Notification1 } from "iconsax-react";
 
 // Define the base path for your user section
 const BASE_PATH = "/home/user";
@@ -24,18 +25,32 @@ const navigation = [
   { name: "Messages", href: "/messages", icon: MessageCircleMore },
   { name: "Wallet", href: "/wallet", icon: Wallet },
   { name: "Wishlists", href: "/wishlist", icon: Heart },
-  { name: "Notifications", href: "/notifications", icon: Bell, hasNotificationBadge: true },
+  {
+    name: "Notifications",
+    href: "/notifications",
+    icon: Bell,
+    hasNotificationBadge: true,
+  },
   { name: "Needs Reviews", href: "/reviews", icon: Star },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar({ openLogoutModal }: { openLogoutModal: () => void }) {
+export function Sidebar({
+  openLogoutModal,
+  onNavigate,
+}: {
+  openLogoutModal: () => void;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: notificationsData, error } = useNotifications();
-  
-  const unreadCount = error ? 0 : (notificationsData?.notifications?.filter((n: any) => !n.isRead)?.length || 0);
-  const displayCount = unreadCount > 9 ? '9+' : unreadCount.toString();
+
+  const unreadCount = error
+    ? 0
+    : notificationsData?.notifications?.filter((n: any) => !n.isRead)?.length ||
+      0;
+  const displayCount = unreadCount > 9 ? "9+" : unreadCount.toString();
 
   const handleClick = (link: string) => {
     router.push(link);
@@ -60,7 +75,12 @@ export function Sidebar({ openLogoutModal }: { openLogoutModal: () => void }) {
                 : "text-gray-700 hover:bg-gray-100"
             )}
           >
-            <item.icon className={cn("mr-3 h-4 w-4", isActive ? "text-blue-700" : "text-gray-700")} />
+            <item.icon
+              className={cn(
+                "mr-3 h-4 w-4",
+                isActive ? "text-blue-700" : "text-gray-700"
+              )}
+            />
             {item.name}
             {item.hasNotificationBadge && unreadCount > 0 && (
               <span className="absolute -top-1 left-4 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
@@ -72,7 +92,12 @@ export function Sidebar({ openLogoutModal }: { openLogoutModal: () => void }) {
       })}
       <Button
         variant="ghost"
-        onClick={() => openLogoutModal()}
+        onClick={() => {
+          openLogoutModal();
+          if (onNavigate) {
+            onNavigate();
+          }
+        }}
         className="w-full justify-start text-left font-normal text-gray-700 hover:bg-gray-100 mt-8 z-50 mb-8"
       >
         <LogOut className="mr-3 h-4 w-4" />

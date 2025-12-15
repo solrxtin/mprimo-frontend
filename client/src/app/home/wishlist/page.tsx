@@ -3,19 +3,26 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import {Badge, ShoppingCart } from "lucide-react"
+import { ShoppingCart } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs"
 import { useRouter } from "next/navigation"
 import { useWishlist } from "@/hooks/useWishlist"
 import { useCartStore } from "@/stores/cartStore"
 import { useWishlistSync } from "@/hooks/useWishlistSync"
+import { useUserStore } from "@/stores/useUserStore"
 import { Wishlist } from "@/types/wishlist.type"
 import { Heart } from "iconsax-react"
+import { getCurrencySymbol } from "@/utils/currency"
 
   export default function WishlistPage() {
     const router = useRouter()
-    const { addToCart } = useCartStore()
+    const { addToCart, addBulkToCart, isLoading: isAddingToCart } = useCartStore()
+    const [addingItemId, setAddingItemId] = useState<string | null>(null)
+    const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+    const [isBulkAdding, setIsBulkAdding] = useState(false)
+    const { user } = useUserStore()
     
     useWishlistSync()
     
@@ -26,32 +33,96 @@ import { Heart } from "iconsax-react"
       removeFromWishlist, 
       isRemovingFromWishlist 
     } = useWishlist()
-  
-  
     
-    const handleRemoveItem = (productId: string) => {
-      removeFromWishlist(productId)
+    const { clearWishlist } = useWishlist()
+    
+    const handleRemoveItem = (item: Wishlist) => {
+      removeFromWishlist({ productId: item.productId, variantId: item.variantId, optionId: item.optionId })
     }
   
-    const handleAddToCart = (item: any) => {
-      const cartItem = {
-        productId: item.productId._id,
+    const handleAddToCart = async (item: Wishlist) => {
+      setAddingItemId(item._id || item.productId);
+      const product = {
+        _id: item.productId,
         name: item.name,
+        images: item.images,
         price: item.price,
-        image: item.productId.images[0] || '/placeholder.svg',
-        quantity: 1
+        priceInfo: item.priceInfo
+      } as any;
+      
+      const selectedVariant = item.variantId && item.optionId ? {
+        variantId: item.variantId,
+        optionId: item.optionId,
+        variantName: '',
+        optionValue: '',
+        price: item.priceInfo.originalPrice
+      } : undefined;
+      
+      try {
+        await addToCart(product, 1, selectedVariant);
+        removeFromWishlist({ productId: item.productId, variantId: item.variantId, optionId: item.optionId, silent: true });
+      } catch (error) {
+        // Error is already handled by cart store
+      } finally {
+        setAddingItemId(null);
       }
-      addToCart(cartItem)
     }
-  
+    
     const handleRemoveAll = () => {
-      wishlist.forEach(item => {
-        removeFromWishlist(item.productId)
-      })
+      clearWishlist()
+    }
+
+    const toggleItemSelection = (itemId: string) => {
+      const newSelected = new Set(selectedItems)
+      if (newSelected.has(itemId)) {
+        newSelected.delete(itemId)
+      } else {
+        newSelected.add(itemId)
+      }
+      setSelectedItems(newSelected)
+    }
+
+    const handleBulkAddToCart = async () => {
+      if (!user) return
+      
+      setIsBulkAdding(true)
+      try {
+        const itemsToAdd = wishlist
+          .filter(item => selectedItems.has(item._id || item.productId) && item.optionId)
+          .map(item => ({
+            productId: item.productId,
+            quantity: 1,
+            price: item.priceInfo.originalPrice,
+            variantId: item.variantId,
+            optionId: item.optionId!
+          }))
+
+        const result = await addBulkToCart(itemsToAdd)
+        
+        // Silently remove successful items from wishlist
+        result.successful.forEach((successItem: any) => {
+          removeFromWishlist({ 
+            productId: successItem.productId, 
+            variantId: successItem.variantId, 
+            optionId: successItem.optionId,
+            silent: true
+          })
+        })
+        
+        setSelectedItems(new Set())
+      } catch (error) {
+        // Error already handled by cart store
+      } finally {
+        setIsBulkAdding(false)
+      }
     }
   
     const getProductPrice = (item: Wishlist) => {
-      return item.price 
+      return item.priceInfo.displayPrice; 
+    }
+
+    const getProductCurrency = (item: Wishlist) => {
+      return getCurrencySymbol(item.priceInfo.displayCurrency); 
     }
   
     const getSalePrice = (item: any) => {
@@ -76,7 +147,6 @@ import { Heart } from "iconsax-react"
       e: React.MouseEvent<HTMLAnchorElement>
     ): void => {
       e.preventDefault();
-      console.log("Breadcrumb clicked:", item);
       if (item.href) {
        router.push(item?.href);
       }
@@ -98,8 +168,6 @@ import { Heart } from "iconsax-react"
   
     return (
      <>
-  
-  
       <div className="max-w-7xl mx-auto px-4 md:px-[42px] lg:px-[80px] py-8 md:py-10 lg:py-15">
           <div className=" mx-auto pt-4">
             {/* Breadcrumb */}
@@ -110,26 +178,39 @@ import { Heart } from "iconsax-react"
             />
   
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div className="flex items-center space-x-2 mb-4 sm:mb-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+            <div className="flex items-center space-x-2">
               <h1 className="text-2xl font-bold">My Wishlist</h1>
               <span className="text-gray-600">{wishlistCount} Items</span>
             </div>
-            <Button
-              variant="link"
-              className="text-blue-600 hover:text-blue-800 p-0 h-auto font-normal"
-              onClick={handleRemoveAll}
-              disabled={isRemovingFromWishlist}
-            >
-              Remove All
-            </Button>
+            <div className="flex items-center gap-3">
+              {user && selectedItems.size > 0 && (
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={handleBulkAddToCart}
+                  disabled={isBulkAdding || isRemovingFromWishlist}
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Add Selected ({selectedItems.size})
+                </Button>
+              )}
+              <Button
+                variant="link"
+                className="text-blue-600 hover:text-blue-800 p-0 h-auto font-normal"
+                onClick={handleRemoveAll}
+                disabled={isRemovingFromWishlist}
+              >
+                Remove All
+              </Button>
+            </div>
           </div>
   
           {/* Wishlist Table */}
           <div className="bg-white rounded-lg border overflow-hidden">
             {/* Desktop Header */}
             <div className="hidden md:grid md:grid-cols-12 gap-4 p-4 bg-gray-50 border-b font-medium text-gray-700">
-              <div className="col-span-5">Products</div>
+              {user && <div className="col-span-1"></div>}
+              <div className={user ? "col-span-4" : "col-span-5"}>Products</div>
               <div className="col-span-2">Amount</div>
               <div className="col-span-2">Status</div>
               <div className="col-span-3">Actions</div>
@@ -187,42 +268,48 @@ import { Heart } from "iconsax-react"
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className="flex items-center space-x-2">
-                          {getSalePrice(item) ? (
-                            <>
-                              <span className="font-bold text-red-600">₦ {getSalePrice(item).toLocaleString()}</span>
-                              <span className="text-sm text-gray-500 line-through">₦ {getProductPrice(item).toLocaleString()}</span>
-                            </>
-                          ) : (
-                            <span className="font-bold">₦ {getProductPrice(item).toLocaleString()}</span>
-                          )}
+                          <span className="font-bold">{getProductCurrency(item)} {getProductPrice(item).toLocaleString()}</span>
                         </div>
                       </div>
                       <span className="text-sm text-green-600">Available</span>
                     </div>
                     <div className="flex space-x-2">
                       <Button
-                        size="sm"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        onClick={() => handleAddToCart(item)}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-1" />
-                        Add To Cart
-                      </Button>
-                      <Button
+                        type="button"
                         size="sm"
                         variant="outline"
                         className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                        onClick={() => handleRemoveItem(item.productId)}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveItem(item); }}
                         disabled={isRemovingFromWishlist}
                       >
                         Remove
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCart(item); }}
+                        disabled={addingItemId === (item._id || item.productId) || isRemovingFromWishlist}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-1" />
+                        Add To Cart
                       </Button>
                     </div>
                   </div>
   
                   {/* Desktop Layout */}
                   <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
-                    <div className="col-span-5 flex items-center space-x-3">
+                    {user && (
+                      <div className="col-span-1 flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.has(item._id || item.productId)}
+                          onChange={() => toggleItemSelection(item._id || item.productId)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
+                    <div className={`${user ? "col-span-4" : "col-span-5"} flex items-center space-x-3`}>
                       <div className="relative">
                         <Image
                           src={item.images?.[0] || "/placeholder.svg"}
@@ -244,14 +331,7 @@ import { Heart } from "iconsax-react"
                     </div>
                     <div className="col-span-2">
                       <div className="flex items-center space-x-2 whitespace-nowrap">
-                        {getSalePrice(item) ? (
-                          <>
-                            <span className="font-bold text-red-600">₦ {getSalePrice(item).toLocaleString()}</span>
-                            {/* <span className="text-sm text-gray-500 line-through">₦ {getProductPrice(item).toLocaleString()}</span> */}
-                          </>
-                        ) : (
-                          <span className="font-bold">₦ {getProductPrice(item).toLocaleString()}</span>
-                        )}
+                       <span className="font-bold">{getProductCurrency(item)} {getProductPrice(item).toLocaleString()}</span>
                         {getDiscount(item) && (
                           <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{getDiscount(item)}</Badge>
                         )}
@@ -262,17 +342,20 @@ import { Heart } from "iconsax-react"
                     </div>
                     <div className="col-span-3 flex space-x-2">
                       <Button
+                        type="button"
                         size="sm"
                         className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => handleAddToCart(item)}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCart(item); }}
+                        disabled={addingItemId === (item._id || item.productId) || isRemovingFromWishlist}
                       >
                         <ShoppingCart className="w-4 h-4 mr-1" />
                         Add To Cart
                       </Button>
                       <Button
+                        type="button"
                         size="sm"
                         className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                        onClick={() => handleRemoveItem(item.productId)}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveItem(item); }}
                         disabled={isRemovingFromWishlist}
                       >
                         Remove

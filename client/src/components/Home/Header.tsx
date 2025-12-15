@@ -288,17 +288,21 @@ const Header = () => {
                 <User className="w-5 h-5" />
               </button>
 
-              <Link
-                href="/home/wishlist"
-                className="text-white hover:bg-blue-700 relative p-2 rounded"
-              >
-                <Heart className="w-5 h-5" />
-                {isMounted && wishlistCount > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center text-white">
-                    {wishlistCount ?? 0}
+              <div className="inline-block">
+                <Link
+                  href="/home/wishlist"
+                  className="text-white hover:bg-blue-700 p-2 rounded inline-flex"
+                >
+                  <div className="relative">
+                    <Heart className="w-5 h-5" />
+                    {isMounted && wishlistCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-[14px] h-[14px] flex items-center justify-center leading-none font-semibold">
+                        {wishlistCount}
+                      </span>
+                    )}
                   </div>
-                )}
-              </Link>
+                </Link>
+              </div>
 
               <div className="inline-block">
                 <Link

@@ -112,20 +112,28 @@ const loginUser = async (
   vendor: IVendor;
   has2faEnabled: boolean;
 }> => {
-  const response = await fetch("http://localhost:5800/api/v1/auth/login", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+  try {
+    const response = await fetch("http://localhost:5800/api/v1/auth/login", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    toast.error(errorData.message);
-    throw new Error(errorData.message);
+    if (!response.ok) {
+      const errorData = await response.json();
+      toast.error(errorData.message, toastConfigError);
+      throw new Error(errorData.message);
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      toast.error('Unable to connect to server. Please check your connection.', toastConfigError);
+      throw new Error('Unable to connect to server');
+    }
+    throw error;
   }
-
-  return response.json();
 };
 
 export const useLoginUser = () => {
@@ -142,13 +150,15 @@ const logoutUser = async (): Promise<{ message: string }> => {
     }
   );
 
+  const data = await response.json();
+  console.log("Logout data is: ", data);
+
   if (!response.ok) {
-    const errorData = await response.json();
-    toast.error(errorData.message);
-    throw new Error(errorData.message);
+    toast.error(data.message);
+    throw new Error(data.message);
   }
 
-  return response.json();
+  return data;
 };
 
 export const useLogoutUser = () => {
@@ -689,12 +699,9 @@ export const useDeletePaymentMethod = () => {
 const createBuyNowOrder = async (data: {
   validatedItems: Array<{
     productId: string;
-    variantId: string;
+    variantId?: string;
     optionId?: string;
     quantity?: number;
-    price: number;
-    vendorPrice: number;
-    total: number;
   }>;
   pricing: {
     subtotal: number;
@@ -702,9 +709,11 @@ const createBuyNowOrder = async (data: {
     shipping: number;
     total: number;
     currency: string;
+    userCurrency?: string;
   };
   paymentData: any;
   address: any;
+  isBuyNow?: boolean;
 }) => {
   const response = await fetchWithAuth('http://localhost:5800/api/v1/orders/', {
     method: 'POST',

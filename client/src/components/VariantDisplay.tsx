@@ -175,7 +175,7 @@ const VariantDisplay: React.FC<VariantDisplayProps> = ({
         className={`relative w-12 h-12 rounded-full border-2 transition-all ${
           isSelected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-300 hover:border-gray-400'
         }`}
-        title={`${getColorName(option.value)} - ${getDisplayCurrency()}${(option.displayPrice || option.salePrice || option.price).toFixed(2)}`}
+        title={`${getColorName(option.value)} - ${getDisplayCurrency()}${getDisplayPrice(option.salePrice || option.price).toFixed(2)}`}
       >
         {colorValue ? (
           <div
@@ -207,7 +207,7 @@ const VariantDisplay: React.FC<VariantDisplayProps> = ({
           ? 'border-blue-500 bg-blue-50 text-blue-700' 
           : 'border-gray-300 hover:border-gray-400 text-gray-700'
       }`}
-      title={`${option.value} - ${getDisplayCurrency()}${(option.displayPrice || option.salePrice || option.price).toFixed(2)}`}
+      title={`${option.value} - ${getDisplayCurrency()}${getDisplayPrice(option.salePrice || option.price).toFixed(2)}`}
     >
       {option.value}
     </button>
@@ -225,7 +225,7 @@ const VariantDisplay: React.FC<VariantDisplayProps> = ({
             ? 'border-blue-500 bg-blue-50 text-blue-700' 
             : 'border-gray-300 hover:border-gray-400 text-gray-700'
         }`}
-        title={`${option.value} - ${getDisplayCurrency()}${(option.displayPrice || option.salePrice || option.price).toFixed(2)}`}
+        title={`${option.value} - ${getDisplayCurrency()}${getDisplayPrice(option.salePrice || option.price).toFixed(2)}`}
       >
         {colorValue && (
           <div
@@ -259,7 +259,7 @@ const VariantDisplay: React.FC<VariantDisplayProps> = ({
       {option.price && (
         <span className="ml-2 text-xs text-gray-500">
           <NumericFormat
-            value={option.displayPrice || option.salePrice || option.price}
+            value={getDisplayPrice(option.salePrice || option.price)}
             displayType="text"
             thousandSeparator={true}
             prefix={getDisplayCurrency()}
@@ -293,7 +293,7 @@ const VariantDisplay: React.FC<VariantDisplayProps> = ({
                   {selectedOption.price && (
                     <span className="ml-2 text-green-600 font-semibold">
                       <NumericFormat
-                        value={selectedOption.displayPrice || selectedOption.salePrice || selectedOption.price}
+                        value={getDisplayPrice(selectedOption.salePrice || selectedOption.price)}
                         displayType="text"
                         thousandSeparator={true}
                         prefix={getDisplayCurrency()}

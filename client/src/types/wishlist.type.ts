@@ -13,23 +13,23 @@ export type WishlistItem = {
   };
   priceWhenAdded: number;
   addedAt: string;
-}
+};
 
 export interface WishlistResponse {
   success: boolean;
   data: Wishlist[];
 }
 
-export interface Wishlist  {
-  productId : string,
-    _id?: string;
+export interface Wishlist {
+  productId: string;
+  _id?: string;
 
-  name: string,
-  images: string[],
-  price: number,
-  variantId: string,
-  addedAt: string
-    priceWhenAdded?: number;
-
-            
-        }
+  name: string;
+  images: string[];
+  price: number;
+  variantId: string;
+  optionId?: string;
+  addedAt: string;
+  priceWhenAdded?: number;
+  priceInfo: any;
+}

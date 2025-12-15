@@ -4,6 +4,9 @@ let isRefreshing = false;
 
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     const {user} = useUserStore.getState();
+    if (!user) {
+      return Promise.reject("User not found");
+    }
     
     // Don't set Content-Type for FormData (browser will set it with boundary)
     const headers = options.body instanceof FormData 

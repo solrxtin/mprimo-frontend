@@ -55,7 +55,7 @@ export const checkoutService = {
     });
     return response.json();
   },
-  async createPaymentIntent(data: { items: any[], paymentMethod: string, tokenType?: string }) {
+  async createPaymentIntent(data: { paymentMethod: string, tokenType?: string }) {
     const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/payment-intent', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -68,8 +68,7 @@ export const checkoutService = {
     const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/validate', {
       method: 'POST',
     });
-    const data = await response.json()
-    return data;
+    return response.json();
   },
 
   async getShippingRates(address: any) {

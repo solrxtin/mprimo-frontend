@@ -17,8 +17,8 @@ export default function WishlistPage() {
   const { wishlist, isLoading, removeFromWishlist, wishlistCount, clearWishlist } = useWishlist()
   const { addToCart } = useCartStore()
 
-  const handleRemoveItem = (productId: string) => {
-    removeFromWishlist(productId)
+  const handleRemoveItem = (item: any) => {
+    removeFromWishlist({ productId: item.productId, variantId: item.variantId, optionId: item.optionId })
   }
 
   const handleAddToCart = async (item: any) => {
@@ -26,9 +26,19 @@ export default function WishlistPage() {
       _id: item.productId,
       name: item.name,
       images: item.images,
-      price: item.price
+      price: item.price,
+      priceInfo: item.priceInfo
     }
-    await addToCart(product, 1)
+    
+    const selectedVariant = item.variantId && item.optionId ? {
+      variantId: item.variantId,
+      optionId: item.optionId,
+      variantName: item.variantName || 'Variant',
+      optionValue: item.optionValue || 'Option',
+      price: item.price
+    } : undefined
+    
+    await addToCart(product, 1, selectedVariant)
   }
 
   if (isLoading) {
@@ -86,7 +96,7 @@ export default function WishlistPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center space-x-2 mb-4 sm:mb-0">
             <h1 className="text-2xl font-bold">My Wishlist</h1>
-            <span className="text-gray-600">{wishlistCount} Items</span>
+            <span className="text-gray-600" suppressHydrationWarning>{wishlist.length} Items</span>
           </div>
           <Button
             variant="link"
@@ -140,7 +150,9 @@ export default function WishlistPage() {
                 </Link>
               </div>
             ) : (
-              wishlist.map((item: any) => (
+              wishlist.map((item: any) => {
+                console.log('Wishlist item:', item);
+                return (
               <div key={item.productId} className="p-4">
                 {/* Mobile Layout */}
                 <div className="md:hidden space-y-3">
@@ -161,7 +173,7 @@ export default function WishlistPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold">{`${item.priceInfo.currencySymbol}${item.priceInfo.displayPrice.toLocaleString()}`}</span>
+                      <span className="font-bold">{`${item.priceInfo?.currencySymbol || '$'}${(item.priceInfo?.displayPrice || item.price || 0).toLocaleString()}`}</span>
                     </div>
                     <span className="text-sm text-green-600">Available</span>
                   </div>
@@ -178,7 +190,7 @@ export default function WishlistPage() {
                       size="sm"
                       variant="outline"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                      onClick={() => handleRemoveItem(item.productId)}
+                      onClick={() => handleRemoveItem(item)}
                     >
                       Remove
                     </Button>
@@ -204,7 +216,7 @@ export default function WishlistPage() {
                   </div>
                   <div className="col-span-2">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold">{`${item.priceInfo.currencySymbol}${item.priceInfo.displayPrice.toLocaleString()}`}</span>
+                      <span className="font-bold">{`${item.priceInfo?.currencySymbol || '$'}${(item.priceInfo?.displayPrice || item.price || 0).toLocaleString()}`}</span>
                     </div>
                   </div>
                   <div className="col-span-2">
@@ -222,14 +234,15 @@ export default function WishlistPage() {
                     <Button
                       size="sm"
                       className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200"
-                      onClick={() => handleRemoveItem(item.productId)}
+                      onClick={() => handleRemoveItem(item)}
                     >
                       Remove
                     </Button>
                   </div>
                 </div>
               </div>
-              ))
+              );
+              })
             )}
           </div>
         </div>

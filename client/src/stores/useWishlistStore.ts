@@ -30,7 +30,11 @@ export const useWishlistStore = create<WishlistState>()(
       addItem: (item) => {
         const { items } = get();
         const existingItem = items.find(
-          (existingItem) => existingItem.productId._id === item.productId._id
+          (existingItem) => {
+            const existingId = typeof existingItem.productId === 'string' ? existingItem.productId : existingItem.productId._id;
+            const newId = typeof item.productId === 'string' ? item.productId : item.productId._id;
+            return existingId === newId;
+          }
         );
         if (!existingItem) {
           set({ items: [...items, item] });
@@ -40,7 +44,10 @@ export const useWishlistStore = create<WishlistState>()(
       removeItem: (productId) => {
         const { items } = get();
         const updatedItems = items.filter(
-          (item) => item.productId._id !== productId
+          (item) => {
+            const itemId = typeof item.productId === 'string' ? item.productId : item.productId._id;
+            return itemId !== productId;
+          }
         );
         set({ items: updatedItems });
       },
@@ -64,15 +71,9 @@ export const useWishlistStore = create<WishlistState>()(
     }),
     {
       name: "mprimo-wishlist",
-      storage: {
-        getItem: (name) => {
-          const value = localStorage.getItem(name);
-          return value ? JSON.parse(value) : null;
-        },
-        setItem: (name, value) =>
-          localStorage.setItem(name, JSON.stringify(value)),
-        removeItem: (name) => localStorage.removeItem(name),
-      },
+      partialize: (state) => ({
+        items: state.items,
+      }),
     }
   )
 );
