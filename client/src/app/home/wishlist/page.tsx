@@ -33,6 +33,8 @@ import { getCurrencySymbol } from "@/utils/currency"
       removeFromWishlist, 
       isRemovingFromWishlist 
     } = useWishlist()
+
+    console.log("Wishlist is: ", wishlist);
     
     const { clearWishlist } = useWishlist()
     
@@ -117,11 +119,11 @@ import { getCurrencySymbol } from "@/utils/currency"
       }
     }
   
-    const getProductPrice = (item: Wishlist) => {
+    const getProductPrice = (item: any) => {
       return item.priceInfo.displayPrice; 
     }
 
-    const getProductCurrency = (item: Wishlist) => {
+    const getProductCurrency = (item: any) => {
       return getCurrencySymbol(item.priceInfo.displayCurrency); 
     }
   
@@ -241,7 +243,7 @@ import { getCurrencySymbol } from "@/utils/currency"
   
             {/* Items */}
             <div className="divide-y">
-              {wishlist.map((item) => (
+              {wishlist && wishlist.map((item) => (
                 <div key={item._id} className="p-4">
                   {/* Mobile Layout */}
                   <div className="md:hidden space-y-3">
@@ -267,9 +269,11 @@ import { getCurrencySymbol } from "@/utils/currency"
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold">{getProductCurrency(item)} {getProductPrice(item).toLocaleString()}</span>
+                    
+                          <div className="flex items-center space-x-2">
+                          <span className="font-bold">{getProductCurrency(item)} {getProductPrice(item)}</span>
                         </div>
+                        
                       </div>
                       <span className="text-sm text-green-600">Available</span>
                     </div>
@@ -331,7 +335,7 @@ import { getCurrencySymbol } from "@/utils/currency"
                     </div>
                     <div className="col-span-2">
                       <div className="flex items-center space-x-2 whitespace-nowrap">
-                       <span className="font-bold">{getProductCurrency(item)} {getProductPrice(item).toLocaleString()}</span>
+                       <span className="font-bold">{getProductCurrency(item)} {getProductPrice(item)}</span>
                         {getDiscount(item) && (
                           <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{getDiscount(item)}</Badge>
                         )}
