@@ -28,10 +28,21 @@ const RecentOrders = ({ currency }: { currency: string}) => {
 
   console.log("Data: ", data)
 
-  const calculateOrderAmount = (items: Item[]) => {
-    items.reduce((acc, item) => {
-      return acc + item.price * item.quantity;
+  // Filter and calculate vendor-specific data
+  const getVendorItems = (order: any) => {
+    return order.items?.filter((item: any) => item.metadata?.vendorId === vendor?._id) || [];
+  };
+
+  const getVendorAmount = (order: any) => {
+    const vendorItems = getVendorItems(order);
+    return vendorItems.reduce((total: number, item: any) => {
+      return total + (item.metadata?.amountInVendorCurrency || 0) * item.quantity;
     }, 0);
+  };
+
+  const getVendorCurrency = (order: any) => {
+    const vendorItems = getVendorItems(order);
+    return vendorItems[0]?.metadata?.vendorCurrency || currency;
   };
 
   if (isOrderdsLoading) {
@@ -46,6 +57,7 @@ const RecentOrders = ({ currency }: { currency: string}) => {
           <button
             className="flex cursor-pointer text-blue-600 text-sm items-center disabled:cursor-not-allowed"
             disabled={isOrderdsLoading}
+            onClick={() => router.push('/vendor/dashboard/orders')}
           >
             <div>View All</div>
             <ArrowRight size={16} className="ml-1" />
@@ -96,11 +108,11 @@ const RecentOrders = ({ currency }: { currency: string}) => {
                         {order?.user?.profile?.firstName}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order?.payment?.amount.toLocaleString("en-US", {
-                          minimumFractionDigits: 1,
-                          maximumFractionDigits: 1,
+                        {getVendorAmount(order).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
                         })}{" "}
-                        {currency}
+                        {getVendorCurrency(order)}
                       </td>
 
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -132,10 +144,13 @@ const RecentOrders = ({ currency }: { currency: string}) => {
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {order?.items?.length} item(s)
+                        {getVendorItems(order).length} item(s)
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                         <button
+                          title="View Order"
+                          aria-label="View Order"
+                          type="button"
                           onClick={() =>
                             router.push(`/vendor/dashboard/orders/${order._id}`)
                           }
@@ -180,20 +195,17 @@ const RecentOrders = ({ currency }: { currency: string}) => {
                     <span className="font-medium">Customer:</span>{" "}
                     {order?.user?.profile?.firstName}
                   </div>
-                  {order?.amount && (
-                    <div className="text-sm text-gray-500 mb-1">
-                      <span className="font-medium">Amount:</span> $
-                      {order.amount.toFixed(2)}
-                    </div>
-                  )}
                   <div className="text-sm text-gray-500 mb-1">
-                    <span className="font-medium">Address:</span>{" "}
-                    {order.address}
+                    <span className="font-medium">Amount:</span>{" "}
+                    {getVendorAmount(order).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    {getVendorCurrency(order)}
                   </div>
                   <div className="text-sm text-gray-500 mb-1">
-                    <span className="font-medium">
-                      {order?.items?.length} items
-                    </span>
+                    <span className="font-medium">Items:</span>{" "}
+                    {getVendorItems(order).length} item(s)
                   </div>
                   <div className="mt-2 flex justify-end">
                     <button

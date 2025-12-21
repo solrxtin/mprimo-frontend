@@ -18,6 +18,7 @@ import { BidModal1 } from "./BidModal";
 import { placeBid } from "@/hooks/useProducts";
 import { toast } from "react-hot-toast";
 import VariantDisplay from "@/components/VariantDisplay";
+import { usePriceInfo } from "@/hooks/usePriceInfo";
 import {
   useBuyNow,
   useCreateBuyNowPaymentIntent,
@@ -155,20 +156,19 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     );
   };
 
+  // Use the custom hook for price calculations
+  const priceInfo = usePriceInfo(productData, selectedOptions, quantity);
+
   const getSelectedOptionPrice = () => {
-    if (!productData?.variants?.[0]) return 0;
-    const variant = productData.variants[0];
-    const optionId = selectedOptions[variant._id || variant.id];
-    const option = variant.options?.find(
-      (opt: any) => (opt.id || opt._id) === optionId && opt.value
-    );
-    const price = option?.salePrice || option?.price || 0;
-    const exchangeRate = (productData as any)?.priceInfo?.exchangeRate || 1;
-    return price * exchangeRate;
+    return priceInfo.unitPrice;
   };
 
   const getSelectedOptionCurrency = () => {
-    return (productData as any)?.priceInfo?.currencySymbol || "$";
+    return priceInfo.currencySymbol;
+  };
+
+  const getTotalPrice = () => {
+    return priceInfo.totalPrice;
   };
 
   const getSelectedOptionStock = () => {
@@ -845,33 +845,47 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                     
                     return (
                       <div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900">
-                            <NumericFormat
-                              value={getSelectedOptionPrice()}
-                              displayType={"text"}
-                              thousandSeparator={true}
-                              prefix={(productData as any)?.priceInfo?.currencySymbol || getSelectedOptionCurrency()}
-                              decimalScale={2}
-                              fixedDecimalScale={true}
-                            />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="text-xl md:text-2xl lg:text-3xl font-semibold text-gray-900">
+                              <NumericFormat
+                                value={getSelectedOptionPrice()}
+                                displayType={"text"}
+                                thousandSeparator={true}
+                                prefix={getSelectedOptionCurrency()}
+                                decimalScale={2}
+                                fixedDecimalScale={true}
+                              />
+                            </div>
+                            {hasDiscount && (
+                              <>
+                                <div className="text-sm md:text-base text-gray-400 line-through">
+                                  <NumericFormat
+                                    value={price}
+                                    displayType={"text"}
+                                    thousandSeparator={true}
+                                    prefix={getSelectedOptionCurrency()}
+                                    decimalScale={2}
+                                    fixedDecimalScale={true}
+                                  />
+                                </div>
+                                <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-medium">
+                                  {Math.round(((price - salePrice) / price) * 100)}% OFF
+                                </span>
+                              </>
+                            )}
                           </div>
-                          {hasDiscount && (
-                            <>
-                              <div className="text-sm md:text-base text-gray-400 line-through">
-                                <NumericFormat
-                                  value={price}
-                                  displayType={"text"}
-                                  thousandSeparator={true}
-                                  prefix={(productData as any)?.priceInfo?.currencySymbol || getSelectedOptionCurrency()}
-                                  decimalScale={2}
-                                  fixedDecimalScale={true}
-                                />
-                              </div>
-                              <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-medium">
-                                {Math.round(((price - salePrice) / price) * 100)}% OFF
-                              </span>
-                            </>
+                          {quantity > 1 && (
+                            <div className="text-sm text-gray-600">
+                              Total: <NumericFormat
+                                value={getTotalPrice()}
+                                displayType={"text"}
+                                thousandSeparator={true}
+                                prefix={getSelectedOptionCurrency()}
+                                decimalScale={2}
+                                fixedDecimalScale={true}
+                              /> ({quantity} × {getSelectedOptionCurrency()}{getSelectedOptionPrice().toFixed(2)})
+                            </div>
                           )}
                         </div>
                         <div className="text-xs md:text-sm text-gray-500">Buy now</div>

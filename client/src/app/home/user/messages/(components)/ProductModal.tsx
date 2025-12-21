@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { useFetchProductById } from '@/hooks/queries';
+import ProductDetailsSkeleton from './ProductDetailsSkeleton';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -11,7 +12,7 @@ interface ProductModalProps {
 const ProductModal = ({ isOpen, product, onClose }: ProductModalProps) => {
   const [selectedProduct, setSelectedProduct] = React.useState<any>(null);
   
-  const {data: fetchedProduct} = useFetchProductById(product?._id);
+  const {data: fetchedProduct, isLoading} = useFetchProductById(product?._id);
 
   React.useEffect(() => {
     if (fetchedProduct) {
@@ -62,6 +63,9 @@ const ProductModal = ({ isOpen, product, onClose }: ProductModalProps) => {
           </div>
         </div>
         
+        {isLoading ? (
+          <ProductDetailsSkeleton />
+        ) : (
         <div className="p-6 space-y-6 max-h-[calc(90vh-80px)] overflow-y-auto">
           <div className="grid md:grid-cols-2 gap-6">
             {/* Product Images */}
@@ -152,6 +156,7 @@ const ProductModal = ({ isOpen, product, onClose }: ProductModalProps) => {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

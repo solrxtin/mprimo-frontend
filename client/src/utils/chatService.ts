@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './fetchWithAuth';
+import { getApiUrl } from '@/config/api';
 
 export interface Message {
   _id: string;
@@ -34,7 +35,7 @@ export const chatService = {
       limit: limit.toString(),
     });
     
-    return fetchWithAuth(`/api/v1/messages/chats?${params}`);
+    return fetchWithAuth(getApiUrl(`messages/chats?${params}`));
   },
 
   async getChatMessages(chatId: string, page = 1, limit = 50) {
@@ -43,11 +44,11 @@ export const chatService = {
       limit: limit.toString(),
     });
     
-    return fetchWithAuth(`/api/v1/messages/${chatId}/messages?${params}`);
+    return fetchWithAuth(getApiUrl(`messages/${chatId}/messages?${params}`));
   },
 
   async sendMessage(chatId: string, content: string, messageType: 'text' | 'image' | 'file' = 'text', fileUrl?: string, fileName?: string) {
-    return fetchWithAuth(`/api/v1/messages/${chatId}/send`, {
+    return fetchWithAuth(getApiUrl(`messages/${chatId}/send`), {
       method: 'POST',
       body: JSON.stringify({
         content,
@@ -59,14 +60,14 @@ export const chatService = {
   },
 
   async createChat(participantId: string) {
-    return fetchWithAuth('/api/v1/messages/create-chat', {
+    return fetchWithAuth(getApiUrl('messages/create-chat'), {
       method: 'POST',
       body: JSON.stringify({ participantId }),
     });
   },
 
   async markAsRead(chatId: string) {
-    return fetchWithAuth(`/api/v1/messages/${chatId}/mark-read`, {
+    return fetchWithAuth(getApiUrl(`messages/${chatId}/mark-read`), {
       method: 'PATCH',
     });
   },
@@ -75,7 +76,7 @@ export const chatService = {
     const formData = new FormData();
     formData.append('file', file);
     
-    return fetchWithAuth('/api/v1/messages/upload', {
+    return fetchWithAuth(getApiUrl('messages/upload'), {
       method: 'POST',
       body: formData,
       headers: {}, // Let browser set content-type for FormData
@@ -83,7 +84,7 @@ export const chatService = {
   },
 
   async deleteMessage(messageId: string) {
-    return fetchWithAuth(`/api/v1/messages/message/${messageId}`, {
+    return fetchWithAuth(getApiUrl(`messages/message/${messageId}`), {
       method: 'DELETE',
     });
   }

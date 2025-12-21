@@ -1,10 +1,8 @@
-import { API_CONFIG } from '@/config/api.config';
+import { API_BASE_URL, getApiUrl } from '@/config/api';
 
-export const API_BASE_URL = API_CONFIG.BASE_URL;
+export { API_BASE_URL, getApiUrl };
 
-export const getApiUrl = (endpoint: string) => API_BASE_URL + endpoint;
-
-export const AllProduct = getApiUrl("/products");
-export const AProduct = getApiUrl("/products/");
-export const AProductBySlug = getApiUrl("/products/slug/");
+export const AllProduct = getApiUrl("products");
+export const AProduct = getApiUrl("products/");
+export const AProductBySlug = getApiUrl("products/slug/");
 

@@ -404,40 +404,11 @@ export const useCartStore = create<CartState>()(
           return;
         }
 
-        set({ isLoading: true, error: null });
-
-        try {
-          const response = await cartService.getCart();
-          const cartItems = response.cart || [];
-          
-          const items: CartItem[] = cartItems.map((item: any) => ({
-            product: {
-              _id: item.productId,
-              name: item.name,
-              images: item.images || [],
-              price: item.price,
-              variants: item.variants
-            },
-            quantity: item.quantity,
-            selectedVariant: item.variantId ? {
-              variantId: item.variantId,
-              optionId: item.optionId,
-              variantName: item.variantDetails?.variantName || '',
-              optionValue: item.variantDetails?.optionValue || '',
-              price: item.price
-            } : undefined,
-            addedAt: item.addedAt || new Date().toISOString(),
-            priceInfo: item.priceInfo
-          }));
-
-          const summary = calculateCartSummary(items);
-          set({ items, summary });
-        } catch (error) {
-          console.error('Failed to load cart:', error);
-          set({ error: error instanceof Error ? error.message : 'Failed to load cart' });
-        } finally {
-          set({ isLoading: false });
-        }
+        // Cart loading is now handled by TanStack Query in useCartQuery
+        // This method is kept for backward compatibility
+        const { items } = get();
+        const summary = calculateCartSummary(items);
+        set({ summary });
       },
 
       syncCartOnLogin: async () => {

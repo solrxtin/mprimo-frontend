@@ -350,9 +350,9 @@ export default function OrderDetailsPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="py-4 text-center">${(item.metadata?.amountPaidByUser * item?.metadata.conversionRate)?.toFixed(2) || "0.00"}</td>
+                            <td className="py-4 text-center">${(item.price * item?.metadata.conversionRate).toFixed(2) || "0.00"}</td>
                             <td className="py-4 text-center">{item.quantity}</td>
-                            <td className="py-4 font-medium text-center">${((item.metadata?.amountPaidByUser * item?.metadata.conversionRate) * item.quantity)?.toFixed(2) || "0.00"}</td>
+                            <td className="py-4 font-medium text-center">${(item.price* item.quantity * item?.metadata.conversionRate).toFixed(2) || "0.00"}</td>
                             <td className="py-4 px-2">
                               {shipment?.shipping ? (
                                 <div className="text-sm space-y-1">
@@ -414,14 +414,14 @@ export default function OrderDetailsPage() {
                           <div className="flex-1">
                             <p className="font-medium">{item.productId?.name}</p>
                             <p className="text-sm text-gray-600 mt-1">Qty: {item.quantity}</p>
-                            <p className="text-blue-600 font-medium mt-1">${(item.metadata?.amountPaidByUser * item?.metadata.conversionRate)?.toFixed(2)}</p>
+                            
                           </div>
                         </div>
                         <Separator />
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total:</span>
-                            <span className="font-medium">${((item.metadata?.amountPaidByUser * item?.metadata.conversionRate) * item.quantity)?.toFixed(2)}</span>
+                            <span className="font-medium">${(item.price* item.quantity * item?.metadata.conversionRate).toFixed(2)}</span>
                           </div>
                           {shipment?.shipping && (
                             <>
@@ -563,7 +563,7 @@ export default function OrderDetailsPage() {
                         ?.reduce(
                           (sum: number, item: any) =>
                             sum +
-                            (item.metadata?.amountPaidByUser * item?.metadata.conversionRate) * item.quantity,
+                            (item.price * item?.metadata.conversionRate) * item.quantity,
                           0
                         )
                         ?.toFixed(2) || "0.00"}
@@ -633,6 +633,7 @@ export default function OrderDetailsPage() {
                   className="w-full p-2 border rounded-lg"
                   value={issueType}
                   onChange={(e) => setIssueType(e.target.value)}
+                  title="Select issue type"
                 >
                   <option value="">Select issue type</option>
                   <option value="damaged_product">Damaged Product</option>
@@ -681,6 +682,8 @@ export default function OrderDetailsPage() {
                             className="rounded-lg object-cover"
                           />
                           <button
+                            type="button"
+                            title="Remove issue image"
                             onClick={() => removeIssueImage(idx)}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
                           >
@@ -746,6 +749,7 @@ export default function OrderDetailsPage() {
                     <button
                       key={star}
                       type="button"
+                      title="Rate product"
                       onClick={() => setRating(star)}
                       className="focus:outline-none"
                     >
@@ -771,6 +775,7 @@ export default function OrderDetailsPage() {
                     <button
                       key={star}
                       type="button"
+                      title="Rate vendor"
                       onClick={() => setVendorRating(star)}
                       className="focus:outline-none"
                     >

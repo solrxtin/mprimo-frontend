@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './fetchWithAuth';
+import { getApiUrl } from '@/config/api';
 
 export interface CartValidationResponse {
   success: boolean;
@@ -49,14 +50,14 @@ export interface CheckoutData {
 
 export const checkoutService = {
   async createOrder(data: CheckoutData) {
-    const response = await fetchWithAuth('http://localhost:5800/api/v1/orders', {
+    const response = await fetchWithAuth(getApiUrl('orders'), {
       method: 'POST',
       body: JSON.stringify(data),
     });
     return response.json();
   },
   async createPaymentIntent(data: { paymentMethod: string, tokenType?: string }) {
-    const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/payment-intent', {
+    const response = await fetchWithAuth(getApiUrl('checkout/payment-intent'), {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -65,14 +66,14 @@ export const checkoutService = {
 
   // : Promise<CartValidationResponse>
   async validateCart() {
-    const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/validate', {
+    const response = await fetchWithAuth(getApiUrl('checkout/validate'), {
       method: 'POST',
     });
     return response.json();
   },
 
   async getShippingRates(address: any) {
-    return fetchWithAuth('http://localhost:5800/api/v1/checkout/shipping-rates', {
+    return fetchWithAuth(getApiUrl('checkout/shipping-rates'), {
       method: 'POST',
       body: JSON.stringify({ address }),
     });

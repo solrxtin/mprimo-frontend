@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './fetchWithAuth';
+import { getApiUrl } from '@/config/api';
 
 export const uploadVerificationDocument = async (
   file: File,
@@ -8,7 +9,7 @@ export const uploadVerificationDocument = async (
   formData.append('file', file);
   formData.append('documentType', documentType);
 
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/verification/upload-verification-document', {
+  const response = await fetchWithAuth(getApiUrl('verification/upload-verification-document'), {
     method: 'POST',
     body: formData,
     headers: {},

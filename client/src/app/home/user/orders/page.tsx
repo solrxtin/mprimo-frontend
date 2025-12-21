@@ -358,7 +358,7 @@ export default function OrdersPage() {
                                             </div>
                                           </td>
                                           <td className="px-4 py-3 text-sm text-gray-900">{item.quantity}</td>
-                                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">${(item.metadata?.amountPaidByUser * item?.metadata.conversionRate).toFixed(2)}</td>
+                                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">${(item.price* item.quantity * item?.metadata.conversionRate).toFixed(2)}</td>
                                           <td className="px-4 py-3">
                                             {itemIdx === 0 ? (
                                               <p className="text-xs font-semibold text-blue-600 break-all">

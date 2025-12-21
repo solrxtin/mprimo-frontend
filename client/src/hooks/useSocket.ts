@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useUserStore } from '@/stores/useUserStore';
 import { toast } from 'react-hot-toast';
+import { API_BASE_URL } from '@/config/api';
 
 export const useSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -10,7 +11,9 @@ export const useSocket = () => {
   useEffect(() => {
     if (!user) return;
 
-    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+    // Extract base URL without /api/v1 for socket connection
+    const socketUrl = API_BASE_URL.replace('/api/v1', '');
+    const newSocket = io(socketUrl, {
       auth: {
         userId: user._id,
       },
@@ -57,7 +60,9 @@ export const useVendorSocket = () => {
   useEffect(() => {
     if (!user) return;
 
-    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+    // Extract base URL without /api/v1 for socket connection
+    const socketUrl = API_BASE_URL.replace('/api/v1', '');
+    const newSocket = io(socketUrl, {
       auth: {
         userId: user._id,
         role: 'vendor',

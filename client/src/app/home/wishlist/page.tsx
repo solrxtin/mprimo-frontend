@@ -307,6 +307,7 @@ import { getCurrencySymbol } from "@/utils/currency"
                       <div className="col-span-1 flex items-center justify-center">
                         <input
                           type="checkbox"
+                          title="select or unselect wishlist"
                           checked={selectedItems.has(item._id || item.productId)}
                           onChange={() => toggleItemSelection(item._id || item.productId)}
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"

@@ -5,6 +5,7 @@ import { toastConfigError } from "@/app/config/toast.config";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import {IVendor} from "@/types/vendor.type";
 import ICryptoWallet from "@/types/wallet.type";
+import { getApiUrl } from "@/config/api";
 
 interface SignUpData {
   firstName: string;
@@ -32,7 +33,7 @@ interface SignUpResponse {
 const signUpUser = async (
   data: SignUpData
 ): Promise<{ message: string; user: User }> => {
-  const response = await fetch("http://localhost:5800/api/v1/auth/register", {
+  const response = await fetch(getApiUrl("auth/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -56,7 +57,7 @@ export const useSignUp = () => {
 const verifyData = async (
   data: verificationData
 ): Promise<{ message: string; user: User }> => {
-  const response = await fetch("http://localhost:5800/api/v1/auth/verify", {
+  const response = await fetch(getApiUrl("auth/verify"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -81,7 +82,7 @@ const resendVerification = async (
   email: string
 ): Promise<{ message: string }> => {
   const response = await fetch(
-    "http://localhost:5800/api/v1/auth/resend-verification",
+    getApiUrl("auth/resend-verification"),
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -113,7 +114,7 @@ const loginUser = async (
   has2faEnabled: boolean;
 }> => {
   try {
-    const response = await fetch("http://localhost:5800/api/v1/auth/login", {
+    const response = await fetch(getApiUrl("auth/login"), {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -144,7 +145,7 @@ export const useLoginUser = () => {
 
 const logoutUser = async (): Promise<{ message: string }> => {
   const response = await fetchWithAuth(
-    "http://localhost:5800/api/v1/auth/logout",
+    getApiUrl("auth/logout"),
     {
       method: "POST",
     }
@@ -171,7 +172,7 @@ const verifyPasswordResetToken = async (data: {
   code: string;
 }): Promise<{ message: string }> => {
   const response = await fetch(
-    "http://localhost:5800/api/v1/auth/verify-password-reset-token",
+    getApiUrl("auth/verify-password-reset-token"),
     {
       method: "POST",
       credentials: "include",
@@ -199,7 +200,7 @@ const resendPasswordResentToken = async (data: {
   email: string;
 }): Promise<{ message: string }> => {
   const response = await fetch(
-    `http://localhost:5800/api/v1/auth/resend-password-reset-token`,
+    getApiUrl("auth/resend-password-reset-token"),
     {
       method: "POST",
       credentials: "include",
@@ -228,7 +229,7 @@ const subscribeToPushNotification = async (subscription: {
   deviceId?: string | null
 }): Promise<{ message: string, deviceId: any }> => {
   const response = await fetchWithAuth(
-    "http://localhost:5800/api/v1/push/subscribe",
+    getApiUrl("push/subscribe"),
     {
       method: "POST",
       body: JSON.stringify(subscription),
@@ -254,7 +255,7 @@ export const useSubscribeToPush = () => {
 
 const unsubscribeFromPushNotification = async (deviceId: string): Promise<{ message: string }> => {
   const response = await fetchWithAuth(
-    `http://localhost:5800/api/v1/push/unsubscribe/${deviceId}`,
+    getApiUrl(`push/unsubscribe/${deviceId}`),
     {
       method: "DELETE",
     }
@@ -277,7 +278,7 @@ export const useUnsubscribeFromPush = () => {
 
 const createWallet = async (): Promise<{wallet: ICryptoWallet}> => {
   const response = await fetchWithAuth(
-    `http://localhost:5800/api/v1/wallets/crypto/create-wallet`,
+    getApiUrl("wallets/crypto/create-wallet"),
     {
       method: "POST",
     }
@@ -301,7 +302,7 @@ export const useCreateWallet = () => {
 
 const saveDraft = async (draft: any): Promise<{ message: string }> => {
   const response = await fetchWithAuth(
-    "http://localhost:5800/api/v1/products/drafts",
+    getApiUrl("products/drafts"),
     {
       method: "POST",
       body: JSON.stringify(draft),
@@ -324,7 +325,7 @@ export const useSaveDraft = () => {
 
 const deleteDraft = async (id: string): Promise<{ message: string }> => {
   const response = await fetchWithAuth(
-    `http://localhost:5800/api/v1/products/drafts/${id}`,
+    getApiUrl(`products/drafts/${id}`),
     {method: "DELETE"}
   );
 
@@ -352,7 +353,7 @@ export const useDeleteDraft = (): UseMutationResult<
 // Toggle helpful mutation
 const toggleHelpful = async ({ productId, reviewId }: { productId: string; reviewId: string }) => {
   const response = await fetchWithAuth(
-    `http://localhost:5800/api/v1/product/${productId}/review/${reviewId}/helpful`,
+    getApiUrl(`product/${productId}/review/${reviewId}/helpful`),
     { method: 'PATCH' }
   );
   if (!response.ok) {
@@ -381,7 +382,7 @@ const addVendorResponse = async ({
   response: string; 
 }) => {
   const res = await fetchWithAuth(
-    `http://localhost:5800/api/v1/product/${productId}/review/${reviewId}/response`,
+    getApiUrl(`product/${productId}/review/${reviewId}/response`),
     {
 
       method: 'POST',
@@ -406,7 +407,7 @@ const makeBid = async (
   productId: string,
   amount: number
 ): Promise<{ success: boolean; message: string; bidAmountUSD: number }> => {
-  const response = await fetchWithAuth(`http://localhost:5800/api/v1/products/${productId}/bids`, {
+  const response = await fetchWithAuth(getApiUrl(`products/${productId}/bids`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ amount }),
@@ -431,7 +432,7 @@ export const useMakeBid = () => {
 // Update draft mutation
 const updateDraft = async ({ id, draft }: { id: string; draft: any }): Promise<{ message: string }> => {
   const response = await fetchWithAuth(
-    `http://localhost:5800/api/v1/products/drafts/${id}`,
+    getApiUrl(`products/drafts/${id}`),
     {
       method: "PUT",
       body: JSON.stringify(draft),
@@ -455,7 +456,7 @@ export const useUpdateDraft = () => {
 // Create product mutation
 const createProduct = async (productData: any): Promise<{ product: any; message: string }> => {
   const response = await fetchWithAuth(
-    "http://localhost:5800/api/v1/products",
+    getApiUrl("products"),
     {
       method: "POST",
       body: JSON.stringify(productData),
@@ -486,7 +487,7 @@ const createAdvertisement = async (data: {
   adType: string;
 }) => {
   const { vendorId, ...body } = data;
-  const response = await fetchWithAuth(`http://localhost:5800/api/v1/advertisements/${vendorId}`, {
+  const response = await fetchWithAuth(getApiUrl(`advertisements/${vendorId}`), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -512,7 +513,7 @@ const createPaymentIntent = async (data: {
   vendorId: string;
   priceId: string;
 }) => {
-  const response = await fetchWithAuth(`http://localhost:5800/api/v1/stripe/create-payment-intent`, {
+  const response = await fetchWithAuth(getApiUrl("stripe/create-payment-intent"), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -546,7 +547,7 @@ const addPaymentMethod = async (data: {
   paymentMethodId?: string;
   paystackAuthorizationCode?: string;
 }) => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/payment-methods', {
+  const response = await fetchWithAuth(getApiUrl('wallets/payment-methods'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -573,7 +574,7 @@ const initiateTopUp = async (data: {
   method: 'card' | 'bank_transfer';
   paymentMethodId?: string;
 }) => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/topup', {
+  const response = await fetchWithAuth(getApiUrl('wallets/topup'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -596,7 +597,7 @@ export const useInitiateTopUp = () => {
 
 // Create setup intent for payment method
 const createSetupIntent = async () => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/setup-intent', {
+  const response = await fetchWithAuth(getApiUrl('wallets/setup-intent'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -623,7 +624,7 @@ const buyNow = async (data: {
   optionId?: string;
   quantity?: number;
 }) => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/buy-now', {
+  const response = await fetchWithAuth(getApiUrl('checkout/buy-now'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -652,7 +653,7 @@ const createBuyNowPaymentIntent = async (data: {
   paymentMethod: string;
   tokenType?: string;
 }) => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/checkout/buy-now/payment-intent', {
+  const response = await fetchWithAuth(getApiUrl('checkout/buy-now/payment-intent'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -675,7 +676,7 @@ export const useCreateBuyNowPaymentIntent = () => {
 
 // Delete payment method mutation
 const deletePaymentMethod = async (paymentMethodId: string) => {
-  const response = await fetchWithAuth(`http://localhost:5800/api/v1/wallets/payment-methods/${paymentMethodId}`, {
+  const response = await fetchWithAuth(getApiUrl(`wallets/payment-methods/${paymentMethodId}`), {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json'
@@ -715,7 +716,7 @@ const createBuyNowOrder = async (data: {
   address: any;
   isBuyNow?: boolean;
 }) => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/orders/', {
+  const response = await fetchWithAuth(getApiUrl('orders/'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -733,5 +734,35 @@ const createBuyNowOrder = async (data: {
 export const useCreateBuyNowOrder = () => {
   return useMutation({
     mutationFn: createBuyNowOrder,
+  });
+};
+
+// Update shipping status mutation
+const updateShippingStatus = async (data: {
+  orderId: string;
+  shippingStatus: string;
+  shipmentId?: string;
+}) => {
+  const response = await fetchWithAuth(getApiUrl(`orders/${data.orderId}/status`), {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      shippingStatus: data.shippingStatus,
+      shipmentId: data.shipmentId
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Failed to update shipping status');
+  }
+  return response.json();
+};
+
+export const useUpdateShippingStatus = () => {
+  return useMutation({
+    mutationFn: updateShippingStatus,
   });
 };

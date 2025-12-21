@@ -132,8 +132,10 @@ export default function WalletPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl sm:text-2xl font-bold break-words">My Wallet</h1>
           <button
+            type="button"
             onClick={() => setShowSettings(true)}
             className="p-2 text-gray-600 hover:text-gray-800"
+            title="Wallet Settings"
           >
             <Settings className="w-5 h-5" />
           </button>
@@ -164,6 +166,7 @@ export default function WalletPage() {
               )}
             </div>
             <button
+              type="button"
               onClick={() => setShowTopUp(true)}
               className="bg-white/20 hover:bg-white/30 px-3 py-2 sm:px-4 sm:py-2 rounded-lg flex items-center gap-2 transition-colors text-sm sm:text-base w-full sm:w-auto justify-center"
             >
@@ -176,6 +179,7 @@ export default function WalletPage() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
           <button
+            type="button"
             onClick={() => setShowPaymentMethods(true)}
             className="p-3 sm:p-4 border rounded-lg hover:bg-gray-50 flex items-center gap-3"
           >
@@ -184,7 +188,7 @@ export default function WalletPage() {
               <p className="text-xs sm:text-sm text-gray-600">Manage cards & banks</p>
             </div>
           </button>
-          <button className="p-3 sm:p-4 border rounded-lg hover:bg-gray-50 flex items-center gap-3">
+          <button type="button" className="p-3 sm:p-4 border rounded-lg hover:bg-gray-50 flex items-center gap-3">
             <div className="text-left">
               <p className="font-medium text-sm sm:text-base">Send Money</p>
               <p className="text-xs sm:text-sm text-gray-600">Transfer to other users</p>
@@ -201,6 +205,7 @@ export default function WalletPage() {
             {/* Date Filter */}
             <div className="relative">
               <button 
+                type="button"
                 onClick={() => setShowDateFilter(!showDateFilter)}
                 className="flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-50 text-blue-600 rounded-md border border-blue-200 text-sm font-medium hover:bg-blue-100 transition-colors"
               >

@@ -6,6 +6,7 @@ import { ProductType } from "@/types/product.type";
 import Link from "next/link";
 import { ProductCard } from "./ProductCard";
 import { filterAvailableProducts } from "@/utils/productUtils";
+import { getApiUrl } from "@/config/api";
 
 const navCategories = [
   "All Accessories",
@@ -23,7 +24,7 @@ export default function ComputerAccessories() {
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
-      const response = await fetch("http://localhost:5800/api/v1/categories");
+      const response = await fetch(getApiUrl("categories"));
       if (!response.ok) throw new Error("Failed to fetch categories");
       return response.json();
     },
@@ -42,7 +43,7 @@ export default function ComputerAccessories() {
     }
 
     const response = await fetch(
-      `http://localhost:5800/api/v1/products/categories/${electronicsCategory._id}?page=1&limit=12`
+      getApiUrl(`products/categories/${electronicsCategory._id}?page=1&limit=12`)
     );
     if (!response.ok) {
       throw new Error("Failed to fetch electronics products");

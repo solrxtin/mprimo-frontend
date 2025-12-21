@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { toastConfigError, toastConfigSuccess } from '@/app/config/toast.config';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { useUserStore } from '@/stores/useUserStore';
 
 import { API_CONFIG } from '@/config/api.config';
 
@@ -112,7 +113,7 @@ const userApi = {
   },
 
   getRecomendations: async (limit = 10) => {
-    const response = await fetchWithAuth(`${API_BASE}/products/user/recommendations` + `?limit=${limit}`);
+    const response = await fetchWithAuth(`${API_BASE}/users/recommendations` + `?limit=${limit}`);
     if (!response.ok) throw new Error('Failed to fetch recent views');
     const data = await response.json();
     return data;
@@ -182,29 +183,35 @@ const userApi = {
 };
 
 export const useUserProfile = (enabled: boolean = true) => {
+  const { user } = useUserStore();
   return useQuery({
     queryKey: ['userProfile'],
     queryFn: userApi.getProfile,
-    enabled: enabled,
+    enabled: !!user && enabled,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 };
 
 export const useRecentViews = (limit = 10, enabled: boolean = true) => {
+  const { user } = useUserStore();
   return useQuery({
     queryKey: ['recentViews', limit],
     queryFn: () => userApi.getRecentViews(limit),
-    enabled: enabled,
+    enabled: !!user && enabled,
     staleTime: 2 * 60 * 1000,
+    retry: false,
   });
 };
 
 export const useRecomendations = (limit = 10, enabled: boolean = false) => {
+  const { user } = useUserStore();
   return useQuery({
     queryKey: ['recomendations', limit],
     queryFn: () => userApi.getRecomendations(limit),
-    enabled: enabled,
+    enabled: !!user && enabled,
     staleTime: 2 * 60 * 1000,
+    retry: false,
   });
 };
 
@@ -266,19 +273,23 @@ export const useUpdateNotificationPreferences = () => {
 };
 
 export const useUserCards = (enabled: boolean = true) => {
+  const { user } = useUserStore();
   return useQuery({
     queryKey: ['userCards'],
     queryFn: userApi.getCards,
-    enabled: enabled,
+    enabled: !!user && enabled,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 };
 
 export const useUserRecentActivities = (page = 1, limit = 10, enabled: boolean = true) => {
+  const { user } = useUserStore();
   return useQuery({
     queryKey: ['userRecentActivities', page, limit],
     queryFn: () => userApi.getRecentActivities(page, limit),
-    enabled: enabled,
+    enabled: !!user && enabled,
     staleTime: 2 * 60 * 1000,
+    retry: false,
   });
 };

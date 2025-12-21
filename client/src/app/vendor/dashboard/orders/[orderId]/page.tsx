@@ -14,8 +14,12 @@ import {
 import { useOrderById } from "@/hooks/queries";
 import { useParams, useRouter } from "next/navigation";
 import { useProductStore } from "@/stores/useProductStore";
+import { useVendorStore } from "@/stores/useVendorStore";
+import { useOrderStore } from "@/stores/useOrderStore";
 import OrderDetailsSkeleton from "../(components)/OrderDetailsSkeleton";
 import { getCurrencySymbol } from "@/utils/currency";
+import { useUpdateShippingStatus } from "@/hooks/mutations";
+import { toast } from "react-toastify";
 
 const Card = ({
   children,
@@ -39,17 +43,79 @@ const CardContent = ({
   className?: string;
 }) => <div className={`${className}`}>{children}</div>;
 
+const VariantValueDisplay = ({ variantValue }: { variantValue: string }) => {
+  const isHexColor = (value: string) => /^#[0-9A-F]{6}$/i.test(value);
+  const getColorForValue = (value: string) => {
+    const colorMap: { [key: string]: string } = {
+      'black': '#000000', 'white': '#FFFFFF', 'red': '#FF0000', 'blue': '#0000FF',
+      'green': '#008000', 'yellow': '#FFFF00', 'purple': '#800080', 'pink': '#FFC0CB',
+      'orange': '#FFA500', 'gray': '#808080', 'grey': '#808080', 'silver': '#C0C0C0'
+    };
+    const colorName = Object.keys(colorMap).find(color => value.toLowerCase().includes(color));
+    return colorName ? colorMap[colorName] : null;
+  };
+  
+  const colorValue = isHexColor(variantValue) ? variantValue : getColorForValue(variantValue);
+  
+  return (
+    <div className="flex items-center gap-2">
+      {colorValue && (
+        <div
+          className="w-3 h-3 rounded-full border border-gray-300"
+          style={{ backgroundColor: colorValue }}
+        />
+      )}
+      <p className="text-xs text-gray-500">{variantValue}</p>
+    </div>
+  );
+};
+
 export default function OrderDetailsPage() {
   const [vendorShippingState, setVendorShippingState] =
-    React.useState<string>("Reviewing Order");
+    React.useState<string>("reviewing");
   const [showDropdown, setShowDropdown] = React.useState<boolean>(false);
+  const updateShippingMutation = useUpdateShippingStatus();
   const params = useParams();
   const router = useRouter();
   const orderId = params.orderId as string;
-  const { data: order, isLoading } = useOrderById(orderId);
   const { listedProducts } = useProductStore();
+  const { vendor } = useVendorStore();
+  const { selectedOrder } = useOrderStore();
 
-  if (isLoading) {
+  // Fallback to API call if no order in store
+  const { data: orderData, isLoading } = useOrderById(orderId);
+  const order = selectedOrder || orderData;
+
+  // Sync shipping state with server data
+  React.useEffect(() => {
+    if (order?.shipments?.length > 0) {
+      const vendorShipment = order.shipments.find((shipment: any) => 
+        shipment.vendorId === vendor?._id
+      );
+      if (vendorShipment?.status) {
+        setVendorShippingState(vendorShipment.status);
+      }
+    }
+  }, [order, vendor]);
+
+  // Filter vendor-specific items
+  const getVendorItems = () => {
+    return order?.items?.filter((item: any) => item.metadata?.vendorId === vendor?._id) || [];
+  };
+
+  const getVendorAmount = () => {
+    const vendorItems = getVendorItems();
+    return vendorItems.reduce((total: number, item: any) => {
+      return total + (item.metadata?.amountInVendorCurrency || 0) * item.quantity;
+    }, 0);
+  };
+
+  const getVendorCurrency = () => {
+    const vendorItems = getVendorItems();
+    return vendorItems[0]?.metadata?.vendorCurrency || 'NGN';
+  };
+
+  if (isLoading && !selectedOrder) {
     return <OrderDetailsSkeleton />;
   }
 
@@ -82,12 +148,44 @@ export default function OrderDetailsPage() {
       : "bg-yellow-100 text-yellow-700";
   };
 
-  const handleShippingStateChange = (newState: string) => {
-    setVendorShippingState(newState);
+  const handleShippingStateChange = async (newState: string) => {
+    try {
+      const vendorItems = getVendorItems();
+      if (vendorItems.length > 0) {
+        const shipmentId = vendorItems[0]?.shipmentId;
+        await updateShippingMutation.mutateAsync({
+          orderId,
+          shippingStatus: newState,
+          shipmentId
+        });
+        setVendorShippingState(newState);
+        toast.success('Shipping status updated successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to update shipping status');
+    }
     setShowDropdown(false);
   };
 
-  console.log(listedProducts, "Listed Products");
+  const getDisplayStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      'reviewing': 'Reviewing Order',
+      'preparingOrder': 'Preparing Order',
+      'sentToWarehouse': 'Sent to Warehouse',
+      'successful': 'Successful'
+    };
+    return statusMap[status] || status;
+  };
+
+  const isOrderCompleted = () => {
+    return order?.status === 'delivered';
+  };
+
+  const canUpdateStatus = () => {
+    // Allow updates if order is not delivered, or if it failed (for replacement)
+    return order?.status !== 'delivered';
+  };
+
 
   return (
     <div className="bg-white p-4 md:p-4 lg:p-10 h-full w-full">
@@ -144,7 +242,7 @@ export default function OrderDetailsPage() {
           <div className="bg-primary text-white rounded-md text-xs font-medium">
             <div className="flex items-center relative">
               <div className="p-2 border-r whitespace-nowrap">
-                {vendorShippingState}
+                {getDisplayStatus(vendorShippingState)}
               </div>
               {!showDropdown ? (
                 <ChevronDown
@@ -160,28 +258,40 @@ export default function OrderDetailsPage() {
               {showDropdown && (
                 <div className="border border-gray-500 rounded-lg bg-white mt-2 shadow-lg absolute z-10 top-7 lg:right-0 right-[-22] w-40 text-gray-800">
                   <h3 className="text-[#2563EB] pt-3 px-2 pb-1 border-b border-b-black">
-                    Order Status
+                    Shipping Status
                   </h3>
-                  <div
-                    onClick={() => handleShippingStateChange("Reviewing Order")}
-                    className="text-xs hover:bg-gray-100 cursor-pointer px-2 py-1 border-b border-gray-200"
-                  >
-                    Reviewing Order
-                  </div>
-                  <div
-                    onClick={() =>
-                      handleShippingStateChange("Preparing Shipment")
-                    }
-                    className="text-xs hover:bg-gray-100 cursor-pointer px-2 py-1 border-b border-gray-200"
-                  >
-                    Preparing Shipment
-                  </div>
-                  <div
-                    onClick={() => handleShippingStateChange("Shipped")}
-                    className="text-xs hover:bg-gray-100 hover:rounded-b-lg cursor-pointer px-2 py-1"
-                  >
-                    Shipped
-                  </div>
+                  {canUpdateStatus() ? (
+                    <div>
+                      {vendorShippingState === "reviewing" && (
+                        <div
+                          onClick={() => handleShippingStateChange("preparingOrder")}
+                          className="text-xs hover:bg-gray-100 cursor-pointer px-2 py-1 border-b border-gray-200"
+                        >
+                          Preparing Order
+                        </div>
+                      )}
+                      {(vendorShippingState === "reviewing" || vendorShippingState === "preparingOrder") && (
+                        <div
+                          onClick={() => handleShippingStateChange("sentToWarehouse")}
+                          className="text-xs hover:bg-gray-100 cursor-pointer px-2 py-1 border-b border-gray-200"
+                        >
+                          Sent to Warehouse
+                        </div>
+                      )}
+                      {order?.status === 'failed' && (
+                        <div
+                          onClick={() => handleShippingStateChange("reviewing")}
+                          className="text-xs hover:bg-gray-100 cursor-pointer px-2 py-1 border-b border-gray-200"
+                        >
+                          Reset to Reviewing (Replace Item)
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500 px-2 py-1">
+                      Order delivered - No changes allowed
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -195,100 +305,95 @@ export default function OrderDetailsPage() {
             <p>
               Delivering to{" "}
               <span className="font-medium">
-                {order?.shipping?.address?.street},{" "}
-                {order?.shipping?.address?.city},{" "}
-                {order?.shipping?.address?.state},{" "}
-                {order?.shipping?.address?.country}
+                {order?.items?.[0]?.deliveryAddress?.street},{" "}
+                {order?.items?.[0]?.deliveryAddress?.city},{" "}
+                {order?.items?.[0]?.deliveryAddress?.state},{" "}
+                {order?.items?.[0]?.deliveryAddress?.country}
               </span>
             </p>
             <p className="text-gray-500">
-              Estimated arrival on:{" "}
+              Order Date:{" "}
               <span className="font-medium text-black">
-                {new Date(
-                  order?.shipping?.estimatedDelivery
-                ).toLocaleDateString()}
+                {new Date(order?.createdAt).toLocaleDateString()}
               </span>
             </p>
           </div>
           <div className="px-4 py-3">
             <div className="space-y-3">
               {/* Status Labels */}
-              <div className="flex justify-between mb-2">
-                <span className="text-xs text-gray-600">
-                  {vendorShippingState === "Reviewing Order" && (
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                <span className="text-xs text-gray-600 text-center">
+                  {vendorShippingState === "reviewing" && (
                     <Loader className="inline-block size-4 mr-1 text-blue-500" />
                   )}
-                  Reviewing Order
+                  Reviewing
                 </span>
-                <span className="text-xs text-gray-600">
-                  {vendorShippingState === "Preparing Shipment" && (
+                <span className="text-xs text-gray-600 text-center">
+                  {vendorShippingState === "preparingOrder" && (
                     <LoaderCircle className="inline-block size-4 mr-1 text-yellow-500" />
                   )}
-                  Preparing Shipment
+                  Preparing
                 </span>
-                <span className="text-xs text-gray-600">
-                  {vendorShippingState === "Shipped" && (
+                <span className="text-xs text-gray-600 text-center">
+                  {vendorShippingState === "sentToWarehouse" && (
+                    <LoaderCircle className="inline-block size-4 mr-1 text-orange-500" />
+                  )}
+                  Warehouse
+                </span>
+                <span className="text-xs text-gray-600 text-center">
+                  {vendorShippingState === "successful" && (
                     <CheckCircle className="inline-block size-4 mr-1 text-green-500" />
                   )}
-                  Shipped
+                  Successful
                 </span>
               </div>
               {/* Progress Bars */}
-              <div className="flex gap-2 mb-2">
-                <div
-                  className="flex-1 h-2 rounded-full"
-                  style={{ backgroundColor: "#d3e1fe" }}
-                >
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                <div className="h-2 rounded-full" style={{ backgroundColor: "#d3e1fe" }}>
                   <div
                     className="h-2 rounded-full transition-all duration-300"
                     style={{
-                      backgroundColor:
-                        vendorShippingState === "Reviewing Order" ||
-                        vendorShippingState === "Preparing Shipment" ||
-                        vendorShippingState === "Shipped"
-                          ? "#2563eb"
-                          : "#d3e1fe",
-                      width:
-                        vendorShippingState === "Reviewing Order" ||
-                        vendorShippingState === "Preparing Shipment" ||
-                        vendorShippingState === "Shipped"
-                          ? "100%"
-                          : "0%",
+                      backgroundColor: vendorShippingState === "reviewing" || 
+                        vendorShippingState === "preparingOrder" || 
+                        vendorShippingState === "sentToWarehouse" || 
+                        vendorShippingState === "successful" ? "#2563eb" : "#d3e1fe",
+                      width: vendorShippingState === "reviewing" || 
+                        vendorShippingState === "preparingOrder" || 
+                        vendorShippingState === "sentToWarehouse" || 
+                        vendorShippingState === "successful" ? "100%" : "0%",
                     }}
                   />
                 </div>
-                <div
-                  className="flex-1 h-2 rounded-full"
-                  style={{ backgroundColor: "#d3e1fe" }}
-                >
+                <div className="h-2 rounded-full" style={{ backgroundColor: "#d3e1fe" }}>
                   <div
                     className="h-2 rounded-full transition-all duration-300"
                     style={{
-                      backgroundColor:
-                        vendorShippingState === "Preparing Shipment" ||
-                        vendorShippingState === "Shipped"
-                          ? "#2563eb"
-                          : "#d3e1fe",
-                      width:
-                        vendorShippingState === "Preparing Shipment" ||
-                        vendorShippingState === "Shipped"
-                          ? "100%"
-                          : "0%",
+                      backgroundColor: vendorShippingState === "preparingOrder" || 
+                        vendorShippingState === "sentToWarehouse" || 
+                        vendorShippingState === "successful" ? "#2563eb" : "#d3e1fe",
+                      width: vendorShippingState === "preparingOrder" || 
+                        vendorShippingState === "sentToWarehouse" || 
+                        vendorShippingState === "successful" ? "100%" : "0%",
                     }}
                   />
                 </div>
-                <div
-                  className="flex-1 h-2 rounded-full"
-                  style={{ backgroundColor: "#d3e1fe" }}
-                >
+                <div className="h-2 rounded-full" style={{ backgroundColor: "#d3e1fe" }}>
                   <div
                     className="h-2 rounded-full transition-all duration-300"
                     style={{
-                      backgroundColor:
-                        vendorShippingState === "Shipped"
-                          ? "#2563eb"
-                          : "#d3e1fe",
-                      width: vendorShippingState === "Shipped" ? "100%" : "0%",
+                      backgroundColor: vendorShippingState === "sentToWarehouse" || 
+                        vendorShippingState === "successful" ? "#2563eb" : "#d3e1fe",
+                      width: vendorShippingState === "sentToWarehouse" || 
+                        vendorShippingState === "successful" ? "100%" : "0%",
+                    }}
+                  />
+                </div>
+                <div className="h-2 rounded-full" style={{ backgroundColor: "#d3e1fe" }}>
+                  <div
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{
+                      backgroundColor: vendorShippingState === "successful" ? "#2563eb" : "#d3e1fe",
+                      width: vendorShippingState === "successful" ? "100%" : "0%",
                     }}
                   />
                 </div>
@@ -303,16 +408,15 @@ export default function OrderDetailsPage() {
           Order Items
         </h2>
 
-        {order?.items?.map((item: any, index: number) => (
+        {getVendorItems().map((item: any, index: number) => (
           <div className="border-b border-gray-200" key={index}>
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-5">
                 <div className="bg-[#f1f4f9] w-40 h-30 flex items-center rounded-md justify-center p-2">
                   <img
-                    src={item.productId?.images[0] || "/placeholder.png"}
+                    src={item.productId?.images?.[0] || "/placeholder.png"}
                     alt={item.productId?.name}
                     className="w-full h-full object-cover rounded-md"
-                    // style={{ width: 'auto', height: 'auto' }}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -322,23 +426,23 @@ export default function OrderDetailsPage() {
                   <p className="text-xs text-gray-500">
                     SKU: {item.variantId || "N/A"}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {listedProducts
+                  <VariantValueDisplay 
+                    variantValue={listedProducts
                       ?.find(
                         (product: any) => product._id === item.productId?._id
                       )
                       ?.variants?.flatMap((v) => v.options)
                       ?.find((option) => option.sku === item.variantId)
                       ?.value || "Unknown Option"}
-                  </p>
+                  />
                   <p className="text-xs text-gray-500">
                     Quantity: {item.quantity}
                   </p>
                 </div>
               </div>
               <span className="text-sm font-semibold text-gray-800">
-                {getCurrencySymbol(order.payment.currency)}
-                {item.price.toFixed(2)}
+                {getCurrencySymbol(getVendorCurrency())}
+                {((item.metadata?.amountInVendorCurrency || 0) * item.quantity).toFixed(2)}
               </span>
             </div>
           </div>
@@ -354,27 +458,19 @@ export default function OrderDetailsPage() {
         <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
           {[
             {
-              label: "Payment Method",
-              value: order?.payment?.method?.toUpperCase(),
-            },
-            {
-              label: "Payment Status",
-              value: (
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusColor(
-                    order?.payment?.status
-                  )}`}
-                >
-                  {order?.payment?.status}
-                </span>
-              ),
-            },
-            {
-              label: "Subtotal",
-              value: order?.payment?.amount?.toLocaleString("en-US", {
+              label: "Vendor Amount",
+              value: getVendorAmount().toLocaleString("en-US", {
                 style: "currency",
-                currency: order?.payment?.currency || "USD",
+                currency: getVendorCurrency(),
               }),
+            },
+            {
+              label: "Currency",
+              value: getVendorCurrency(),
+            },
+            {
+              label: "Items Count",
+              value: `${getVendorItems().length} item(s)`,
             },
             {
               label: "Order Status",
@@ -389,8 +485,28 @@ export default function OrderDetailsPage() {
               ),
             },
             {
-              label: "Shipping Fee",
-              value: "Free",
+              label: "Shipping Status",
+              value: (
+                <span
+                  className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                    vendorShippingState
+                  )}`}
+                >
+                  {getDisplayStatus(vendorShippingState)}
+                </span>
+              ),
+            },
+            {
+              label: "Payment Status",
+              value: (
+                <span
+                  className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusColor(
+                    order?.payment?.status
+                  )}`}
+                >
+                  {order?.payment?.status || "N/A"}
+                </span>
+              ),
             },
           ].map((item, index) => (
             <div

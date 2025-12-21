@@ -1,81 +1,50 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { ArrowUpRight, ArrowDownLeft, RefreshCw } from 'lucide-react';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import React, { useState, useMemo } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { useVendorWalletTransactions } from '@/hooks/queries';
 
 interface Transaction {
-  _id: string;
-  type: 'topup_card' | 'topup_bank' | 'spend' | 'refund' | 'escrow_hold' | 'escrow_release' | 'transfer_in' | 'transfer_out';
+  id: string;
+  type: 'credit' | 'debit';
   amount: number;
   description: string;
-  createdAt: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  date: string;
+  orderId?: string;
 }
 
 interface TransactionHistoryProps {
   onRefresh: () => void;
+  vendorId?: string;
 }
 
-export default function TransactionHistory({ onRefresh }: TransactionHistoryProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function TransactionHistory({ onRefresh, vendorId }: TransactionHistoryProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
-
-  const fetchTransactions = async (page = 1) => {
-    try {
-      const response = await fetchWithAuth(`http://localhost:5800/api/v1/wallets/transactions?page=${page}&limit=10`);
-      const data = await response.json();
-
-      if (data.data.transactions) {
-        setTransactions(data.data.transactions);
-        setCurrentPage(data.data.pagination.page);
-        setTotalPages(data.data.pagination.pages);
-        setTotal(data.data.pagination.total);
-      }
-    } catch (error) {
-      console.error('Failed to fetch transactions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  const filters = useMemo(() => ({ page: currentPage, limit: 10 }), [currentPage]);
+  const { data: transactionsData, isLoading: loading, refetch } = useVendorWalletTransactions(vendorId!, filters);
+  
+  const transactions = transactionsData?.transactions || [];
+  const pagination = transactionsData?.pagination || { page: 1, pages: 1, total: 0 };
 
   const handleRefresh = () => {
-    setLoading(true);
-    fetchTransactions(currentPage);
+    refetch();
     onRefresh();
   };
 
   const handlePageChange = (page: number) => {
-    setLoading(true);
     setCurrentPage(page);
-    fetchTransactions(page);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'text-green-600';
-      case 'pending': return 'text-yellow-600';
-      case 'processing': return 'text-blue-600';
-      case 'failed': return 'text-red-600';
-      case 'cancelled': return 'text-gray-600';
-      default: return 'text-gray-600';
-    }
   };
 
   return (
-    <div className="bg-white rounded-lg border p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Transaction History</h2>
+    <div className="bg-white rounded-lg shadow-sm">
+      <div className="flex justify-between items-center p-4 sm:p-6 border-b">
+        <h2 className="text-lg sm:text-xl font-semibold">Transaction History</h2>
         <button
+          type="button"
+          title="Refresh transactions"
           onClick={handleRefresh}
-          className="p-2 text-gray-600 hover:text-gray-800"
+          className="p-2 text-gray-600 hover:text-gray-800 border rounded-lg"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -83,41 +52,93 @@ export default function TransactionHistory({ onRefresh }: TransactionHistoryProp
       
       {loading ? (
         <div className="text-center py-8">Loading transactions...</div>
-      ) : transactions && transactions.length === 0 ? (
+      ) : transactions.length === 0 ? (
         <div className="text-center py-8 text-gray-500">No transactions yet</div>
       ) : (
-        <div className="h-96 overflow-y-auto space-y-3 pr-2">
-          {transactions && transactions.map((transaction) => (
-            <div key={transaction?._id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                {['topup_card', 'topup_bank', 'refund', 'transfer_in', 'escrow_release'].includes(transaction?.type) ? (
-                  <ArrowDownLeft className="w-5 h-5 text-green-600" />
-                ) : (
-                  <ArrowUpRight className="w-5 h-5 text-red-600" />
-                )}
-                <div>
-                  <p className="font-medium">{transaction?.description}</p>
-                  <p className="text-sm text-gray-600">
-                    {new Date(transaction?.createdAt).toLocaleDateString()}
-                  </p>
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {transactions.map((transaction: any) => (
+                  <tr key={transaction.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        transaction.type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {transaction.type === 'credit' ? 'Credit' : 'Debit'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-gray-900">{transaction.description}</p>
+                      {transaction.orderId && (
+                        <p className="text-xs text-gray-500">Order: {transaction.orderId.slice(0, 12)}...</p>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(transaction.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className={`text-sm font-semibold ${
+                        transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden divide-y divide-gray-200">
+            {transactions.map((transaction: any) => (
+              <div key={transaction.id} className="p-4 hover:bg-gray-50">
+                <div className="flex justify-between items-start mb-2">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    transaction.type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {transaction.type === 'credit' ? 'Credit' : 'Debit'}
+                  </span>
+                  <span className={`text-lg font-semibold ${
+                    transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {transaction.type === 'credit' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                  </span>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className={`font-medium ${['topup_card', 'topup_bank', 'refund', 'transfer_in', 'escrow_release'].includes(transaction?.type) ? 'text-green-600' : 'text-red-600'}`}>
-                  {['topup_card', 'topup_bank', 'refund', 'transfer_in', 'escrow_release'].includes(transaction?.type) ? '+' : '-'}${transaction?.amount.toFixed(2)}
+                <p className="text-sm font-medium text-gray-900 mb-1">{transaction.description}</p>
+                {transaction.orderId && (
+                  <p className="text-xs text-gray-500 mb-1">Order: {transaction.orderId.slice(0, 12)}...</p>
+                )}
+                <p className="text-xs text-gray-500">
+                  {new Date(transaction.date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
                 </p>
-                <p className={`text-xs ${getStatusColor(transaction?.status)}`}>
-                  {transaction?.status}
-                </p>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
       
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-6 pt-4 border-t">
+      {pagination.pages > 1 && (
+        <div className="flex justify-center items-center gap-2 p-4 sm:p-6 border-t">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1 || loading}
@@ -127,12 +148,12 @@ export default function TransactionHistory({ onRefresh }: TransactionHistoryProp
           </button>
           
           <span className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages} ({total} total)
+            Page {currentPage} of {pagination.pages}
           </span>
           
           <button
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages || loading}
+            disabled={currentPage === pagination.pages || loading}
             className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next

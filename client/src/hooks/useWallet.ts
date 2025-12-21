@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
+import { getApiUrl } from '@/config/api';
 
 export interface IWalletTransaction {
   id: string;
@@ -51,71 +52,62 @@ export interface IWallet {
   updatedAt: Date;
 }
 
-// Fetch wallet balance
-const fetchWalletBalance = async (): Promise<{ wallet: IWallet }> => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/user');
-  if (!response.ok) {
-    throw new Error('Failed to fetch wallet balance');
+export const walletService = {
+  async getWalletBalance(): Promise<{ wallet: IWallet }> {
+    const response = await fetchWithAuth(getApiUrl('wallets/user'));
+    if (!response.ok) {
+      throw new Error('Failed to fetch wallet balance');
+    }
+    return response.json();
+  },
+
+  async getWalletTransactions(filters: TransactionFilters = {}): Promise<{ data: { transactions: IWalletTransaction[], pagination: { page: number, limit: number, total: number, pages: number } } }> {
+    const params = new URLSearchParams();
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.type) params.append('type', filters.type);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.dateRange) params.append('dateRange', filters.dateRange);
+    
+    const response = await fetchWithAuth(getApiUrl(`wallets/transactions?${params.toString()}`));
+    if (!response.ok) {
+      throw new Error('Failed to fetch wallet transactions');
+    }
+    return response.json();
+  },
+
+  async getPaymentMethods() {
+    const response = await fetchWithAuth(getApiUrl('wallets/payment-methods'));
+    if (!response.ok) {
+      throw new Error('Failed to fetch payment methods');
+    }
+    return response.json();
   }
-  return response.json();
 };
 
 export const useWalletBalance = () => {
   return useQuery({
     queryKey: ['walletBalance'],
-    queryFn: fetchWalletBalance,
+    queryFn: walletService.getWalletBalance,
     refetchOnWindowFocus: false,
     retry: 1,
   });
 };
 
-// Fetch wallet transactions
-interface TransactionFilters {
-  page?: number;
-  limit?: number;
-  type?: string;
-  status?: string;
-  dateRange?: string;
-}
-
-const fetchWalletTransactions = async (filters: TransactionFilters = {}): Promise<{ data: { transactions: IWalletTransaction[], pagination: { page: number, limit: number, total: number, pages: number } } }> => {
-  const params = new URLSearchParams();
-  if (filters.page) params.append('page', filters.page.toString());
-  if (filters.limit) params.append('limit', filters.limit.toString());
-  if (filters.type) params.append('type', filters.type);
-  if (filters.status) params.append('status', filters.status);
-  if (filters.dateRange) params.append('dateRange', filters.dateRange);
-  
-  const response = await fetchWithAuth(`http://localhost:5800/api/v1/wallets/transactions?${params.toString()}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch wallet transactions');
-  }
-  return response.json();
-};
-
 export const useWalletTransactions = (filters: TransactionFilters = {}) => {
   return useQuery({
     queryKey: ['walletTransactions', JSON.stringify(filters)],
-    queryFn: () => fetchWalletTransactions(filters),
+    queryFn: () => walletService.getWalletTransactions(filters),
     refetchOnWindowFocus: false,
     retry: 1,
     enabled: true,
   });
 };
 
-// Fetch payment methods
-const fetchPaymentMethods = async () => {
-  const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/payment-methods');
-  if (!response.ok) {
-    throw new Error('Failed to fetch payment methods');
-  }
-  return response.json();
-};
-
 export const usePaymentMethods = () => {
   return useQuery({
     queryKey: ['paymentMethods'],
-    queryFn: fetchPaymentMethods,
+    queryFn: walletService.getPaymentMethods,
     refetchOnWindowFocus: false,
     retry: 1,
   });

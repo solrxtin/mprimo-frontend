@@ -1,11 +1,12 @@
 "use client";
 
 import { useVendorOrders } from "@/hooks/queries";
-import { useProductStore } from "@/stores/useProductStore";
 import { ChevronDown, Eye, Search } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import OrderTableSkeleton from "./OrderTableSkeleton";
 import { useRouter } from "next/navigation";
+import { useVendorStore } from "@/stores/useVendorStore";
+import { useOrderStore } from "@/stores/useOrderStore";
 
 type Props = {};
 
@@ -13,7 +14,7 @@ const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case "delivered":
       return "bg-green-100 text-green-800";
-    case "confirmed":
+    case "processing":
       return "bg-blue-100 text-blue-800";
     case "pending":
       return "bg-yellow-100 text-yellow-800";
@@ -32,8 +33,27 @@ const OrderTable = (props: Props) => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [orders, setOrders] = useState<any[]>([]);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const { vendor } = useProductStore();
+  const { vendor } = useVendorStore();
+  const { setSelectedOrder } = useOrderStore();
   const { data, isLoading } = useVendorOrders(vendor?._id!);
+  console.log(data)
+
+  // Filter and calculate vendor-specific data
+  const getVendorItems = (order: any) => {
+    return order.items?.filter((item: any) => item.metadata?.vendorId === vendor?._id) || [];
+  };
+
+  const getVendorAmount = (order: any) => {
+    const vendorItems = getVendorItems(order);
+    return vendorItems.reduce((total: number, item: any) => {
+      return total + (item.metadata?.amountInVendorCurrency || 0) * item.quantity;
+    }, 0);
+  };
+
+  const getVendorCurrency = (order: any) => {
+    const vendorItems = getVendorItems(order);
+    return vendorItems[0]?.metadata?.vendorCurrency || 'NGN';
+  };
 
   const router = useRouter();
 
@@ -75,6 +95,8 @@ const OrderTable = (props: Props) => {
         <div className="relative col-span-3">
           <input
             type="date"
+            placeholder=""
+            title="date"
             className="border border-gray-200 rounded-md px-3 py-2 w-full"
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -102,7 +124,7 @@ const OrderTable = (props: Props) => {
               <ul className="py-1">
                 {[
                   "All",
-                  "Pending",
+                  "processing",
                   "Confirmed",
                   "Shipped",
                   "Delivered",
@@ -163,11 +185,11 @@ const OrderTable = (props: Props) => {
                     {order?.user?.profile?.firstName}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-900">
-                    {order.payment.amount.toLocaleString("en-US", {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
+                    {getVendorAmount(order).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}{" "}
-                    {order.payment.currency}
+                    {getVendorCurrency(order)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
                     {new Date(order?.createdAt).toLocaleString("en-US", {
@@ -190,12 +212,13 @@ const OrderTable = (props: Props) => {
                     </span>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
-                    {order?.items?.length} item(s)
+                    {getVendorItems(order).length} item(s)
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-xs text-gray-500">
                     <button
                       className="text-blue-600 hover:text-blue-900 flex items-center gap-1 cursor-pointer"
                       onClick={() => {
+                        setSelectedOrder(order);
                         router.push(`/vendor/dashboard/orders/${order._id}`);
                       }}
                     >
@@ -222,7 +245,7 @@ const OrderTable = (props: Props) => {
             className="bg-white border rounded-lg p-4 shadow-sm"
           >
             <div className="flex justify-between items-center mb-2">
-              <span className="font-medium">{order?._id}</span>
+              <span className="font-medium">{order?._id.slice(0, 12)}...</span>
               <span
                 className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
                   order?.status
@@ -237,11 +260,11 @@ const OrderTable = (props: Props) => {
             </div>
             <div className="text-xs text-gray-500 mb-1">
               <span className="font-medium">Amount:</span>
-              {order.payment.amount.toLocaleString("en-US", {
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1,
+              {getVendorAmount(order).toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
               })}{" "}
-              {order.payment.currency}
+              {getVendorCurrency(order)}
             </div>
             <div className="text-xs text-gray-500 mb-1">
               <span className="font-medium">Date:</span>{" "}
@@ -256,14 +279,15 @@ const OrderTable = (props: Props) => {
             </div>
             <div className="text-xs text-gray-500 mb-1">
               <span className="font-medium">Items:</span>{" "}
-              {order?.items?.length || 0} item(s)
+              {getVendorItems(order).length} item(s)
             </div>
             <div className="mt-3 flex justify-end">
               <button
                 className="text-blue-600 hover:text-blue-900 flex items-center gap-1 text-underline"
-                onClick={() =>
-                  router.push(`/vendor/dashboard/orders/${order._id}`)
-                }
+                onClick={() => {
+                  setSelectedOrder(order);
+                  router.push(`/vendor/dashboard/orders/${order._id}`);
+                }}
               >
                 <Eye size={16} />
                 <span className="text-xs">View Details</span>

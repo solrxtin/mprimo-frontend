@@ -9,52 +9,25 @@ import WithdrawalModal from '@/components/wallet/WithdrawalModal';
 import WalletSettings from '@/components/wallet/WalletSettings';
 import TransactionHistory from '@/components/wallet/TransactionHistory';
 import PaymentMethodManager from '@/components/wallet/PaymentMethodManager';
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { useVendorStore } from '@/stores/useVendorStore';
+import { useVendorWalletBalance } from '@/hooks/queries';
 
 type Props = {};
 
 type WalletType = "fiat" | "crypto";
-
-interface WalletData {
-  balances: {
-    available: number;
-    pending: number;
-    escrow: number;
-    frozen: number;
-  };
-  currency: string;
-}
 
 const WalletPage = (props: Props) => {
   const [activeWallet, setActiveWallet] = useState<WalletType>("fiat");
   const [showWithdrawal, setShowWithdrawal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
-  const [walletData, setWalletData] = useState<WalletData>({ 
-    balances: { available: 0, pending: 0, escrow: 0, frozen: 0 }, 
-    currency: 'USD' 
-  });
-  const [loading, setLoading] = useState(true);
+  const { vendor } = useVendorStore();
+  console.log(vendor)
+  
+  const { data: walletData, isLoading: loading, refetch: refetchWallet } = useVendorWalletBalance(vendor?._id!);
 
-  useEffect(() => {
-    fetchWalletData();
-  }, []);
-
-  const fetchWalletData = async () => {
-    try {
-      const response = await fetchWithAuth('http://localhost:5800/api/v1/wallets/user', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
-      console.log('Wallet data fetched:', data);
-      if (data.success) {
-        setWalletData(data.wallet);
-      }
-    } catch (error) {
-      console.error('Failed to fetch wallet data:', error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchWalletData = () => {
+    refetchWallet();
   };
 
   return (
@@ -123,15 +96,10 @@ const WalletPage = (props: Props) => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-blue-100 text-sm">Available Balance</p>
-                  <p className="text-3xl font-bold">${walletData?.balances?.available.toFixed(2)}</p>
-                  {walletData?.balances?.pending > 0 && (
+                  <p className="text-3xl font-bold">${(walletData?.wallet?.balance || 0).toFixed(2)}</p>
+                  {(walletData?.wallet?.pending || 0) > 0 && (
                     <p className="text-blue-200 text-sm mt-1">
-                      ${walletData?.balances?.pending.toFixed(2)} pending
-                    </p>
-                  )}
-                  {walletData?.balances?.escrow > 0 && (
-                    <p className="text-blue-200 text-sm">
-                      ${walletData?.balances?.escrow.toFixed(2)} in escrow
+                      ${walletData?.wallet?.pending.toFixed(2)} in escrow
                     </p>
                   )}
                 </div>
@@ -145,7 +113,7 @@ const WalletPage = (props: Props) => {
             </div>
             
             {/* Transaction History */}
-            <TransactionHistory onRefresh={fetchWalletData} />
+            <TransactionHistory onRefresh={fetchWalletData} vendorId={vendor?._id} />
           </div>
         ) : (
           <CryptoWallet />

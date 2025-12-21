@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './fetchWithAuth';
+import { getApiUrl } from '@/config/api';
 
 export interface Notification {
   _id: string;
@@ -24,28 +25,28 @@ export const notificationService = {
       ...(unreadOnly && { unreadOnly: 'true' })
     });
     
-    return fetchWithAuth(`/api/v1/notifications?${params}`);
+    return fetchWithAuth(getApiUrl(`notifications?${params}`));
   },
 
   async markAsRead(notificationId: string) {
-    return fetchWithAuth(`/api/v1/notifications/${notificationId}/read`, {
+    return fetchWithAuth(getApiUrl(`notifications/${notificationId}/read`), {
       method: 'PATCH',
     });
   },
 
   async markAllAsRead() {
-    return fetchWithAuth('/api/v1/notifications/mark-all-read', {
+    return fetchWithAuth(getApiUrl('notifications/mark-all-read'), {
       method: 'PATCH',
     });
   },
 
   async deleteNotification(notificationId: string) {
-    return fetchWithAuth(`/api/v1/notifications/${notificationId}`, {
+    return fetchWithAuth(getApiUrl(`notifications/${notificationId}`), {
       method: 'DELETE',
     });
   },
 
   async getUnreadCount() {
-    return fetchWithAuth('/api/v1/notifications/unread-count');
+    return fetchWithAuth(getApiUrl('notifications/unread-count'));
   }
 };

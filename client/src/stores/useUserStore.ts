@@ -1,18 +1,19 @@
 import { User } from "@/types/user.type";
 import ICryptoWallet from "@/types/wallet.type";
 import { create } from "zustand";
-import { API_CONFIG } from '@/config/api.config';
 import {
   persist,
   createJSONStorage,
   type PersistOptions,
 } from "zustand/middleware";
+import { refreshToken } from "@/utils/refreshToken";
 
 interface UserState {
   user: User | null;
   setUser: (user: User | null) => void;
   updateUser: (updates: Partial<User>) => void;
   refreshUser: () => Promise<void>;
+  logout: () => void;
   deviceId: string | null;
   setDeviceId: (deviceId: any) => void;
   wallet: ICryptoWallet | null;
@@ -49,20 +50,10 @@ export const useUserStore = create<UserState>()(
       },
 
       refreshUser: async () => {
-        try {
-          const response = await fetch(`${API_CONFIG.BASE_URL}/users/profile`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            },
-          });
-          if (response.ok) {
-            const data = await response.json();
-            set({ user: data.user });
-          }
-        } catch (error) {
-          console.error('Failed to refresh user:', error);
-        }
+        await refreshToken();
       },
+
+      logout: () => set({ user: null }),
 
       deviceId: null,
       setDeviceId: (deviceId: string | null) => set({ deviceId }),

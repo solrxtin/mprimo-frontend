@@ -65,16 +65,12 @@ export default function DashboardPage() {
 
   const { data: profileData, isLoading: profileLoading } = useUserProfile();
   const { data: recentViewsData, isLoading: viewsLoading } = useRecentViews(8);
-  const {
-    data: recomendationsData,
-    isLoading: recomendationsLoading,
-  } = useRecomendations(8, true);
-  const {
-    data: activitiesData,
-    isLoading: activitiesLoading,
-  } = useUserRecentActivities(activitiesPage, 10);
+  const { data: recomendationsData, isLoading: recomendationsLoading } =
+    useRecomendations(8, true);
+  const { data: activitiesData, isLoading: activitiesLoading } =
+    useUserRecentActivities(activitiesPage, 10);
 
-  console.log("Activities data is: ", activitiesData)
+  console.log("Recent views are: ", recentViewsData);
 
   const recentViews = recentViewsData?.recentViews || [];
   const recommendations = recomendationsData?.products || [];
@@ -193,24 +189,36 @@ export default function DashboardPage() {
 
   const formatActivityText = (activity: any) => {
     const { activity: type, metadata } = activity;
-    
+
     switch (type) {
       case "order_created":
-        return `Order created - ${metadata?.itemCount || 0} item(s) for $${metadata?.orderAmount?.toFixed(2) || '0.00'} via ${metadata?.paymentMethod || 'payment'}`;
+        return `Order created - ${metadata?.itemCount || 0} item(s) for $${
+          metadata?.orderAmount?.toFixed(2) || "0.00"
+        } via ${metadata?.paymentMethod || "payment"}`;
       case "wallet_topup":
-        return `Wallet topped up - $${metadata?.topUpAmount?.toFixed(2) || '0.00'} ${metadata?.currency?.toUpperCase() || ''}`;
+        return `Wallet topped up - $${
+          metadata?.topUpAmount?.toFixed(2) || "0.00"
+        } ${metadata?.currency?.toUpperCase() || ""}`;
       case "user_login":
-        return `Logged in from ${metadata?.device || 'device'} - ${metadata?.location || 'unknown location'}`;
+        return `Logged in from ${metadata?.device || "device"} - ${
+          metadata?.location || "unknown location"
+        }`;
       case "user_logout":
-        return `Logged out from ${metadata?.device || 'device'}`;
+        return `Logged out from ${metadata?.device || "device"}`;
       case "profile_updated":
-        return `Profile updated - ${metadata?.fields?.join(', ') || 'fields modified'}`;
+        return `Profile updated - ${
+          metadata?.fields?.join(", ") || "fields modified"
+        }`;
       case "review_created":
-        return `Review created - ${metadata?.rating || 0} star${metadata?.rating !== 1 ? 's' : ''}${metadata?.hasComment ? ' with comment' : ''}`;
+        return `Review created - ${metadata?.rating || 0} star${
+          metadata?.rating !== 1 ? "s" : ""
+        }${metadata?.hasComment ? " with comment" : ""}`;
       case "refund_received":
-        return `Refund received - $${metadata?.refundAmount?.toFixed(2) || '0.00'} for order`;
+        return `Refund received - $${
+          metadata?.refundAmount?.toFixed(2) || "0.00"
+        } for order`;
       default:
-        return type?.replace(/_/g, ' ') || 'Activity';
+        return type?.replace(/_/g, " ") || "Activity";
     }
   };
 
@@ -401,42 +409,66 @@ export default function DashboardPage() {
                       </tr>
                     ))
                   ) : activitiesData?.activities?.length > 0 ? (
-                    activitiesData.activities.map((activity: any, index: number) => {
-                      const activityDate = new Date(activity.timestamp);
-                      const activityTime = activityDate.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
-                      const activityDateStr = activityDate.toLocaleDateString("en-US", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      });
+                    activitiesData.activities.map(
+                      (activity: any, index: number) => {
+                        const activityDate = new Date(activity.timestamp);
+                        const activityTime = activityDate.toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        );
+                        const activityDateStr = activityDate.toLocaleDateString(
+                          "en-US",
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          }
+                        );
 
-                      return (
-                        <tr key={activity.id || activity._id || index} className="border-b">
-                          <td className="py-3">
-                            <input type="checkbox" className="rounded" />
-                          </td>
-                          <td className="py-3">
-                            <div className="flex items-center space-x-3">
-                              {getActivityIcon(activity.activity)}
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium">{formatActivityText(activity)}</span>
-                                <div className="sm:hidden text-xs text-gray-500 mt-1">
-                                  {activityTime} • {activityDateStr}
+                        return (
+                          <tr
+                            key={activity.id || activity._id || index}
+                            className="border-b"
+                          >
+                            <td className="py-3">
+                              <input 
+                                title="select or unselect activity"
+                                type="checkbox" 
+                                className="rounded"
+                               />
+                            </td>
+                            <td className="py-3">
+                              <div className="flex items-center space-x-3">
+                                {getActivityIcon(activity.activity)}
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">
+                                    {formatActivityText(activity)}
+                                  </span>
+                                  <div className="sm:hidden text-xs text-gray-500 mt-1">
+                                    {activityTime} • {activityDateStr}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="py-3 text-sm hidden sm:table-cell">{activityTime}</td>
-                          <td className="py-3 text-sm hidden sm:table-cell">{activityDateStr}</td>
-                        </tr>
-                      );
-                    })
+                            </td>
+                            <td className="py-3 text-sm hidden sm:table-cell">
+                              {activityTime}
+                            </td>
+                            <td className="py-3 text-sm hidden sm:table-cell">
+                              {activityDateStr}
+                            </td>
+                          </tr>
+                        );
+                      }
+                    )
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-8 text-center text-gray-500">
+                      <td
+                        colSpan={4}
+                        className="py-8 text-center text-gray-500"
+                      >
                         No recent activities
                       </td>
                     </tr>
@@ -446,29 +478,32 @@ export default function DashboardPage() {
             </div>
 
             {/* Activities Pagination */}
-            {activitiesData?.pagination && activitiesData.pagination.pages > 1 && (
-              <div className="flex justify-center items-center space-x-2 mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={activitiesPage === 1}
-                  onClick={() => setActivitiesPage((prev) => prev - 1)}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-gray-600">
-                  Page {activitiesPage} of {activitiesData.pagination.pages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={activitiesPage === activitiesData.pagination.pages}
-                  onClick={() => setActivitiesPage((prev) => prev + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            )}
+            {activitiesData?.pagination &&
+              activitiesData.pagination.pages > 1 && (
+                <div className="flex justify-center items-center space-x-2 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={activitiesPage === 1}
+                    onClick={() => setActivitiesPage((prev) => prev - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-600">
+                    Page {activitiesPage} of {activitiesData.pagination.pages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={
+                      activitiesPage === activitiesData.pagination.pages
+                    }
+                    onClick={() => setActivitiesPage((prev) => prev + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
           </CardContent>
         </Card>
 
@@ -477,7 +512,10 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-lg">Recent Views</h3>
             {recentViews.length > 0 && (
-              <Button variant="link" className="text-blue-600 hover:text-blue-800">
+              <Button
+                variant="link"
+                className="text-blue-600 hover:text-blue-800"
+              >
                 See All →
               </Button>
             )}
@@ -505,26 +543,41 @@ export default function DashboardPage() {
             {/* Desktop Pagination */}
             {recentViews.length > itemsPerPage && (
               <div className="flex flex-wrap justify-center items-center gap-2 mt-6">
-                <Button variant="ghost" size="sm" disabled={recentViewsPage === 1} onClick={() => setRecentViewsPage((prev) => prev - 1)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={recentViewsPage === 1}
+                  onClick={() => setRecentViewsPage((prev) => prev - 1)}
+                >
                   Prev
                 </Button>
 
-                {Array.from({ length: Math.ceil(recentViews.length / itemsPerPage) }, (_, i) => (
-                  <Button
-                    key={i + 1}
-                    size="sm"
-                    variant={recentViewsPage === i + 1 ? "default" : "ghost"}
-                    className={recentViewsPage === i + 1 ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
-                    onClick={() => setRecentViewsPage(i + 1)}
-                  >
-                    {i + 1}
-                  </Button>
-                ))}
+                {Array.from(
+                  { length: Math.ceil(recentViews.length / itemsPerPage) },
+                  (_, i) => (
+                    <Button
+                      key={i + 1}
+                      size="sm"
+                      variant={recentViewsPage === i + 1 ? "default" : "ghost"}
+                      className={
+                        recentViewsPage === i + 1
+                          ? "bg-orange-500 hover:bg-orange-600 text-white"
+                          : ""
+                      }
+                      onClick={() => setRecentViewsPage(i + 1)}
+                    >
+                      {i + 1}
+                    </Button>
+                  )
+                )}
 
                 <Button
                   variant="ghost"
                   size="sm"
-                  disabled={recentViewsPage === Math.ceil(recentViews.length / itemsPerPage)}
+                  disabled={
+                    recentViewsPage ===
+                    Math.ceil(recentViews.length / itemsPerPage)
+                  }
                   onClick={() => setRecentViewsPage((prev) => prev + 1)}
                 >
                   Next
@@ -539,7 +592,12 @@ export default function DashboardPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-lg">You Might Like</h3>
-              <Button variant="link" className="text-blue-600 hover:text-blue-800">See All →</Button>
+              <Button
+                variant="link"
+                className="text-blue-600 hover:text-blue-800"
+              >
+                See All →
+              </Button>
             </div>
 
             {/* Mobile Swiper for recommendations (full-bleed) */}
@@ -564,26 +622,45 @@ export default function DashboardPage() {
               {/* Desktop Pagination */}
               {recommendations.length > itemsPerPage && (
                 <div className="flex flex-wrap justify-center items-center gap-2 mt-6">
-                  <Button variant="ghost" size="sm" disabled={recommendationsPage === 1} onClick={() => setRecommendationsPage((prev) => prev - 1)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={recommendationsPage === 1}
+                    onClick={() => setRecommendationsPage((prev) => prev - 1)}
+                  >
                     Prev
                   </Button>
 
-                  {Array.from({ length: Math.ceil(recommendations.length / itemsPerPage) }, (_, i) => (
-                    <Button
-                      key={i + 1}
-                      size="sm"
-                      variant={recommendationsPage === i + 1 ? "default" : "ghost"}
-                      className={recommendationsPage === i + 1 ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
-                      onClick={() => setRecommendationsPage(i + 1)}
-                    >
-                      {i + 1}
-                    </Button>
-                  ))}
+                  {Array.from(
+                    {
+                      length: Math.ceil(recommendations.length / itemsPerPage),
+                    },
+                    (_, i) => (
+                      <Button
+                        key={i + 1}
+                        size="sm"
+                        variant={
+                          recommendationsPage === i + 1 ? "default" : "ghost"
+                        }
+                        className={
+                          recommendationsPage === i + 1
+                            ? "bg-orange-500 hover:bg-orange-600 text-white"
+                            : ""
+                        }
+                        onClick={() => setRecommendationsPage(i + 1)}
+                      >
+                        {i + 1}
+                      </Button>
+                    )
+                  )}
 
                   <Button
                     variant="ghost"
                     size="sm"
-                    disabled={recommendationsPage === Math.ceil(recommendations.length / itemsPerPage)}
+                    disabled={
+                      recommendationsPage ===
+                      Math.ceil(recommendations.length / itemsPerPage)
+                    }
                     onClick={() => setRecommendationsPage((prev) => prev + 1)}
                   >
                     Next

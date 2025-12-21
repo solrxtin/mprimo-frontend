@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './fetchWithAuth';
+import { getApiUrl } from '@/config/api';
 
 export interface VendorAnalytics {
   dashboard: {
@@ -60,7 +61,7 @@ export interface VendorOrder {
 
 export const vendorService = {
   async getAnalytics(vendorId: string) {
-    const response = await fetchWithAuth(`http://localhost:5800/api/v1/vendor/${vendorId}/analytics`);
+    const response = await fetchWithAuth(getApiUrl(`vendors/${vendorId}/analytics`));
     return response.json();
   },
 
@@ -71,12 +72,12 @@ export const vendorService = {
       ...(status && { status })
     });
     
-    const response = await fetchWithAuth(`http://localhost:5800/api/v1/vendor/${vendorId}/orders?${params}`);
+    const response = await fetchWithAuth(getApiUrl(`vendors/${vendorId}/orders?${params}`));
     return response.json();
   },
 
   async updateOrderStatus(orderId: string, status: string) {
-    return fetchWithAuth(`http://localhost:5800/api/v1/orders/${orderId}/status`, {
+    return fetchWithAuth(getApiUrl(`orders/${orderId}/status`), {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
@@ -88,25 +89,25 @@ export const vendorService = {
       limit: limit.toString(),
     });
     
-    return fetchWithAuth(`http://localhost:5800/api/v1/vendor/${vendorId}/products?${params}`);
+    return fetchWithAuth(getApiUrl(`vendors/${vendorId}/products?${params}`));
   },
 
   async createProduct(productData: any) {
-    return fetchWithAuth('http://localhost:5800/api/v1/products', {
+    return fetchWithAuth(getApiUrl('products'), {
       method: 'POST',
       body: JSON.stringify(productData),
     });
   },
 
   async updateProduct(productId: string, productData: any) {
-    return fetchWithAuth(`http://localhost:5800/api/v1/products/${productId}`, {
+    return fetchWithAuth(getApiUrl(`products/${productId}`), {
       method: 'PUT',
       body: JSON.stringify(productData),
     });
   },
 
   async deleteProduct(productId: string) {
-    return fetchWithAuth(`http://localhost:5800/api/v1/products/${productId}`, {
+    return fetchWithAuth(getApiUrl(`products/${productId}`), {
       method: 'DELETE',
     });
   },
@@ -117,11 +118,11 @@ export const vendorService = {
       limit: limit.toString(),
     });
     
-    return fetchWithAuth(`http://localhost:5800/api/v1/vendor-payouts/${vendorId}?${params}`);
+    return fetchWithAuth(getApiUrl(`vendor-payouts/${vendorId}?${params}`));
   },
 
   async requestPayout(amount: number, method: string) {
-    return fetchWithAuth('http://localhost:5800/api/v1/vendor-payouts/request', {
+    return fetchWithAuth(getApiUrl('vendor-payouts/request'), {
       method: 'POST',
       body: JSON.stringify({ amount, method }),
     });

@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { API_BASE_URL } from '@/config/api';
 
 class SocketService {
   private socket: Socket | null = null;
@@ -10,7 +11,9 @@ class SocketService {
     }
 
     this.userId = userId;
-    this.socket = io('http://localhost:5800', {
+    // Extract base URL without /api/v1 for socket connection
+    const socketUrl = API_BASE_URL.replace('/api/v1', '');
+    this.socket = io(socketUrl, {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });

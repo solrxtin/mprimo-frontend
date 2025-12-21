@@ -9,13 +9,11 @@ import { WishlistResponse } from "@/types/wishlist.type";
 import { useWishlistStore } from "@/stores/useWishlistStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { useEffect } from "react";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "https://mprimo-production.up.railway.app/api/v1";
+import { getApiUrl } from "@/config/api";
 
 const wishlistApi = {
   getWishlist: async (): Promise<WishlistResponse> => {
-    const response = await fetchWithAuth(`${API_BASE}/products/wishlist/user`);
+    const response = await fetchWithAuth(getApiUrl('products/wishlist/user'));
     if (!response.ok) throw new Error("Failed to fetch wishlist");
     const data = await response.json();
     return data;
@@ -33,7 +31,7 @@ const wishlistApi = {
     variantId?: string;
   }) => {
     const response = await fetchWithAuth(
-      `${API_BASE}/products/wishlist/${productId}`,
+      getApiUrl(`products/wishlist/${productId}`),
       {
         method: "POST",
         body: JSON.stringify({ price, optionId, variantId }),
@@ -45,7 +43,7 @@ const wishlistApi = {
 
   removeFromWishlist: async ({ productId, variantId, optionId }: { productId: string; variantId?: string; optionId?: string }) => {
     const response = await fetchWithAuth(
-      `${API_BASE}/products/wishlist/${productId}`,
+      getApiUrl(`products/wishlist/${productId}`),
       {
         method: "DELETE",
         body: JSON.stringify({ variantId, optionId }),
@@ -60,7 +58,7 @@ const wishlistApi = {
 
   clearWishlist: async () => {
     const response = await fetchWithAuth(
-      `${API_BASE}/products/wishlist/clear`,
+      getApiUrl('products/wishlist/clear'),
       {
         method: "DELETE",
       }
@@ -70,33 +68,40 @@ const wishlistApi = {
   },
 };
 
-export const useWishlist = () => {
-  const queryClient = useQueryClient();
+// TanStack Query-based wishlist hook
+export const useWishlistQuery = () => {
   const user = useUserStore((state) => state.user);
-  const {
-    setItems,
-    addItem,
-    removeItem,
-    items,
-    getWishlistLength,
-    isInWishlist: storeIsInWishlist,
-  } = useWishlistStore();
-
-  const { data: wishlistData, isLoading } = useQuery({
+  
+  return useQuery({
     queryKey: ["wishlist"],
     queryFn: wishlistApi.getWishlist,
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: false,
+    refetchOnWindowFocus: false,
   });
+};
+
+export const useWishlist = () => {
+  const queryClient = useQueryClient();
+  const user = useUserStore((state) => state.user);
+  const {
+    setItems,
+    items,
+    getWishlistLength,
+    isInWishlist: storeIsInWishlist,
+  } = useWishlistStore();
+
+  const { data: wishlistData, isLoading } = useWishlistQuery();
 
   useEffect(() => {
     if (wishlistData?.success) {
       setItems(Array.isArray(wishlistData.data) ? wishlistData.data : []);
-    } else {
+    } else if (wishlistData && !wishlistData.success) {
       setItems([]);
     }
-  }, [wishlistData]);
+  }, [wishlistData, setItems]);
 
   const addToWishlistMutation = useMutation({
     mutationFn: wishlistApi.addToWishlist,
