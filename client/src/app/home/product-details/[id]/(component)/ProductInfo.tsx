@@ -29,6 +29,7 @@ import BuyNowSummary from "@/components/BuyNowSummary";
 import { calculateTotalQuantity } from "@/utils/productUtils";
 import OfferModal from "./OfferModal";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getApiUrl } from "@/config/api";
 
 export const AuctionCountdown = ({ auction }: { auction: any }) => {
   const [timeLeft, setTimeLeft] = useState<string>("");
@@ -549,7 +550,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     setIsSubmittingOffer(true);
     try {
       const response = await fetchWithAuth(
-        `http://localhost:5800/api/v1/products/offer/${productData._id}`,
+        getApiUrl(`products/offer/${productData._id}`),
         {
           method: "POST",
           body: JSON.stringify({
