@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { ProductType } from "@/types/product.type";
-import { NumericFormat } from "react-number-format";
 
 interface OfferModalProps {
   isOpen: boolean;
   onClose: () => void;
   productData: ProductType;
-  onSubmitOffer: (amount: number, optionId: string) => void;
+  onSubmitOffer: (amount: number, optionId: string, variantId: string) => void;
   isSubmitting: boolean;
   selectedOptionId: string;
 }
@@ -23,22 +22,37 @@ export const OfferModal: React.FC<OfferModalProps> = ({
   selectedOptionId,
 }) => {
   const [offerAmount, setOfferAmount] = useState<string>("");
+  const [selectedVariantId, setSelectedVariantId] = useState<string>("");
+  const [selectedOptionIdState, setSelectedOptionIdState] = useState<string>(selectedOptionId || "");
+  const [showVariantDropdown, setShowVariantDropdown] = useState(false);
 
   if (!isOpen) return null;
+
+  const priceInfo = (productData as any)?.priceInfo;
+  const currencySymbol = priceInfo?.currencySymbol || "₦";
+  const exchangeRate = priceInfo?.exchangeRate || 1;
+
+  // Get selected variant and option
+  const selectedVariant = productData?.variants?.find(v => v._id === selectedVariantId);
+  const selectedOption = selectedVariant?.options?.find(o => o._id === selectedOptionIdState);
+  
+  // Calculate price: (salePrice or price) * exchangeRate
+  const optionPrice = selectedOption?.salePrice || selectedOption?.price || 0;
+  const currentPrice = optionPrice * exchangeRate;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(offerAmount);
-    if (amount > 0) {
-      onSubmitOffer(amount, selectedOptionId);
+    if (amount > 0 && selectedVariantId && selectedOptionIdState) {
+      onSubmitOffer(amount, selectedOptionIdState, selectedVariantId);
     }
   };
 
-  const currentPrice = productData?.variants?.[0]?.options?.[0]?.displayPrice || 
-                      productData?.variants?.[0]?.options?.[0]?.salePrice || 
-                      productData?.variants?.[0]?.options?.[0]?.price || 0;
-
-  const currencySymbol = (productData as any)?.priceInfo?.currencySymbol || "$";
+  const handleVariantSelect = (variantId: string, optionId: string) => {
+    setSelectedVariantId(variantId);
+    setSelectedOptionIdState(optionId);
+    setShowVariantDropdown(false);
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -46,6 +60,8 @@ export const OfferModal: React.FC<OfferModalProps> = ({
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Make an Offer</h2>
           <button
+            type="button"
+            aria-label="Close"
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded"
             disabled={isSubmitting}
@@ -66,6 +82,47 @@ export const OfferModal: React.FC<OfferModalProps> = ({
               <p className="text-gray-600 text-sm">
                 Current Price: {currencySymbol}{currentPrice.toLocaleString()}
               </p>
+            </div>
+          </div>
+
+          {/* Variant Selector */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Variant
+            </label>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowVariantDropdown(!showVariantDropdown)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-left flex items-center justify-between hover:border-gray-400"
+                disabled={isSubmitting}
+              >
+                <span className="text-sm">
+                  {selectedVariant && selectedOption
+                    ? `${selectedVariant.name}: ${selectedOption.value}`
+                    : "Select a variant"}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              {showVariantDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {productData?.variants?.map((variant) =>
+                    variant.options?.map((option) => (
+                      <button
+                        key={`${variant._id}-${option._id}`}
+                        type="button"
+                        onClick={() => handleVariantSelect(variant._id!, option._id!)}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex justify-between items-center"
+                      >
+                        <span>{variant.name}: {option.value}</span>
+                        <span className="text-gray-600">
+                          {currencySymbol}{((option.salePrice || option.price || 0) * exchangeRate).toLocaleString()}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -108,7 +165,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
             <button
               type="submit"
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting || !offerAmount || parseFloat(offerAmount) <= 0}
+              disabled={isSubmitting || !offerAmount || parseFloat(offerAmount) <= 0 || !selectedVariantId || !selectedOptionIdState}
             >
               {isSubmitting ? "Submitting..." : "Submit Offer"}
             </button>
