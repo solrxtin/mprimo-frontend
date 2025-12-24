@@ -1108,7 +1108,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
               </button>
             </div>
           ) : (
-            <div className="flex justify-between items-center gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               {!productData.inventory.listing.auction?.isStarted && (
                 <button
                   onClick={handleBuyNow}
@@ -1116,7 +1116,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                     isBuyingNow ||
                     productData.inventory.listing.auction?.isExpired
                   }
-                  className={`w-full px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2
+                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2
                       ${
                         isBuyingNow ||
                         productData.inventory.listing.auction?.isExpired
@@ -1142,7 +1142,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                   productData.inventory.listing.auction?.isExpired ||
                   !productData.inventory.listing.auction?.isStarted
                 }
-                className={`w-full px-4 py-3 rounded-lg font-medium transition-colors 
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors 
                 ${
                   isLoading ||
                   productData.inventory.listing.auction?.isExpired ||
@@ -1156,6 +1156,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                 ) : (
                   "Place Bid"
                 )}
+              </button>
+
+              <button
+                onClick={() => router.push(`/home/auction-room/${productData._id}`)}
+                className="flex-1 px-4 py-3 rounded-lg font-medium bg-green-600 hover:bg-green-700 text-white transition-colors cursor-pointer"
+              >
+                Go to Room
               </button>
             </div>
           )}

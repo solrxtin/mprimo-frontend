@@ -24,6 +24,7 @@ import { useCreateOrder, useCreatePaymentIntent, useValidateCart } from "@/hooks
 import { useAddAddress } from "@/hooks/useAddress";
 import { useCountries } from "@/hooks/useCountries";
 import { useUserCurrency } from "@/hooks/useUserCurrency";
+import { Country, State } from "country-state-city";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import StripePaymentForm from "@/components/StripePaymentForm";
@@ -41,6 +42,10 @@ export default function CheckoutPage() {
   const [fiatProvider, setFiatProvider] = useState("");
   const [sameAsShipping, setSameAsShipping] = useState(false);
   const [showShippingModal, setShowShippingModal] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const [shippingSelectedCountry, setShippingSelectedCountry] = useState("");
+  const [shippingSelectedState, setShippingSelectedState] = useState("");
   const [shippingAddress, setShippingAddress] = useState({
     type: "shipping" as const,
     street: "",
@@ -90,12 +95,43 @@ export default function CheckoutPage() {
   const createPaymentIntentMutation = useCreatePaymentIntent();
   const addAddressMutation = useAddAddress();
   const { data: countries = [] } = useCountries();
+  const allCountries = Country.getAllCountries();
+  const states = selectedCountry ? State.getStatesOfCountry(selectedCountry) : [];
+  const shippingStates = shippingSelectedCountry ? State.getStatesOfCountry(shippingSelectedCountry) : [];
 
   useEffect(() => {
     if (cartItems.length > 0) {
       validateCart();
     }
   }, []);
+
+  // Handle same as shipping checkbox
+  useEffect(() => {
+    if (sameAsShipping && user?.addresses) {
+      const shippingAddr = user.addresses.find(addr => addr.type === "shipping" && addr.isDefault);
+      if (shippingAddr) {
+        const countryObj = allCountries.find(c => c.name === shippingAddr.country);
+        if (countryObj) {
+          setSelectedCountry(countryObj.isoCode);
+          const stateObj = State.getStatesOfCountry(countryObj.isoCode).find(s => s.name === shippingAddr.state);
+          if (stateObj) {
+            setSelectedState(stateObj.isoCode);
+          }
+        }
+        setFormData(prev => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            street: shippingAddr.street,
+            city: shippingAddr.city,
+            state: shippingAddr.state,
+            country: shippingAddr.country,
+            postalCode: shippingAddr.postalCode,
+          }
+        }));
+      }
+    }
+  }, [sameAsShipping, user?.addresses]);
 
   const checkout = validationData?.checkout;
   const subtotal = checkout?.pricing?.subtotal || 0;
@@ -524,20 +560,23 @@ export default function CheckoutPage() {
                     <div>
                       <Label htmlFor="country">Country</Label>
                       <Select
-                        value={formData.address.country}
-                        onValueChange={(value) =>
+                        value={selectedCountry}
+                        onValueChange={(countryCode) => {
+                          setSelectedCountry(countryCode);
+                          setSelectedState("");
+                          const country = allCountries.find(c => c.isoCode === countryCode);
                           setFormData(prev => ({
                             ...prev,
-                            address: { ...prev.address, country: value }
-                          }))
-                        }
+                            address: { ...prev.address, country: country?.name || "", state: "" }
+                          }));
+                        }}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Choose your country" />
                         </SelectTrigger>
                         <SelectContent>
-                          {countries.map((country: any) => (
-                            <SelectItem key={country._id} value={country.name}>
+                          {allCountries.map((country) => (
+                            <SelectItem key={country.isoCode} value={country.isoCode}>
                               {country.name}
                             </SelectItem>
                           ))}
@@ -546,18 +585,29 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <Label htmlFor="state">State</Label>
-                      <Input
-                        id="state"
-                        placeholder="Enter your State"
-                        value={formData.address.state}
-                        onChange={(e) =>
+                      <Select
+                        value={selectedState}
+                        onValueChange={(stateCode) => {
+                          setSelectedState(stateCode);
+                          const state = states.find(s => s.isoCode === stateCode);
                           setFormData(prev => ({
                             ...prev,
-                            address: { ...prev.address, state: e.target.value }
-                          }))
-                        }
-                        className="mt-1"
-                      />
+                            address: { ...prev.address, state: state?.name || "" }
+                          }));
+                        }}
+                        disabled={!selectedCountry}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Choose your state" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {states.map((state) => (
+                            <SelectItem key={state.isoCode} value={state.isoCode}>
+                              {state.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="postalCode">Postal Code</Label>
@@ -926,11 +976,11 @@ export default function CheckoutPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="shipState">State</Label>
+                      <Label htmlFor="shipPostalCode">Postal Code</Label>
                       <Input
-                        id="shipState"
-                        value={shippingAddress.state}
-                        onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
+                        id="shipPostalCode"
+                        value={shippingAddress.postalCode}
+                        onChange={(e) => setShippingAddress(prev => ({ ...prev, postalCode: e.target.value }))}
                         className="mt-1"
                       />
                     </div>
@@ -939,21 +989,51 @@ export default function CheckoutPage() {
                     <div>
                       <Label htmlFor="shipCountry">Country</Label>
                       <Select
-                        value={shippingAddress.country}
-                        onValueChange={(value) => setShippingAddress(prev => ({ ...prev, country: value }))}
+                        value={shippingSelectedCountry}
+                        onValueChange={(countryCode) => {
+                          setShippingSelectedCountry(countryCode);
+                          setShippingSelectedState("");
+                          const country = allCountries.find(c => c.isoCode === countryCode);
+                          setShippingAddress(prev => ({ ...prev, country: country?.name || "", state: "" }));
+                        }}
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Choose country" />
                         </SelectTrigger>
                         <SelectContent>
-                          {countries.map((country: any) => (
-                            <SelectItem key={country._id} value={country.name}>
+                          {allCountries.map((country) => (
+                            <SelectItem key={country.isoCode} value={country.isoCode}>
                               {country.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
+                    <div>
+                      <Label htmlFor="shipState">State</Label>
+                      <Select
+                        value={shippingSelectedState}
+                        onValueChange={(stateCode) => {
+                          setShippingSelectedState(stateCode);
+                          const state = shippingStates.find(s => s.isoCode === stateCode);
+                          setShippingAddress(prev => ({ ...prev, state: state?.name || "" }));
+                        }}
+                        disabled={!shippingSelectedCountry}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Choose state" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {shippingStates.map((state) => (
+                            <SelectItem key={state.isoCode} value={state.isoCode}>
+                              {state.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="shipPostal">Postal Code</Label>
                       <Input

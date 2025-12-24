@@ -5,10 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useFetchProductById } from "@/hooks/queries";
 import { useUserStore } from "@/stores/useUserStore";
 import socketService from "@/utils/socketService";
-import { getBids } from "@/hooks/useProducts";
+import { getBids, placeBid } from "@/hooks/useProducts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, Trophy, Gavel } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export default function AuctionRoomPage() {
   const { id } = useParams();
@@ -17,6 +19,8 @@ export default function AuctionRoomPage() {
   const { data: productData, isLoading } = useFetchProductById(id as string);
   const [bids, setBids] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [bidAmount, setBidAmount] = useState("");
+  const [isPlacingBid, setIsPlacingBid] = useState(false);
 
   const product = productData?.product;
   const auction = product?.inventory?.listing?.auction;
@@ -111,6 +115,30 @@ export default function AuctionRoomPage() {
 
   const userBid = bids.find((b: any) => b.userId?._id === user?._id);
 
+  const handlePlaceBid = async () => {
+    if (!bidAmount || !productData?._id) {
+      toast.error("Please enter a bid amount");
+      return;
+    }
+
+    const bidValue = parseFloat(bidAmount);
+    if (bidValue <= currentHighestBid) {
+      toast.error(`Bid must be higher than ${formatUSD(currentHighestBid)}`);
+      return;
+    }
+
+    setIsPlacingBid(true);
+    try {
+      await placeBid(productData._id, bidValue);
+      toast.success("Bid placed successfully!");
+      setBidAmount("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to place bid");
+    } finally {
+      setIsPlacingBid(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Bar */}
@@ -198,26 +226,26 @@ export default function AuctionRoomPage() {
           {/* Live Bidding Panel */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 sticky top-6">
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-4 md:p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-2xl font-bold text-gray-900">Live Bids</h2>
-                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">{bids.length} BIDS</Badge>
+                  <h2 className="text-lg md:text-xl font-bold text-gray-900">Live Bids</h2>
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">{bids.length} BIDS</Badge>
                 </div>
-                <div className="text-sm text-gray-600">Real-time bidding activity</div>
+                <div className="text-xs md:text-sm text-gray-600">Real-time bidding activity</div>
               </div>
 
-              <div className="p-4 space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+              <div className="p-3 md:p-4 space-y-2 md:space-y-3 max-h-[400px] md:max-h-[500px] overflow-y-auto custom-scrollbar">
                 {userBid && (
-                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-600 rounded-lg p-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-600 rounded-lg p-3 md:p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-blue-900">YOUR BID</span>
+                      <span className="font-bold text-blue-900 text-sm md:text-base">YOUR BID</span>
                       {userBid.isWinning && (
-                        <Badge className="bg-green-600 text-white flex items-center gap-1">
+                        <Badge className="bg-green-600 text-white flex items-center gap-1 text-xs">
                           <Trophy className="w-3 h-3" /> WINNING
                         </Badge>
                       )}
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">{formatUSD(userBid.currentAmount)}</div>
+                    <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1">{formatUSD(userBid.currentAmount)}</div>
                     <div className="text-xs text-gray-600">{new Date(userBid.createdAt).toLocaleString()}</div>
                   </div>
                 )}
@@ -226,25 +254,49 @@ export default function AuctionRoomPage() {
                   .filter((b: any) => b.userId !== user?._id)
                   .sort((a: any, b: any) => b.currentAmount - a.currentAmount)
                   .map((bid: any, index: number) => (
-                    <div key={bid._id || index} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition">
+                    <div key={bid._id || index} className="bg-gray-50 border border-gray-200 rounded-lg p-3 md:p-4 hover:bg-gray-100 transition">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-gray-700">Bidder #{index + 1}</span>
+                        <span className="font-semibold text-gray-700 text-sm md:text-base">Bidder #{index + 1}</span>
                         {index === 0 && !userBid?.isWinning && (
-                          <Badge className="bg-orange-100 text-orange-700 border-orange-200">HIGHEST</Badge>
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-xs">HIGHEST</Badge>
                         )}
                       </div>
-                      <div className="text-xl font-bold text-gray-900 mb-1">{formatUSD(bid.currentAmount)}</div>
+                      <div className="text-lg md:text-xl font-bold text-gray-900 mb-1">{formatUSD(bid.currentAmount)}</div>
                       <div className="text-xs text-gray-600">{new Date(bid.createdAt).toLocaleString()}</div>
                     </div>
                   ))}
 
                 {bids.length === 0 && (
-                  <div className="text-center py-12">
-                    <Gavel className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-700 text-lg font-semibold">No bids yet</p>
-                    <p className="text-gray-500 text-sm mt-2">Be the first to place a bid!</p>
+                  <div className="text-center py-8 md:py-12">
+                    <Gavel className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 text-gray-400" />
+                    <p className="text-gray-700 text-base md:text-lg font-semibold">No bids yet</p>
+                    <p className="text-gray-500 text-xs md:text-sm mt-2">Be the first to place a bid!</p>
                   </div>
                 )}
+              </div>
+
+              {/* Bid Input Section */}
+              <div className="p-4 border-t border-gray-200 space-y-3">
+                <div className="text-xs md:text-sm text-gray-600">
+                  Minimum bid: {formatUSD(currentHighestBid + (auction?.bidIncrement || 1))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Enter your bid"
+                    value={bidAmount}
+                    onChange={(e) => setBidAmount(e.target.value)}
+                    className="flex-1"
+                    disabled={isPlacingBid}
+                  />
+                  <Button
+                    onClick={handlePlaceBid}
+                    disabled={isPlacingBid || !bidAmount}
+                    className="bg-blue-600 hover:bg-blue-700 px-6"
+                  >
+                    {isPlacingBid ? "Placing..." : "Place Bid"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

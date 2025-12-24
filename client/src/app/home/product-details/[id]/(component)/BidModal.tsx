@@ -130,10 +130,10 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
   const userBid = bids.find((b: any) => b.userId?._id === user?._id);
 
   return (
-    <Modal isOpen={isBid} onClose={handleClose}>
+    <Modal isOpen={isBid} onClose={handleClose} className="max-w-3xl">
       {step === 1 && (
 <>         <div className="py-4 flex justify-between">
-            <h3 className="text-[18px] flex-1 md:text-[20px] md:leading-[24px] text-dark font-semibold">Make a bid</h3>
+            <h3 className="text-base flex-1 md:text-lg text-dark font-semibold">Make a bid</h3>
             <X onClick={handleClose} className="cursor-pointer text-black" size={20} />
           </div>
 
@@ -141,8 +141,8 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
             To make a bid, provide your preferred payment method and shipping address details before you bid. You will be charged only if you win
           </p>
 
-          <div className="grid grid-cols-2 gap-4 md:gap-5">
-            <p className="text-base md:text-lg font-medium text-dark">Payment Method</p>
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <p className="text-sm md:text-base font-medium text-dark">Payment Method</p>
             <div className="col-span-2">
               <SelectInput
                 value={paymentMethod}
@@ -156,7 +156,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
               />
             </div>
 
-            <p className="text-base md:text-lg font-medium text-dark">Shipping Address</p>
+            <p className="text-sm md:text-base font-medium text-dark">Shipping Address</p>
 
             <div className="col-span-2">
               <label className="text-sm md:text-base font-medium text-dark">Country<span className="text-red-500">*</span></label>
@@ -224,7 +224,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
 
       {step === 2 && (
 <>           <div className="py-4 flex justify-between">
-            <h3 className="text-[18px] flex-1 md:text-[20px] md:leading-[24px] text-dark font-semibold">Place bid</h3>
+            <h3 className="text-base flex-1 md:text-lg text-dark font-semibold">Place bid</h3>
             <X onClick={handleClose} className="cursor-pointer text-black" size={20} />
           </div>
 
@@ -280,7 +280,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
             </div>
           </div>
 
-          <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
+          <div className="space-y-2 mb-6 max-h-64 overflow-y-auto custom-scrollbar">
             {loadingBids ? (
               <p className="text-center text-gray-500">Loading bids...</p>
             ) : (
@@ -359,3 +359,27 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
     </Modal>
   );
 };
+
+// Add custom scrollbar styles
+const styles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = styles;
+  document.head.appendChild(styleSheet);
+}

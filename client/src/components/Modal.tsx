@@ -14,6 +14,7 @@ type ModalProps = {
   confirmText?: string;
   cancelText?: string;
   loading?: boolean;
+  className?: string;
 };
 
 const Modal = ({
@@ -25,6 +26,7 @@ const Modal = ({
   confirmText = "Confirm",
   cancelText = "Cancel",
   loading = false,
+  className = "",
 }: ModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -58,11 +60,13 @@ const Modal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xs">
       <div
         ref={modalRef}
-        className="bg-gray-50 rounded-lg border border-gray-200 shadow-xl w-full max-w-md mx-4 overflow-scroll text-gray-800"
+        className={`bg-gray-50 rounded-lg border border-gray-200 shadow-xl w-full max-w-md mx-4 overflow-scroll text-gray-800 ${className}`}
       >
         <div className="flex justify-between items-center p-4 border-b border-gray-200">
           <h3 className="text-md font-medium text-gray-500">{title}</h3>
           <button
+            type="button"
+            aria-label="close"
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
