@@ -40,7 +40,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
   const startBidPrice = (auction?.startBidPrice || 0) * productData?.priceInfo?.exchangeRate || 1;
   const currentHighestBid = bids.length > 0 ? Math.max(...bids.map((b: any) => b.currentAmount)) : startBidPrice;
   const minBidIncrement = auction?.bidIncrement || 1;
-  const currencySymbol = productData?.prifeInfo?.currencySymbol || "$";
+  const currencySymbol = productData?.priceInfo?.currencySymbol || "$";
 
   useEffect(() => {
     if (!auction || !isBid) return;
