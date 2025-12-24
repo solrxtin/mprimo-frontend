@@ -126,20 +126,6 @@ import { getCurrencySymbol } from "@/utils/currency"
     const getProductCurrency = (item: any) => {
       return getCurrencySymbol(item.priceInfo.displayCurrency); 
     }
-  
-    const getSalePrice = (item: any) => {
-      return item.price
-    }
-  
-    const getDiscount = (item: any) => {
-      const price = getProductPrice(item)
-      const salePrice = getSalePrice(item)
-      if (salePrice && salePrice < price) {
-        const discount = Math.round(((price - salePrice) / price) * 100)
-        return `-${discount}%`
-      }
-      return null
-    }
     const manualBreadcrumbs: BreadcrumbItem[] = [
       { label: "Home", href: "/home" },
       { label: "My Wishlist", href: null },
@@ -256,11 +242,6 @@ import { getCurrencySymbol } from "@/utils/currency"
                           height={60}
                           className="rounded-lg object-cover"
                         />
-                        {getDiscount(item) && (
-                          <Badge className="absolute -bottom-1 -right-1 text-xs px-1 py-0 h-5 bg-red-100 text-red-800 hover:bg-red-100">
-                            {getDiscount(item)}
-                          </Badge>
-                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-sm leading-tight">{item.name}</h3>
@@ -323,11 +304,6 @@ import { getCurrencySymbol } from "@/utils/currency"
                           height={80}
                           className="rounded-lg object-cover"
                         />
-                        {getDiscount(item) && (
-                          <Badge className="absolute -bottom-1 -right-1 text-xs px-2 py-1 bg-red-100 text-red-800 hover:bg-red-100">
-                            {getDiscount(item)}
-                          </Badge>
-                        )}
                       </div>
                       <div>
                         <h3 className="font-medium">{item.name}</h3>
@@ -337,9 +313,6 @@ import { getCurrencySymbol } from "@/utils/currency"
                     <div className="col-span-2">
                       <div className="flex items-center space-x-2 whitespace-nowrap">
                        <span className="font-bold">{getProductCurrency(item)} {getProductPrice(item)}</span>
-                        {getDiscount(item) && (
-                          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{getDiscount(item)}</Badge>
-                        )}
                       </div>
                     </div>
                     <div className="col-span-2">

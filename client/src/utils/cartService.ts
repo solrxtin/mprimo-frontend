@@ -79,6 +79,18 @@ export interface UpdateCartRequest {
 export interface CartResponse {
   success: boolean;
   cart?: any[];
+  totals?: {
+    itemCount: number;
+    totalItems: number;
+    subtotal: number;
+    currency: string;
+    currencySymbol: string;
+    hasInvalidItems: boolean;
+  };
+  validation?: {
+    isValid: boolean;
+    invalidItemsCount: number;
+  };
   data?: {
     items: any[];
     summary: {

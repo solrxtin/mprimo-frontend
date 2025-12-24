@@ -30,5 +30,7 @@ export const useValidateCart = () => {
     queryKey: ['validate-cart'],
     queryFn: () => checkoutService.validateCart(),
     enabled: false,
+    staleTime: 0,
+    gcTime: 0,
   });
 };

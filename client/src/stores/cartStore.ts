@@ -11,6 +11,14 @@ const KEY_SEPARATOR = "::";
 interface CartState {
   items: CartItem[];
   summary: CartSummary;
+  totals: {
+    subtotal: number;
+    tax: number;
+    shipping: number;
+    total: number;
+    currency: string;
+    currencySymbol: string;
+  } | null;
   isLoading: boolean;
   error: string | null;
 
@@ -85,6 +93,7 @@ export const useCartStore = create<CartState>()(
         totalItems: 0,
         totalQuantity: 0,
       },
+      totals: null,
       isLoading: false,
       error: null,
 
@@ -141,7 +150,6 @@ export const useCartStore = create<CartState>()(
             });
             toast.success("Product Added to Cart Successfully", toastConfigSuccess);
             
-            // Reload cart from backend to get updated state
             await get().loadCart();
           } else {
             // Check available quantity from backend for offline users
@@ -398,19 +406,56 @@ export const useCartStore = create<CartState>()(
 
       loadCart: async () => {
         const isLoggedIn = !!useUserStore.getState().user;
+        
         if (!isLoggedIn) {
-          // For logged-out users, recalculate summary from persisted items
           const { items } = get();
           const summary = calculateCartSummary(items);
-          set({ summary });
+          set({ summary, totals: null });
           return;
         }
 
-        // Cart loading is now handled by TanStack Query in useCartQuery
-        // This method is kept for backward compatibility
-        const { items } = get();
-        const summary = calculateCartSummary(items);
-        set({ summary });
+        try {
+          const response = await cartService.getCart();
+          
+          if (response.success && response.cart) {
+            const cartItems: CartItem[] = response.cart.map((item: any) => ({
+              product: {
+                _id: item.productId,
+                name: item.name,
+                images: item.images,
+              },
+              quantity: item.quantity,
+              selectedVariant: item.variantId && item.optionId ? {
+                variantId: item.variantId,
+                optionId: item.optionId,
+                variantName: item.variantDetails?.variantName || item.variantName || '',
+                optionValue: item.variantDetails?.optionValue || item.optionValue || '',
+                price: item.price
+              } : undefined,
+              addedAt: item.addedAt,
+              priceInfo: item.priceInfo
+            }));
+            
+            set({ items: cartItems });
+            get().calculateSummary();
+            
+            // Store totals from backend if available
+            if (response.totals) {
+              set({
+                totals: {
+                  subtotal: response.totals.subtotal,
+                  tax: 0,
+                  shipping: 0,
+                  total: response.totals.subtotal,
+                  currency: response.totals.currency,
+                  currencySymbol: response.totals.currencySymbol
+                }
+              });
+            }
+          }
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : 'Failed to load cart' });
+        }
       },
 
       syncCartOnLogin: async () => {
