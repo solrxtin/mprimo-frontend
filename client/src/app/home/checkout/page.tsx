@@ -23,11 +23,13 @@ import { useCartStore } from "@/stores/cartStore";
 import { useCreateOrder, useCreatePaymentIntent, useValidateCart } from "@/hooks/useCheckout";
 import { useAddAddress } from "@/hooks/useAddress";
 import { useCountries } from "@/hooks/useCountries";
+import { useUserCurrency } from "@/hooks/useUserCurrency";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import StripePaymentForm from "@/components/StripePaymentForm";
 import { getApiUrl } from "@/config/api";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getCountryFromCurrency } from "@/utils/currency";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 import { toast } from "react-hot-toast";
@@ -51,6 +53,7 @@ export default function CheckoutPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const { user } = useUserStore();
   const billingAddress = user?.addresses?.find(addr => addr.type === "billing");
+  const { data: userCurrencyData } = useUserCurrency();
   
   const [formData, setFormData] = useState({
     firstName: user?.profile?.firstName || "",
@@ -67,6 +70,19 @@ export default function CheckoutPage() {
       isDefault: true,
     },
   });
+
+  // Auto-populate country from user currency if no address exists
+  useEffect(() => {
+    if (!billingAddress && userCurrencyData?.currency) {
+      const country = getCountryFromCurrency(userCurrencyData.currency);
+      if (country) {
+        setFormData(prev => ({
+          ...prev,
+          address: { ...prev.address, country }
+        }));
+      }
+    }
+  }, [userCurrencyData, billingAddress]);
 
   const { items: cartItems, summary: cartSummary, clearCart } = useCartStore();
   const { refetch: validateCart, data: validationData, isLoading: isValidating } = useValidateCart();
@@ -97,6 +113,29 @@ export default function CheckoutPage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveAddress = async () => {
+    if (!formData.address.street || !formData.address.city || !formData.address.state || 
+        !formData.address.country || !formData.address.postalCode) {
+      toast.error("Please fill in all address fields");
+      return;
+    }
+
+    try {
+      await addAddressMutation.mutateAsync({
+        address: formData.address,
+        duplicateForShipping: sameAsShipping
+      });
+      
+      if (!sameAsShipping && shippingAddress.street) {
+        await addAddressMutation.mutateAsync({
+          address: shippingAddress
+        });
+      }
+    } catch (error) {
+      // Error already handled by mutation
+    }
   };
 
   const handleProceedToPayment = async () => {
@@ -348,35 +387,58 @@ export default function CheckoutPage() {
   ];
 
   const getProviderByCurrency = (currency: string): string => {
-    if (!user?.country) return 'stripe';
-    
     const curr = currency.toLowerCase();
-    const paystackCountries = ['Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Ivory Coast'];
-    const isPaystackCountry = paystackCountries.includes(user.country);
     
-    // Paystack for supported countries with their currencies
-    if (isPaystackCountry) {
-      if (curr === 'ngn' && user.country === 'Nigeria') return 'paystack';
-      if (curr === 'ghs' && user.country === 'Ghana') return 'paystack';
-      if (curr === 'kes' && user.country === 'Kenya') return 'paystack';
-      if (curr === 'zar' && user.country === 'South Africa') return 'paystack';
-      if (curr === 'xof' && user.country === 'Ivory Coast') return 'paystack';
-      // USD only for Nigeria and Kenya
-      if (curr === 'usd' && (user.country === 'Nigeria' || user.country === 'Kenya')) return 'paystack';
-    }
+    // Map currency to payment provider
+    const currencyProviderMap: { [key: string]: string } = {
+      // Paystack currencies
+      'ngn': 'paystack',
+      'ghs': 'paystack',
+      'kes': 'paystack',
+      'zar': 'paystack',
+      'xof': 'paystack',
+      // Stripe currencies (major global currencies)
+      'usd': 'stripe',
+      'eur': 'stripe',
+      'gbp': 'stripe',
+      'cad': 'stripe',
+      'aud': 'stripe',
+      'nzd': 'stripe',
+      'chf': 'stripe',
+      'sek': 'stripe',
+      'nok': 'stripe',
+      'dkk': 'stripe',
+      'jpy': 'stripe',
+      'sgd': 'stripe',
+      'hkd': 'stripe',
+      'inr': 'stripe',
+      'myr': 'stripe',
+      'php': 'stripe',
+      'thb': 'stripe',
+      'brl': 'stripe',
+      'mxn': 'stripe',
+      'pln': 'stripe',
+      'czk': 'stripe',
+      'huf': 'stripe',
+      'ron': 'stripe',
+      'ils': 'stripe',
+      'aed': 'stripe',
+      'sar': 'stripe',
+      // Airwallex for China
+      'cny': 'airwallex',
+    };
     
-    // Default to Stripe for other cases
-    if (['usd', 'eur', 'cad', 'gbp'].includes(curr)) return 'stripe';
-    if (curr === 'cny') return 'airwallex';
-    return 'stripe';
+    return currencyProviderMap[curr] || 'stripe';
   };
 
   useEffect(() => {
     if (currency && paymentCategory === 'fiat') {
-      const provider = getProviderByCurrency(currency);
+      // Use detected currency from backend if available, otherwise use checkout currency
+      const detectedCurrency = userCurrencyData?.currency || currency;
+      const provider = getProviderByCurrency(detectedCurrency.toLowerCase());
       setFiatProvider(provider);
     }
-  }, [currency, paymentCategory]);
+  }, [currency, paymentCategory, userCurrencyData]);
 
   return (
     <>
@@ -547,6 +609,25 @@ export default function CheckoutPage() {
                       />
                     </div>
                   </div>
+
+                  {/* Save Address Button */}
+                  {!user?.addresses?.length && (
+                    <Button
+                      type="button"
+                      onClick={handleSaveAddress}
+                      disabled={addAddressMutation.isPending}
+                      className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
+                    >
+                      {addAddressMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Address"
+                      )}
+                    </Button>
+                  )}
 
                   {/* Same as Shipping Checkbox */}
                   {!user?.addresses?.length && (

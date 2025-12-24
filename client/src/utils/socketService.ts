@@ -51,6 +51,18 @@ class SocketService {
     this.socket?.emit('send_message', messageData);
   }
 
+  joinAuctionRoom(productId: string, userId: string): void {
+    this.socket?.emit('join_auction', { productId, userId });
+  }
+
+  leaveAuctionRoom(productId: string): void {
+    this.socket?.emit('leave_auction', { productId });
+  }
+
+  placeBid(bidData: { productId: string; userId: string; amount: number }): void {
+    this.socket?.emit('place_bid', bidData);
+  }
+
   disconnect(): void {
     this.socket?.disconnect();
     this.socket = null;

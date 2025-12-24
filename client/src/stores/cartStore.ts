@@ -69,15 +69,15 @@ interface CartState {
 
 const calculateCartSummary = (items: CartItem[]): CartSummary => {
   const subtotal = items.reduce((total, item) => {
-    // Use the price from selectedVariant which should be the specific option's price
-    // If priceInfo exists, use displayPrice (already converted to user's currency)
     const price = item.priceInfo?.displayPrice || item.selectedVariant?.price || 0;
-    return total + price * item.quantity;
+    // Use precise calculation: multiply first, then round to avoid floating point errors
+    const itemTotal = Math.round((price * item.quantity) * 100) / 100;
+    return total + itemTotal;
   }, 0);
 
   return {
-    subtotal,
-    total: subtotal, 
+    subtotal: Math.round(subtotal * 100) / 100,
+    total: Math.round(subtotal * 100) / 100, 
     totalItems: items.length,
     totalQuantity: items.reduce((total, item) => total + item.quantity, 0),
   };

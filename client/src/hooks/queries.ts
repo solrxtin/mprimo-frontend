@@ -128,13 +128,26 @@ const fetchProductById = async (productId: string) => {
 };
 
 export const useFetchProductById = (productId: string) => {
-  return useQuery({
+  const queryResult = useQuery({
     queryKey: ['product', productId],
     queryFn: () => fetchProductById(productId),
     enabled: !!productId,
     refetchOnWindowFocus: false,
     retry: 1
   });
+
+  // Enable auto-refetch for auction products
+  const isAuction = queryResult.data?.product?.inventory?.listing?.type === 'auction';
+  
+  useQuery({
+    queryKey: ['product-refetch', productId],
+    queryFn: () => fetchProductById(productId),
+    enabled: !!productId && isAuction,
+    refetchInterval: 10000, // Refetch every 10 seconds for auctions
+    refetchOnWindowFocus: true,
+  });
+
+  return queryResult;
 };
 
 const fetchProductAnalytics = async (

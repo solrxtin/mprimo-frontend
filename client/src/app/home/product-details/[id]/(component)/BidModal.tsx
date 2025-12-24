@@ -11,6 +11,8 @@ import FullButton from "@/components/FullButton";
 import Modal from "@/components/Modal";
 import { getBids } from "@/hooks/useProducts";
 import { useUserStore } from "@/stores/useUserStore";
+import socketService from "@/utils/socketService";
+import { useRouter } from "next/navigation";
 
 interface BidModal1Props {
   isBid: boolean;
@@ -22,6 +24,7 @@ interface BidModal1Props {
 
 export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacingBid }: BidModal1Props) => {
   const { user } = useUserStore();
+  const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState("");
   const [customBid, setCustomBid] = useState("");
   const [step, setStep] = useState(2);
@@ -41,6 +44,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
   const currentHighestBid = bids.length > 0 ? Math.max(...bids.map((b: any) => b.currentAmount)) : startBidPrice;
   const minBidIncrement = auction?.bidIncrement || 1;
   const currencySymbol = productData?.priceInfo?.currencySymbol || "$";
+  const exchangeRate = productData?.priceInfo?.exchangeRate
 
   useEffect(() => {
     if (!auction || !isBid) return;
@@ -71,8 +75,30 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
         .then((response) => setBids(response.bids || []))
         .catch(() => setBids([]))
         .finally(() => setLoadingBids(false));
+
+      const socket = socketService.getSocket();
+      if (socket && user?._id) {
+        socket.emit('join_room', productData._id, user._id);
+        
+        socket.on('place_bid', (bidData: any) => {
+          setBids((prevBids) => {
+            const existingIndex = prevBids.findIndex(b => b.userId === bidData.userId);
+            if (existingIndex > -1) {
+              const updated = [...prevBids];
+              updated[existingIndex] = { ...updated[existingIndex], currentAmount: bidData.amount, createdAt: new Date() };
+              return updated;
+            }
+            return [{ userId: bidData.userId, currentAmount: bidData.amount, createdAt: new Date() }, ...prevBids];
+          });
+        });
+
+        return () => {
+          socket.off('place_bid');
+          socket.emit('leave_room', productData._id);
+        };
+      }
     }
-  }, [isBid, productData?._id]);
+  }, [isBid, productData?._id, user?._id]);
 
   const handleQuickBid = (amount: number) => setCustomBid(amount.toString());
 
@@ -93,7 +119,12 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
     onSubmitBid(bidAmount, shippingData, paymentMethod);
   };
 
-  const formatCurrency = (amount: number) => `${currencySymbol} ${amount.toLocaleString()}`;
+  const formatCurrency = (amount: number) => 
+  `${currencySymbol} ${amount.toFixed(2)}`;
+  const formatDefaultCurrency = (amount: number) => 
+  `$ ${amount.toFixed(2)}`;
+
+
   const formatTime = (time: typeof timeLeft) => `${time.days}d : ${time.hours}h : ${time.minutes}m : ${time.seconds}s`;
 
   const userBid = bids.find((b: any) => b.userId?._id === user?._id);
@@ -175,6 +206,9 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
           <div className="flex items-center gap-1 mt-4">
             <input
               type="checkbox"
+              id="useDefaultAddress"
+              name="useDefaultAddress"
+              title="Use Default Address"
               checked={shippingData.useDefaultAddress}
               onChange={(e) => setShippingData((prev) => ({ ...prev, useDefaultAddress: e.target.checked }))}
             />
@@ -217,7 +251,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
                   </div>
                   <div>
                     <span className="text-sm text-gray-600">Highest Bid:</span>
-                    <p className="font-bold">{formatCurrency(currentHighestBid)}</p>
+                    <p className="font-bold">{formatDefaultCurrency(currentHighestBid)}</p>
                   </div>
                 </div>
                 <div>
@@ -233,7 +267,17 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
               <span className="font-semibold">Live Auction</span>
             </div>
-            <span className="text-sm text-gray-600">{bids.length} Bids Made</span>
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">{bids.length} Bids Made</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/home/auction-room/${productData._id}`)}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                Go to Room
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
@@ -246,7 +290,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
                     <div className="w-5 h-5 text-red-500">↗</div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-semibold">Your Bid {formatCurrency(userBid.currentAmount)}</span>
+                        <span className="font-semibold">Your Bid {formatDefaultCurrency(userBid.currentAmount)}</span>
                         {userBid.isWinning && (
                           <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Highest bidder</Badge>
                         )}
@@ -260,7 +304,7 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
                     <div className="w-5 h-5 text-green-500">✓</div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-semibold">Bid {formatCurrency(bid.currentAmount)}</span>
+                        <span className="font-semibold">Bid {formatDefaultCurrency(bid.currentAmount)}</span>
                         {bid.isWinning && <Badge className="bg-green-100 text-green-800 hover:bg-green-100">High bidder</Badge>}
                       </div>
                       <p className="text-xs text-gray-500">{new Date(bid.createdAt).toLocaleString()}</p>
@@ -273,24 +317,31 @@ export const BidModal1 = ({ isBid, closeBid, productData, onSubmitBid, isPlacing
 
           <div className="flex space-x-3 mb-4">
             <Button variant="outline" className="flex-1" onClick={() => handleQuickBid(currentHighestBid + minBidIncrement)}>
-              {formatCurrency(currentHighestBid + minBidIncrement)}
+              {formatCurrency((currentHighestBid + minBidIncrement) * exchangeRate)}
             </Button>
             <Button variant="outline" className="flex-1" onClick={() => handleQuickBid(currentHighestBid + minBidIncrement * 2)}>
-              {formatCurrency(currentHighestBid + minBidIncrement * 2)}
+              {formatCurrency((currentHighestBid + minBidIncrement * 2) * exchangeRate )}
             </Button>
             <Button variant="outline" className="flex-1" onClick={() => handleQuickBid(currentHighestBid + minBidIncrement * 5)}>
-              {formatCurrency(currentHighestBid + minBidIncrement * 5)}
+              {formatCurrency((currentHighestBid + minBidIncrement * 5) * exchangeRate)}
             </Button>
           </div>
 
           <div className="flex space-x-3">
-            <Input
-              placeholder={`Enter bid higher than ${formatCurrency(currentHighestBid)}`}
-              value={customBid}
-              onChange={(e) => setCustomBid(e.target.value)}
-              className="flex-1"
-              type="number"
-            />
+            <div className="flex-1">
+              <Input
+                placeholder={`Enter bid higher than or equal to ${formatCurrency((currentHighestBid + minBidIncrement) * exchangeRate)}`}
+                value={customBid}
+                onChange={(e) => setCustomBid(e.target.value)}
+                className="w-full"
+                type="number"
+              />
+              {customBid && (
+                <p className="text-xs text-gray-500 mt-1">
+                  ≈ ${(parseFloat(customBid) / exchangeRate).toFixed(2)} USD
+                </p>
+              )}
+            </div>
             <Button
               className="bg-blue-600 hover:bg-blue-700 px-8"
               onClick={handleFinalSubmit}
