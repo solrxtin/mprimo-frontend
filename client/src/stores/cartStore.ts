@@ -73,14 +73,16 @@ const calculateCartSummary = (items: CartItem[]): CartSummary => {
     variantId: item.selectedVariant?.variantId,
     optionId: item.selectedVariant?.optionId,
     quantity: item.quantity,
-    price: item.priceInfo?.displayPrice || item.selectedVariant?.price || 0
+    variantPrice: item.selectedVariant?.price,
+    exchangeRate: item.priceInfo?.exchangeRate,
+    displayPrice: item.priceInfo?.displayPrice
   })));
 
   const subtotal = items.reduce((total, item) => {
-    const price = item.priceInfo?.displayPrice || item.selectedVariant?.price || 0;
-    // Use precise calculation: multiply first, then round to avoid floating point errors
+    // Use the same logic as the cart page: variant price * exchange rate
+    const price = (item.selectedVariant?.price || 0) * (item.priceInfo?.exchangeRate || 1);
     const itemTotal = Math.round((price * item.quantity) * 100) / 100;
-    console.log(`Item: ${item.product.name}, Price: ${price}, Qty: ${item.quantity}, Total: ${itemTotal}`);
+    console.log(`Item: ${item.product.name}, Variant Price: ${item.selectedVariant?.price}, Exchange Rate: ${item.priceInfo?.exchangeRate}, Final Price: ${price}, Qty: ${item.quantity}, Total: ${itemTotal}`);
     return total + itemTotal;
   }, 0);
 
