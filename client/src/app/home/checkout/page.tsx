@@ -26,7 +26,6 @@ import { useCountries } from "@/hooks/useCountries";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import StripePaymentForm from "@/components/StripePaymentForm";
-import PaystackPop from "@paystack/inline-js";
 import { getApiUrl } from "@/config/api";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -168,7 +167,9 @@ export default function CheckoutPage() {
 
       if (paymentCategory === 'fiat') {
         if (fiatProvider === 'paystack') {
-          // Handle Paystack payment
+          // Handle Paystack payment - dynamic import to avoid SSR issues
+          const { default: PaystackPop } = await import('@paystack/inline-js');
+          
           const response = await fetchWithAuth(
             getApiUrl("payments/paystack/initialize"),
             {
@@ -553,6 +554,7 @@ export default function CheckoutPage() {
                       <div className="flex items-center space-x-2">
                         <input
                           type="checkbox"
+                          title="Mark billing address as the same"
                           id="sameAsShipping"
                           checked={sameAsShipping}
                           onChange={(e) => setSameAsShipping(e.target.checked)}

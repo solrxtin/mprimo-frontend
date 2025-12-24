@@ -30,7 +30,6 @@ import { calculateTotalQuantity } from "@/utils/productUtils";
 import OfferModal from "./OfferModal";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getApiUrl } from "@/config/api";
-import PaystackPop from "@paystack/inline-js";
 
 export const AuctionCountdown = ({ auction }: { auction: any }) => {
   const [timeLeft, setTimeLeft] = useState<string>("");
@@ -507,6 +506,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
     if (!buyNowOrderData || !summaryData || !user?.email) return;
 
     try {
+      // Dynamic import to avoid SSR issues
+      const { default: PaystackPop } = await import('@paystack/inline-js');
+      
       const response = await fetchWithAuth(
         getApiUrl("payments/paystack/initialize"),
         {
