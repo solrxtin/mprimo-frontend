@@ -116,12 +116,17 @@ export default function AuctionRoomPage() {
   const userBid = bids.find((b: any) => b.userId?._id === user?._id);
 
   const handlePlaceBid = async () => {
-    if (!bidAmount || !productData?._id) {
+    if (!bidAmount || !product?._id) {
       toast.error("Please enter a bid amount");
       return;
     }
 
     const bidValue = parseFloat(bidAmount);
+    if (isNaN(bidValue) || bidValue <= 0) {
+      toast.error("Please enter a valid bid amount");
+      return;
+    }
+
     if (bidValue <= currentHighestBid) {
       toast.error(`Bid must be higher than ${formatUSD(currentHighestBid)}`);
       return;
@@ -129,7 +134,7 @@ export default function AuctionRoomPage() {
 
     setIsPlacingBid(true);
     try {
-      await placeBid(productData._id, bidValue);
+      await placeBid(product._id, bidValue);
       toast.success("Bid placed successfully!");
       setBidAmount("");
     } catch (error: any) {

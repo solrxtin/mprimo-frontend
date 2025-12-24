@@ -68,18 +68,34 @@ interface CartState {
 }
 
 const calculateCartSummary = (items: CartItem[]): CartSummary => {
+  console.log('Calculating cart summary for items:', items.map(item => ({
+    productId: item.product._id,
+    variantId: item.selectedVariant?.variantId,
+    optionId: item.selectedVariant?.optionId,
+    quantity: item.quantity,
+    price: item.priceInfo?.displayPrice || item.selectedVariant?.price || 0
+  })));
+
   const subtotal = items.reduce((total, item) => {
     const price = item.priceInfo?.displayPrice || item.selectedVariant?.price || 0;
     // Use precise calculation: multiply first, then round to avoid floating point errors
     const itemTotal = Math.round((price * item.quantity) * 100) / 100;
+    console.log(`Item: ${item.product.name}, Price: ${price}, Qty: ${item.quantity}, Total: ${itemTotal}`);
     return total + itemTotal;
   }, 0);
+
+  // Count unique items (not quantities)
+  const totalItems = items.length;
+  // Sum all quantities
+  const totalQuantity = items.reduce((total, item) => total + item.quantity, 0);
+
+  console.log('Cart Summary:', { subtotal, totalItems, totalQuantity });
 
   return {
     subtotal: Math.round(subtotal * 100) / 100,
     total: Math.round(subtotal * 100) / 100, 
-    totalItems: items.length,
-    totalQuantity: items.reduce((total, item) => total + item.quantity, 0),
+    totalItems,
+    totalQuantity,
   };
 };
 
