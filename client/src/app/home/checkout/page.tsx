@@ -21,7 +21,7 @@ import { BreadcrumbItem, Breadcrumbs } from "@/components/BraedCrumbs";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cartStore";
 import { useCreateOrder, useCreatePaymentIntent, useValidateCart } from "@/hooks/useCheckout";
-import { useAddAddress } from "@/hooks/useAddress";
+import { useAddAddress, useAddresses } from "@/hooks/useAddress";
 import { useCountries } from "@/hooks/useCountries";
 import { useUserCurrency } from "@/hooks/useUserCurrency";
 import { Country, State } from "country-state-city";
@@ -94,6 +94,7 @@ export default function CheckoutPage() {
   const createOrderMutation = useCreateOrder();
   const createPaymentIntentMutation = useCreatePaymentIntent();
   const addAddressMutation = useAddAddress();
+  const { data: addressData } = useAddresses();
   const { data: countries = [] } = useCountries();
   const allCountries = Country.getAllCountries();
   const states = selectedCountry ? State.getStatesOfCountry(selectedCountry) : [];
@@ -107,8 +108,9 @@ export default function CheckoutPage() {
 
   // Handle same as shipping checkbox
   useEffect(() => {
-    if (sameAsShipping && user?.addresses) {
-      const shippingAddr = user.addresses.find(addr => addr.type === "shipping" && addr.isDefault);
+    if (sameAsShipping) {
+      const addresses = addressData?.addresses || user?.addresses || [];
+      const shippingAddr = addresses.find(addr => addr.type === "shipping" && addr.isDefault);
       if (shippingAddr) {
         const countryObj = allCountries.find(c => c.name === shippingAddr.country);
         if (countryObj) {
@@ -131,7 +133,7 @@ export default function CheckoutPage() {
         }));
       }
     }
-  }, [sameAsShipping, user?.addresses]);
+  }, [sameAsShipping, addressData, user?.addresses]);
 
   const checkout = validationData?.checkout;
   const subtotal = checkout?.pricing?.subtotal || 0;
@@ -159,16 +161,24 @@ export default function CheckoutPage() {
     }
 
     try {
-      await addAddressMutation.mutateAsync({
-        address: formData.address,
-        duplicateForShipping: sameAsShipping
-      });
-      
-      if (!sameAsShipping && shippingAddress.street) {
+      if (sameAsShipping) {
+        // Save as both billing and shipping
         await addAddressMutation.mutateAsync({
-          address: shippingAddress
+          address: { ...formData.address, type: "shipping" },
+          duplicateForShipping: false
+        });
+        await addAddressMutation.mutateAsync({
+          address: formData.address,
+          duplicateForShipping: false
+        });
+      } else {
+        // Save only billing address
+        await addAddressMutation.mutateAsync({
+          address: formData.address,
+          duplicateForShipping: false
         });
       }
+      toast.success("Address saved successfully");
     } catch (error) {
       // Error already handled by mutation
     }
@@ -177,9 +187,12 @@ export default function CheckoutPage() {
   const handleProceedToPayment = async () => {
     if (!user) {
       toast.error("You have to be logged in to proceed to checkout");
-      // router.push('/home/my-cart'); we have to use the sign up modal
       return;
     }
+
+    const addresses = addressData?.addresses || user?.addresses || [];
+    const hasShippingAddress = addresses.some(addr => addr.type === "shipping");
+    const hasBillingAddress = addresses.some(addr => addr.type === "billing");
 
     // Validate form
     if (
@@ -192,6 +205,17 @@ export default function CheckoutPage() {
       !formData.address.postalCode
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Check if user needs to add addresses
+    if (!hasShippingAddress) {
+      toast.error("Please add a shipping address before proceeding");
+      return;
+    }
+
+    if (!hasBillingAddress && !sameAsShipping) {
+      toast.error("Please add a billing address or mark it as same as shipping");
       return;
     }
 
@@ -208,19 +232,12 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     try {
-      // Only add addresses if user has no addresses yet
-      if (!user?.addresses?.length) {
+      // Add billing address if needed
+      if (!hasBillingAddress) {
         await addAddressMutation.mutateAsync({
           address: formData.address,
-          duplicateForShipping: sameAsShipping
+          duplicateForShipping: false
         });
-
-        // Save shipping address if different
-        if (!sameAsShipping && shippingAddress.street) {
-          await addAddressMutation.mutateAsync({
-            address: shippingAddress
-          });
-        }
       }
 
       const items = checkout?.items?.map((item: any) => {
@@ -661,52 +678,48 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Save Address Button */}
-                  {!user?.addresses?.length && (
-                    <Button
-                      type="button"
-                      onClick={handleSaveAddress}
-                      disabled={addAddressMutation.isPending}
-                      className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
-                    >
-                      {addAddressMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Address"
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    onClick={handleSaveAddress}
+                    disabled={addAddressMutation.isPending}
+                    className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
+                  >
+                    {addAddressMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Billing Address"
+                    )}
+                  </Button>
 
                   {/* Same as Shipping Checkbox */}
-                  {!user?.addresses?.length && (
-                    <div className="mt-6">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          title="Mark billing address as the same"
-                          id="sameAsShipping"
-                          checked={sameAsShipping}
-                          onChange={(e) => setSameAsShipping(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <Label htmlFor="sameAsShipping" className="cursor-pointer">
-                          Billing address is the same as shipping address
-                        </Label>
-                      </div>
-                      {!sameAsShipping && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setShowShippingModal(true)}
-                          className="mt-4"
-                        >
-                          Add Shipping Address
-                        </Button>
-                      )}
+                  <div className="mt-6">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        title="Mark billing address as the same"
+                        id="sameAsShipping"
+                        checked={sameAsShipping}
+                        onChange={(e) => setSameAsShipping(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <Label htmlFor="sameAsShipping" className="cursor-pointer">
+                        Billing address is the same as shipping address
+                      </Label>
                     </div>
-                  )}
+                    {!sameAsShipping && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowShippingModal(true)}
+                        className="mt-4"
+                      >
+                        Add Shipping Address
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Payment Method */}

@@ -60,7 +60,7 @@ const Modal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xs">
       <div
         ref={modalRef}
-        className={`bg-gray-50 rounded-lg border border-gray-200 shadow-xl w-full max-w-md mx-4 overflow-scroll text-gray-800 ${className}`}
+        className={`bg-gray-50 rounded-lg border border-gray-200 shadow-xl w-full max-w-md md:max-w-2xl lg:max-w-3xl mx-4 overflow-scroll text-gray-800 ${className}`}
       >
         <div className="flex justify-between items-center p-4 border-b border-gray-200">
           <h3 className="text-md font-medium text-gray-500">{title}</h3>

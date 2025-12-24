@@ -278,17 +278,24 @@ export default function AuctionRoomPage() {
               {/* Bid Input Section */}
               <div className="p-4 border-t border-gray-200 space-y-3">
                 <div className="text-xs md:text-sm text-gray-600">
-                  Minimum bid: {formatUSD(currentHighestBid + (auction?.bidIncrement || 1))}
+                  Minimum bid: {formatCurrency((currentHighestBid + (auction?.bidIncrement || 1)) * exchangeRate)} (≈ {formatUSD(currentHighestBid + (auction?.bidIncrement || 1))})
                 </div>
                 <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Enter your bid"
-                    value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    className="flex-1"
-                    disabled={isPlacingBid}
-                  />
+                  <div className="flex-1">
+                    <Input
+                      type="number"
+                      placeholder="Enter bid"
+                      value={bidAmount}
+                      onChange={(e) => setBidAmount(e.target.value)}
+                      className="flex-1"
+                      disabled={isPlacingBid}
+                    />
+                    {bidAmount && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        ≈ ${(parseFloat(bidAmount) / exchangeRate).toFixed(2)} USD
+                      </p>
+                    )}
+                  </div>
                   <Button
                     onClick={handlePlaceBid}
                     disabled={isPlacingBid || !bidAmount}
