@@ -9,6 +9,7 @@ interface BuyNowSummaryProps {
   onClose: () => void;
   onPayWithWallet: () => void;
   onPayWithStripe: () => void;
+  onPayWithPaystack?: () => void;
   orderData: {
     product: {
       name: string;
@@ -40,6 +41,7 @@ export default function BuyNowSummary({
   onClose,
   onPayWithWallet,
   onPayWithStripe,
+  onPayWithPaystack,
   orderData,
   walletBalance: initialWalletBalance,
   isProcessing
@@ -58,7 +60,7 @@ export default function BuyNowSummary({
             <Package className="w-5 h-5 text-blue-600" />
             <h3 className="text-xl font-bold">Order Summary</h3>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button type="button" aria-label="cancel" onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -169,6 +171,20 @@ export default function BuyNowSummary({
               <div className="font-medium">Pay with other methods</div>
             </div>
           </button>
+
+          {onPayWithPaystack && (
+            <button
+              onClick={onPayWithPaystack}
+              disabled={isProcessing}
+              className="w-full p-4 rounded-lg border-2 border-purple-500 bg-purple-50 hover:bg-purple-100 text-purple-700 flex items-center gap-3 transition-colors"
+            >
+              <CreditCard className="w-5 h-5" />
+              <div className="text-left">
+                <div className="font-medium">Pay with Paystack</div>
+                <div className="text-sm opacity-75">Card, Bank Transfer, USSD</div>
+              </div>
+            </button>
+          )}
         </div>
 
         <div className="mt-4 flex justify-center">

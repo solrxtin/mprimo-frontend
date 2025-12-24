@@ -62,7 +62,8 @@ interface CartState {
 const calculateCartSummary = (items: CartItem[]): CartSummary => {
   const subtotal = items.reduce((total, item) => {
     // Use the price from selectedVariant which should be the specific option's price
-    const price = item.selectedVariant?.price || item.priceInfo?.displayPrice || 0;
+    // If priceInfo exists, use displayPrice (already converted to user's currency)
+    const price = item.priceInfo?.displayPrice || item.selectedVariant?.price || 0;
     return total + price * item.quantity;
   }, 0);
 

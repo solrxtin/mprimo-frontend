@@ -30,6 +30,7 @@ import { calculateTotalQuantity } from "@/utils/productUtils";
 import OfferModal from "./OfferModal";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getApiUrl } from "@/config/api";
+import PaystackPop from "@paystack/inline-js";
 
 export const AuctionCountdown = ({ auction }: { auction: any }) => {
   const [timeLeft, setTimeLeft] = useState<string>("");
@@ -500,6 +501,57 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
       console.error("Add to cart error:", error);
       toast.error(error.message || "Failed to proceed to checkout");
     }
+  };
+
+  const handlePaystackPayment = async () => {
+    if (!buyNowOrderData || !summaryData || !user?.email) return;
+
+    try {
+      const response = await fetchWithAuth(
+        getApiUrl("payments/paystack/initialize"),
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: user.email,
+            amount: Math.round(summaryData.totalAmount * 100),
+            currency: summaryData.currency,
+            metadata: {
+              productId: buyNowOrderData.productId,
+              variantId: buyNowOrderData.variantId,
+              optionId: buyNowOrderData.optionId,
+              quantity: buyNowOrderData.quantity,
+            },
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success && data.data.access_code) {
+        const popup = new PaystackPop();
+        popup.resumeTransaction(data.data.access_code);
+      } else {
+        toast.error("Failed to initialize payment");
+      }
+    } catch (error: any) {
+      console.error("Paystack payment error:", error);
+      toast.error(error.message || "Payment failed");
+    }
+  };
+
+  // Check if user is from Paystack-supported country and currency is supported
+  const isPaystackSupported = () => {
+    if (!user?.country || !summaryData?.currency) return false;
+    
+    const paystackCountries = ['Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Ivory Coast'];
+    const isCountrySupported = paystackCountries.includes(user.country);
+    
+    // USD only works for Kenya and Nigeria
+    if (summaryData.currency === 'USD') {
+      return isCountrySupported && (user.country === 'Nigeria' || user.country === 'Kenya');
+    }
+    
+    return isCountrySupported;
   };
 
 
@@ -1122,6 +1174,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
           onClose={() => setShowSummary(false)}
           onPayWithWallet={handleWalletPayment}
           onPayWithStripe={handleStripePayment}
+          onPayWithPaystack={isPaystackSupported() ? handlePaystackPayment : undefined}
           orderData={summaryData}
           walletBalance={walletData?.available || 0}
           isProcessing={

@@ -26,6 +26,9 @@ import { useCountries } from "@/hooks/useCountries";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import StripePaymentForm from "@/components/StripePaymentForm";
+import PaystackPop from "@paystack/inline-js";
+import { getApiUrl } from "@/config/api";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 import { toast } from "react-hot-toast";
@@ -164,20 +167,53 @@ export default function CheckoutPage() {
       };
 
       if (paymentCategory === 'fiat') {
-        const response: any = await createPaymentIntentMutation.mutateAsync({
-          paymentMethod: fiatProvider || 'stripe',
-        });
-        
-        if (response.success) {
-          // Store payment intent data and show payment UI
-          setPaymentIntentData({
-            clientSecret: response.paymentData.clientSecret,
-            paymentIntentId: response.paymentData.paymentIntentId,
-            provider: fiatProvider,
-            items,
-            pricing: { subtotal, shipping, tax, total, currency },
+        if (fiatProvider === 'paystack') {
+          // Handle Paystack payment
+          const response = await fetchWithAuth(
+            getApiUrl("payments/paystack/initialize"),
+            {
+              method: "POST",
+              body: JSON.stringify({
+                email: user.email,
+                amount: Math.round(total * 100),
+                currency: currency,
+                metadata: {
+                  items: items.map((item: any) => ({
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    optionId: item.optionId,
+                    quantity: item.quantity,
+                  })),
+                },
+              }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (data.success && data.data.access_code) {
+            const popup = new PaystackPop();
+            popup.resumeTransaction(data.data.access_code);
+            // Note: Order creation will be handled by webhook
+          } else {
+            toast.error("Failed to initialize Paystack payment");
+          }
+        } else {
+          // Handle Stripe payment
+          const response: any = await createPaymentIntentMutation.mutateAsync({
+            paymentMethod: fiatProvider || 'stripe',
           });
-          setShowPaymentUI(true);
+          
+          if (response.success) {
+            setPaymentIntentData({
+              clientSecret: response.paymentData.clientSecret,
+              paymentIntentId: response.paymentData.paymentIntentId,
+              provider: fiatProvider,
+              items,
+              pricing: { subtotal, shipping, tax, total, currency },
+            });
+            setShowPaymentUI(true);
+          }
         }
       } else if (paymentCategory === 'crypto') {
         const response: any = await createPaymentIntentMutation.mutateAsync({
@@ -311,9 +347,25 @@ export default function CheckoutPage() {
   ];
 
   const getProviderByCurrency = (currency: string): string => {
+    if (!user?.country) return 'stripe';
+    
     const curr = currency.toLowerCase();
+    const paystackCountries = ['Nigeria', 'Ghana', 'Kenya', 'South Africa', 'Ivory Coast'];
+    const isPaystackCountry = paystackCountries.includes(user.country);
+    
+    // Paystack for supported countries with their currencies
+    if (isPaystackCountry) {
+      if (curr === 'ngn' && user.country === 'Nigeria') return 'paystack';
+      if (curr === 'ghs' && user.country === 'Ghana') return 'paystack';
+      if (curr === 'kes' && user.country === 'Kenya') return 'paystack';
+      if (curr === 'zar' && user.country === 'South Africa') return 'paystack';
+      if (curr === 'xof' && user.country === 'Ivory Coast') return 'paystack';
+      // USD only for Nigeria and Kenya
+      if (curr === 'usd' && (user.country === 'Nigeria' || user.country === 'Kenya')) return 'paystack';
+    }
+    
+    // Default to Stripe for other cases
     if (['usd', 'eur', 'cad', 'gbp'].includes(curr)) return 'stripe';
-    if (['ngn', 'zar'].includes(curr)) return 'paystack';
     if (curr === 'cny') return 'airwallex';
     return 'stripe';
   };

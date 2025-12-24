@@ -32,7 +32,7 @@ interface SignUpResponse {
 
 const signUpUser = async (
   data: SignUpData
-): Promise<{ message: string; user: User }> => {
+): Promise<{ message: string; user: User; accessToken?: string; refreshToken?: string }> => {
   const response = await fetch(getApiUrl("auth/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -45,7 +45,17 @@ const signUpUser = async (
     throw new Error(errorData.message);
   }
 
-  return response.json();
+  const responseData = await response.json();
+  
+  // Store tokens in localStorage if provided
+  if (responseData.accessToken) {
+    localStorage.setItem('accessToken', responseData.accessToken);
+  }
+  if (responseData.refreshToken) {
+    localStorage.setItem('refreshToken', responseData.refreshToken);
+  }
+
+  return responseData;
 };
 
 export const useSignUp = () => {
@@ -112,6 +122,8 @@ const loginUser = async (
   user: User;
   vendor: IVendor;
   has2faEnabled: boolean;
+  accessToken?: string;
+  refreshToken?: string;
 }> => {
   try {
     const response = await fetch(getApiUrl("auth/login"), {
@@ -127,7 +139,17 @@ const loginUser = async (
       throw new Error(errorData.message);
     }
 
-    return response.json();
+    const responseData = await response.json();
+    
+    // Store tokens in localStorage if provided
+    if (responseData.accessToken) {
+      localStorage.setItem('accessToken', responseData.accessToken);
+    }
+    if (responseData.refreshToken) {
+      localStorage.setItem('refreshToken', responseData.refreshToken);
+    }
+
+    return responseData;
   } catch (error) {
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       toast.error('Unable to connect to server. Please check your connection.', toastConfigError);
@@ -158,6 +180,10 @@ const logoutUser = async (): Promise<{ message: string }> => {
     toast.error(data.message);
     throw new Error(data.message);
   }
+
+  // Clear tokens from localStorage
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
 
   return data;
 };

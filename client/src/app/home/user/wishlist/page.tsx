@@ -174,6 +174,11 @@ export default function WishlistPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <span className="font-bold">{`${item.priceInfo?.currencySymbol || '$'}${(item.priceInfo?.displayPrice || item.price || 0).toLocaleString()}`}</span>
+                      {item.originalPrice && item.price && item.originalPrice !== item.price && item.originalPrice > item.price && (
+                        <span className="text-xs text-gray-400 line-through">
+                          {`${item.priceInfo?.currencySymbol || '$'}${item.originalPrice.toLocaleString()}`}
+                        </span>
+                      )}
                     </div>
                     <span className="text-sm text-green-600">Available</span>
                   </div>
@@ -217,6 +222,11 @@ export default function WishlistPage() {
                   <div className="col-span-2">
                     <div className="flex items-center space-x-2">
                       <span className="font-bold">{`${item.priceInfo?.currencySymbol || '$'}${(item.priceInfo?.displayPrice || item.price || 0).toLocaleString()}`}</span>
+                      {item.originalPrice && item.price && item.originalPrice !== item.price && item.originalPrice > item.price && (
+                        <span className="text-sm text-gray-400 line-through">
+                          {`${item.priceInfo?.currencySymbol || '$'}${item.originalPrice.toLocaleString()}`}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="col-span-2">
