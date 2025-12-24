@@ -953,7 +953,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                     const highestBid = winningBid?.currentAmount || auction?.startBidPrice || 0;
                     const isAuctionStarted = auction?.isStarted;
                     const userCurrency = (productData as any)?.priceInfo?.currency || 'USD';
-                    const convertedAmount = (productData as any)?.priceInfo?.displayPrice || highestBid;
+                    const convertedAmount = (productData as any)?.priceInfo?.displayPrice || highestBid * (productData as any)?.priceInfo?.conversionRate;
                     const currencySymbol = (productData as any)?.priceInfo?.currencySymbol || '$';
                     
                     return (
@@ -964,7 +964,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                               value={highestBid}
                               displayType={"text"}
                               thousandSeparator={true}
-                              prefix="$"
+                              prefix={"$"}
                               decimalScale={2}
                               fixedDecimalScale={true}
                             />
@@ -975,7 +975,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ productData }) => {
                                 value={convertedAmount}
                                 displayType={"text"}
                                 thousandSeparator={true}
-                                prefix={currencySymbol}
+                                prefix={priceInfo.currencySymbol}
                                 decimalScale={2}
                                 fixedDecimalScale={true}
                               />
