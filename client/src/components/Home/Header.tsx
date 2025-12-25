@@ -50,6 +50,12 @@ const Header = () => {
   const { data: suggestionsData } = useSearchSuggestions(debouncedQuery, 5);
   const { setAuthType } = useAuthModalStore();
 
+  useEffect(() => {
+    console.log('Search Query:', searchQuery);
+    console.log('Debounced Query:', debouncedQuery);
+    console.log('Search Response:', suggestionsData);
+  }, [searchQuery, debouncedQuery, suggestionsData]);
+
   // Initialize cart sync
   useCartSync();
 

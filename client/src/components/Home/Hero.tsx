@@ -8,8 +8,24 @@ interface Product {
   name: string;
   images: string[];
   slug: string;
-  variants?: any[];
-  inventory?: any;
+  priceInfo?: {
+    displayPrice: number;
+    currencySymbol: string;
+    displayCurrency: string;
+  };
+  auctionState?: {
+    isStarted: boolean;
+    isExpired: boolean;
+  };
+  inventory?: {
+    listing?: {
+      type: string;
+      auction?: {
+        startingBid?: number;
+        currentBid?: number;
+      };
+    };
+  };
 }
 
 interface Banner {
@@ -34,17 +50,13 @@ const MarketplaceSection = () => {
   const { data: bannersResponse } = useFetchActiveBanners();
 
   useEffect(() => {
-    console.log('Banner Response:', bannersResponse);
     if (bannersResponse?.success) {
       const bannersData = bannersResponse.data;
-      console.log('Banners Data:', bannersData);
       const organized = {
         bigBanner: bannersData.find((b: Banner) => b.location === 'big-banner'),
         smallBanner1: bannersData.find((b: Banner) => b.location === 'small-banner-1'),
         smallBanner2: bannersData.find((b: Banner) => b.location === 'small-banner-2'),
       };
-      console.log('Organized Banners:', organized);
-      console.log('Big Banner Products:', organized.bigBanner?.products);
       setBanners(organized);
     }
   }, [bannersResponse]);
@@ -60,14 +72,22 @@ const MarketplaceSection = () => {
   })) || [];
 
   function getProductPrice(product: Product) {
+    if (!product) return '';
+    
     if (product.inventory?.listing?.type === 'auction') {
-      return `Starting ₦${product.inventory.listing.auction?.reservePrice || 0}`;
+      const currentBid = product.inventory.listing.auction?.currentBid;
+      const startingBid = product.inventory.listing.auction?.startingBid;
+      const price = currentBid || startingBid || 0;
+      const symbol = product.priceInfo?.currencySymbol || '₦';
+      return `${symbol}${price.toLocaleString()}`;
     }
-    const firstVariant = product.variants?.[0];
-    const firstOption = firstVariant?.options?.[0];
-    return firstOption?.salePrice 
-      ? `₦${firstOption.salePrice}` 
-      : `₦${firstOption?.price || 0}`;
+    
+    if (product.priceInfo) {
+      const { displayPrice, currencySymbol } = product.priceInfo;
+      return `${currencySymbol}${displayPrice.toLocaleString()}`;
+    }
+    
+    return '';
   }
 
   useEffect(() => {
@@ -202,13 +222,15 @@ const MarketplaceSection = () => {
                     {banners.smallBanner1.title}
                   </h3>
                   <div className="text-sm sm:text-base font-medium text-white mb-3 sm:mb-4 leading-tight">
-                    {banners.smallBanner1.content || banners.smallBanner1.products[0]?.name}
+                    {banners.smallBanner1.content}
                   </div>
-                  <Link href={`/home/product-details/${banners.smallBanner1.products[0]?._id}`}>
-                    <button className="btn-mobile bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors duration-200">
-                      View Details
-                    </button>
-                  </Link>
+                  {banners.smallBanner1.products.length > 0 && (
+                    <Link href={`/home/product-details/${banners.smallBanner1.products[0]._id}`}>
+                      <button className="btn-mobile bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors duration-200">
+                        View Details
+                      </button>
+                    </Link>
+                  )}
                 </div>
                 {banners.smallBanner1.imageUrl ? (
                   <img 
@@ -251,13 +273,15 @@ const MarketplaceSection = () => {
                     {banners.smallBanner2.title}
                   </h3>
                   <div className="text-sm sm:text-base font-medium text-gray-900 mb-3 sm:mb-4">
-                    {banners.smallBanner2.content || getProductPrice(banners.smallBanner2.products[0])}
+                    {banners.smallBanner2.content}
                   </div>
-                  <Link href={`/home/product-details/${banners.smallBanner2.products[0]?._id}`}>
-                    <button className="btn-mobile bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors duration-200">
-                      View Details
-                    </button>
-                  </Link>
+                  {banners.smallBanner2.products.length > 0 && (
+                    <Link href={`/home/product-details/${banners.smallBanner2.products[0]._id}`}>
+                      <button className="btn-mobile bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors duration-200">
+                        View Details
+                      </button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
