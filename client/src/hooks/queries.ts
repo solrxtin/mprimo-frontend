@@ -1,19 +1,24 @@
-import { toastConfigError } from '@/app/config/toast.config';
-import { useUserStore } from '@/stores/useUserStore';
-import { AllProduct, AProduct, AProductBySlug, getApiUrl } from '@/utils/config';
-import { fetchWithAuth } from '@/utils/fetchWithAuth';
-import { useQuery } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
+import { toastConfigError } from "@/app/config/toast.config";
+import { useUserStore } from "@/stores/useUserStore";
+import {
+  AllProduct,
+  AProduct,
+  AProductBySlug,
+  getApiUrl,
+} from "@/utils/config";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 
 const googleLogin = async () => {
-  const response = await fetch(getApiUrl('auth/google'), {
-    method: 'GET',
+  const response = await fetch(getApiUrl("auth/google"), {
+    method: "GET",
     headers: {
-      'Content-Type': 'application/json'
-    }
+      "Content-Type": "application/json",
+    },
   });
   if (!response.ok) {
-    toast.error('Google authentication failed!', toastConfigError);
+    toast.error("Google authentication failed!", toastConfigError);
     // throw new Error('Network response was not ok');
     return null;
   }
@@ -22,21 +27,21 @@ const googleLogin = async () => {
 
 export const useGoogleLogin = () => {
   return useQuery({
-    queryKey: ['google'],
+    queryKey: ["google"],
     queryFn: googleLogin,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
     refetchOnWindowFocus: false,
     enabled: false,
-    retry: false
+    retry: false,
   });
 };
 
 // Fetch categories
 const fetchCategories = async () => {
-  const response = await fetch(getApiUrl('categories'));
+  const response = await fetch(getApiUrl("categories"));
   if (!response.ok) {
-    throw new Error('Failed to fetch categories');
+    throw new Error("Failed to fetch categories");
   }
   const data = await response.json();
   return data; // Return the entire response object
@@ -44,21 +49,20 @@ const fetchCategories = async () => {
 
 export const useCategories = () => {
   return useQuery({
-    queryKey: ['categories'],
+    queryKey: ["categories"],
     queryFn: fetchCategories,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 24 * 60 * 60 * 1000, // 1 day
     refetchOnWindowFocus: false,
-    retry: 1
+    retry: 1,
   });
 };
 
-
 // Fetch best deals
 const fetchBestDeals = async () => {
-  const response = await fetch(getApiUrl('products/best-deals'));
+  const response = await fetch(getApiUrl("products/best-deals"));
   if (!response.ok) {
-    throw new Error('Failed to fetch best deals');
+    throw new Error("Failed to fetch best deals");
   }
   const data = await response.json();
 
@@ -67,20 +71,20 @@ const fetchBestDeals = async () => {
 
 export const useBestDeals = () => {
   return useQuery({
-    queryKey: ['bestDeals'],
+    queryKey: ["bestDeals"],
     queryFn: fetchBestDeals,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnWindowFocus: false,
-    retry: 1
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: true, // refresh when user comes back
+    refetchInterval: 180 * 1000, // poll every 3 minutes
+    retry: 1,
   });
 };
 
-
 const fetchUserSubscriptions = async () => {
-  const response = await fetchWithAuth(getApiUrl('push/user'));
+  const response = await fetchWithAuth(getApiUrl("push/user"));
   if (!response.ok) {
-    throw new Error('Failed to fetch user subscriptions');
+    throw new Error("Failed to fetch user subscriptions");
   }
   const data = await response.json();
   console.log("User subscriptions:", data);
@@ -89,17 +93,17 @@ const fetchUserSubscriptions = async () => {
 
 export const useUserSubscriptions = () => {
   return useQuery({
-    queryKey: ['userSubscriptions'],
+    queryKey: ["userSubscriptions"],
     queryFn: fetchUserSubscriptions,
     refetchOnWindowFocus: false,
-    retry: 1
+    retry: 1,
   });
 };
 
 const fetchProductBySlug = async (slug: string) => {
   const response = await fetch(getApiUrl(`products/slug/${slug}`));
   if (!response.ok) {
-    throw new Error('Failed to fetch product');
+    throw new Error("Failed to fetch product");
   }
   const data = await response.json();
   console.log("Product data:", data);
@@ -108,19 +112,21 @@ const fetchProductBySlug = async (slug: string) => {
 
 export const useFetchProductBySlug = (slug: string) => {
   return useQuery({
-    queryKey: ['product', slug],
+    queryKey: ["product", slug],
     queryFn: () => fetchProductBySlug(slug),
     enabled: !!slug,
     refetchOnWindowFocus: false,
-    retry: 1
+    retry: 1,
   });
 };
 
 const fetchProductById = async (productId: string) => {
   const user = useUserStore.getState().user;
-  const response = user?._id ? await fetchWithAuth(getApiUrl(`products/${productId}`)) : await fetch(getApiUrl(`products/${productId}`));
+  const response = user?._id
+    ? await fetchWithAuth(getApiUrl(`products/${productId}`))
+    : await fetch(getApiUrl(`products/${productId}`));
   if (!response.ok) {
-    throw new Error('Failed to fetch product');
+    throw new Error("Failed to fetch product");
   }
   const data = await response.json();
   console.log("Product data:", data);
@@ -129,18 +135,19 @@ const fetchProductById = async (productId: string) => {
 
 export const useFetchProductById = (productId: string) => {
   const queryResult = useQuery({
-    queryKey: ['product', productId],
+    queryKey: ["product", productId],
     queryFn: () => fetchProductById(productId),
     enabled: !!productId,
     refetchOnWindowFocus: false,
-    retry: 1
+    retry: 1,
   });
 
   // Enable auto-refetch for auction products
-  const isAuction = queryResult.data?.product?.inventory?.listing?.type === 'auction';
-  
+  const isAuction =
+    queryResult.data?.product?.inventory?.listing?.type === "auction";
+
   useQuery({
-    queryKey: ['product-refetch', productId],
+    queryKey: ["product-refetch", productId],
     queryFn: () => fetchProductById(productId),
     enabled: !!productId && isAuction,
     refetchInterval: 10000, // Refetch every 10 seconds for auctions
@@ -150,9 +157,7 @@ export const useFetchProductById = (productId: string) => {
   return queryResult;
 };
 
-const fetchProductAnalytics = async (
-  entityId: string,
-) => {
+const fetchProductAnalytics = async (entityId: string) => {
   const response = await fetchWithAuth(
     getApiUrl(`products/${entityId}/performance`)
   );
@@ -164,9 +169,7 @@ const fetchProductAnalytics = async (
   return data;
 };
 
-export const useFetchProductAnalytics = (
-  entityId: string,
-) => {
+export const useFetchProductAnalytics = (entityId: string) => {
   return useQuery({
     queryKey: ["product-perfomance", entityId],
     queryFn: () => fetchProductAnalytics(entityId),
@@ -177,9 +180,9 @@ export const useFetchProductAnalytics = (
 };
 
 const fetchAllProducts = async () => {
-  const response = await fetch(getApiUrl('products?page=1&limit=50'));
+  const response = await fetch(getApiUrl("products?page=1&limit=50"));
   if (!response.ok) {
-    throw new Error('Failed to fetch products');
+    throw new Error("Failed to fetch products");
   }
   const data = await response.json();
   return data.products;
@@ -187,7 +190,7 @@ const fetchAllProducts = async () => {
 
 export const useFetchAllProducts = () => {
   return useQuery({
-    queryKey: ['allProducts'],
+    queryKey: ["allProducts"],
     queryFn: fetchAllProducts,
     refetchOnWindowFocus: false,
     retry: 1,
@@ -204,35 +207,38 @@ interface AuctionQueryDataType {
 const fetchProductsOnAuction = async (queryData: AuctionQueryDataType) => {
   const params = new URLSearchParams();
 
-  if (queryData.page !== undefined) params.append('page', queryData.page.toString());
-  if (queryData.limit !== undefined) params.append('limit', queryData.limit.toString());
-  if (queryData.status) params.append('status', queryData.status);
-  if (queryData.categoryId) params.append('categoryId', queryData.categoryId);
+  if (queryData.page !== undefined)
+    params.append("page", queryData.page.toString());
+  if (queryData.limit !== undefined)
+    params.append("limit", queryData.limit.toString());
+  if (queryData.status) params.append("status", queryData.status);
+  if (queryData.categoryId) params.append("categoryId", queryData.categoryId);
 
-  const response = await fetch(getApiUrl(`products/auctions?${params.toString()}`));
+  const response = await fetch(
+    getApiUrl(`products/auctions?${params.toString()}`)
+  );
   if (!response.ok) {
-    throw new Error('Failed to fetch products on auction');
+    throw new Error("Failed to fetch products on auction");
   }
   const data = await response.json();
   return data.products;
 };
 
-
 export const useProductsOnAuction = (queryData: AuctionQueryDataType) => {
   return useQuery({
-    queryKey: ['productsOnAuction', queryData],
+    queryKey: ["productsOnAuction", queryData],
     queryFn: () => fetchProductsOnAuction(queryData),
     refetchOnWindowFocus: false,
     retry: 1,
   });
 };
 
-
-
 const fetchVendorProducts = async (vendorId: string) => {
-  const response = await fetchWithAuth(getApiUrl(`products/vendor/${vendorId}`));
+  const response = await fetchWithAuth(
+    getApiUrl(`products/vendor/${vendorId}`)
+  );
   if (!response.ok) {
-    throw new Error('Failed to fetch user subscriptions');
+    throw new Error("Failed to fetch user subscriptions");
   }
   const data = await response.json();
   return data.products;
@@ -240,7 +246,7 @@ const fetchVendorProducts = async (vendorId: string) => {
 
 export const useVendorProducts = (vendorId: string) => {
   return useQuery({
-    queryKey: ['vendorProducts', vendorId],
+    queryKey: ["vendorProducts", vendorId],
     queryFn: () => fetchVendorProducts(vendorId),
     enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
     refetchOnWindowFocus: false,
@@ -248,19 +254,21 @@ export const useVendorProducts = (vendorId: string) => {
   });
 };
 
-const fetchVendorAnalytics= async (vendorId: string, range="7days") => {
-  const response = await fetchWithAuth(getApiUrl(`dashboard/vendors/${vendorId}/analytics?range=${range}`));
+const fetchVendorAnalytics = async (vendorId: string, range = "7days") => {
+  const response = await fetchWithAuth(
+    getApiUrl(`dashboard/vendors/${vendorId}/analytics?range=${range}`)
+  );
   if (!response.ok) {
-    throw new Error('Failed to fetch user subscriptions');
+    throw new Error("Failed to fetch user subscriptions");
   }
   const data = await response.json();
   console.log("Vendor analytics data:", data);
   return data;
 };
 
-export const useVendorAnalytics= (vendorId: string, range?: string) => {
+export const useVendorAnalytics = (vendorId: string, range?: string) => {
   return useQuery({
-    queryKey: ['vendorAnalytics', vendorId, range],
+    queryKey: ["vendorAnalytics", vendorId, range],
     queryFn: () => fetchVendorAnalytics(vendorId, range),
     enabled: !!vendorId, // ensures it won't run if vendorId is undefined/null
     refetchOnWindowFocus: false,
@@ -268,10 +276,10 @@ export const useVendorAnalytics= (vendorId: string, range?: string) => {
   });
 };
 
-const fetchUserNotifications = async() => {
-  const response = await fetchWithAuth(getApiUrl('notifications'));
+const fetchUserNotifications = async () => {
+  const response = await fetchWithAuth(getApiUrl("notifications"));
   if (!response.ok) {
-    throw new Error('Failed to fetch user notifications');
+    throw new Error("Failed to fetch user notifications");
   }
   const data = await response.json();
   return data.notifications;
@@ -280,7 +288,7 @@ const fetchUserNotifications = async() => {
 export const useUserNotifications = (enabled: boolean = true) => {
   const { user } = useUserStore();
   return useQuery({
-    queryKey: ['userNotifications'],
+    queryKey: ["userNotifications"],
     queryFn: fetchUserNotifications,
     enabled: !!user && enabled,
     refetchOnWindowFocus: false,
@@ -291,16 +299,16 @@ export const useUserNotifications = (enabled: boolean = true) => {
 const fetchVendorOrders = async (vendorId: string) => {
   const response = await fetchWithAuth(getApiUrl(`orders/vendors/${vendorId}`));
   if (!response.ok) {
-    throw new Error('Failed to fetch vendor orders');
+    throw new Error("Failed to fetch vendor orders");
   }
   const data = await response.json();
-  console.log("Data is")
+  console.log("Data is");
   return data;
 };
 
 export const useVendorOrders = (vendorId: string) => {
   return useQuery({
-    queryKey: ['vendorOrders', vendorId],
+    queryKey: ["vendorOrders", vendorId],
     queryFn: () => fetchVendorOrders(vendorId),
     refetchOnWindowFocus: false,
     retry: 1,
@@ -310,7 +318,7 @@ export const useVendorOrders = (vendorId: string) => {
 const fetchOrderById = async (orderId: string) => {
   const response = await fetchWithAuth(getApiUrl(`orders/${orderId}`));
   if (!response.ok) {
-    throw new Error('Failed to fetch order');
+    throw new Error("Failed to fetch order");
   }
   const data = await response.json();
   return data.order;
@@ -318,7 +326,7 @@ const fetchOrderById = async (orderId: string) => {
 
 export const useOrderById = (orderId: string) => {
   return useQuery({
-    queryKey: ['order', orderId],
+    queryKey: ["order", orderId],
     queryFn: () => fetchOrderById(orderId),
     enabled: !!orderId,
     refetchOnWindowFocus: false,
@@ -328,16 +336,16 @@ export const useOrderById = (orderId: string) => {
 
 // Chat queries
 const fetchChats = async () => {
-  const response = await fetchWithAuth(getApiUrl('messages/chats'));
+  const response = await fetchWithAuth(getApiUrl("messages/chats"));
   if (!response.ok) {
-    throw new Error('Failed to fetch chats');
+    throw new Error("Failed to fetch chats");
   }
   return response.json();
 };
 
 export const useChats = () => {
   return useQuery({
-    queryKey: ['chats'],
+    queryKey: ["chats"],
     queryFn: fetchChats,
     refetchOnWindowFocus: false,
     retry: 1,
@@ -345,16 +353,18 @@ export const useChats = () => {
 };
 
 const fetchMessages = async (chatId: string, page = 1, limit = 20) => {
-  const response = await fetchWithAuth(getApiUrl(`messages/chat/${chatId}/messages?page=${page}&limit=${limit}`));
+  const response = await fetchWithAuth(
+    getApiUrl(`messages/chat/${chatId}/messages?page=${page}&limit=${limit}`)
+  );
   if (!response.ok) {
-    throw new Error('Failed to fetch messages');
+    throw new Error("Failed to fetch messages");
   }
   return response.json();
 };
 
 export const useMessages = (chatId: string, page = 1) => {
   return useQuery({
-    queryKey: ['messages', chatId, page],
+    queryKey: ["messages", chatId, page],
     queryFn: () => fetchMessages(chatId, page),
     enabled: !!chatId,
     refetchOnWindowFocus: false,
@@ -364,16 +374,18 @@ export const useMessages = (chatId: string, page = 1) => {
 
 // Review queries
 const fetchVendorReviewAnalytics = async (vendorId: string) => {
-  const response = await fetchWithAuth(getApiUrl(`reviews/vendor/${vendorId}/analytics`));
+  const response = await fetchWithAuth(
+    getApiUrl(`reviews/vendor/${vendorId}/analytics`)
+  );
   if (!response.ok) {
-    throw new Error('Failed to fetch vendor review analytics');
+    throw new Error("Failed to fetch vendor review analytics");
   }
   return response.json();
 };
 
 export const useVendorReviewAnalytics = (vendorId: string) => {
   return useQuery({
-    queryKey: ['vendorReviewAnalytics', vendorId],
+    queryKey: ["vendorReviewAnalytics", vendorId],
     queryFn: () => fetchVendorReviewAnalytics(vendorId),
     enabled: !!vendorId,
     refetchOnWindowFocus: false,
@@ -384,14 +396,14 @@ export const useVendorReviewAnalytics = (vendorId: string) => {
 const fetchVendorReviews = async (vendorId: string) => {
   const response = await fetchWithAuth(getApiUrl(`reviews/vendor/${vendorId}`));
   if (!response.ok) {
-    throw new Error('Failed to fetch vendor reviews');
+    throw new Error("Failed to fetch vendor reviews");
   }
   return response.json();
 };
 
 export const useVendorReviews = (vendorId: string) => {
   return useQuery({
-    queryKey: ['vendorReviews', vendorId],
+    queryKey: ["vendorReviews", vendorId],
     queryFn: () => fetchVendorReviews(vendorId),
     enabled: !!vendorId,
     refetchOnWindowFocus: false,
@@ -402,14 +414,14 @@ export const useVendorReviews = (vendorId: string) => {
 const fetchVendorOrderMetrics = async (vendorId: string) => {
   const response = await fetchWithAuth(getApiUrl(`orders/${vendorId}/metrics`));
   if (!response.ok) {
-    throw new Error('Failed to fetch vendor reviews');
+    throw new Error("Failed to fetch vendor reviews");
   }
   return response.json();
 };
 
 export const useFetchVendorOrderMetrics = (vendorId: string) => {
   return useQuery({
-    queryKey: ['vendorOrderMetrics', vendorId],
+    queryKey: ["vendorOrderMetrics", vendorId],
     queryFn: () => fetchVendorOrderMetrics(vendorId),
     enabled: !!vendorId,
     refetchOnWindowFocus: false,
@@ -417,22 +429,19 @@ export const useFetchVendorOrderMetrics = (vendorId: string) => {
   });
 };
 
-
-
-export const fetchAProducts = async (slug:string) => {
+export const fetchAProducts = async (slug: string) => {
   const response = await fetch(`${AProductBySlug}${slug}`);
   if (!response.ok) {
-    throw new Error('Failed to fetch products');
+    throw new Error("Failed to fetch products");
   }
   const data = await response.json();
   return data;
 };
 
-
 const fetchAuctionProduct = async (productId: string) => {
   const response = await fetch(getApiUrl(`products/${productId}/bids`));
   if (!response.ok) {
-    throw new Error('Failed to fetch product');
+    throw new Error("Failed to fetch product");
   }
   const data = await response.json();
   return data;
@@ -440,18 +449,18 @@ const fetchAuctionProduct = async (productId: string) => {
 
 export const useFetchAuctionProduct = (productId: string) => {
   return useQuery({
-    queryKey: ['auctionProduct', productId],
+    queryKey: ["auctionProduct", productId],
     queryFn: () => fetchAuctionProduct(productId),
     enabled: !!productId,
     refetchOnWindowFocus: false,
-    retry: 1
+    retry: 1,
   });
 };
 
 const fetchPlans = async () => {
-  const response = await fetchWithAuth(getApiUrl('subscriptions/plans'));
+  const response = await fetchWithAuth(getApiUrl("subscriptions/plans"));
   if (!response.ok) {
-    throw new Error('Failed to fetch plans');
+    throw new Error("Failed to fetch plans");
   }
   return response.json();
 };
@@ -461,14 +470,14 @@ const fetchVendorWalletBalance = async (vendorId: string) => {
   const response = await fetchWithAuth(getApiUrl(`vendors/${vendorId}/wallet`));
   console.log("Vendor Wallet Balance Response:", response);
   if (!response.ok) {
-    throw new Error('Failed to fetch vendor wallet balance');
+    throw new Error("Failed to fetch vendor wallet balance");
   }
   return response.json();
 };
 
 export const useVendorWalletBalance = (vendorId: string) => {
   return useQuery({
-    queryKey: ['vendorWalletBalance', vendorId],
+    queryKey: ["vendorWalletBalance", vendorId],
     queryFn: () => fetchVendorWalletBalance(vendorId),
     enabled: !!vendorId,
     refetchOnWindowFocus: false,
@@ -476,21 +485,34 @@ export const useVendorWalletBalance = (vendorId: string) => {
   });
 };
 
-const fetchVendorWalletTransactions = async (vendorId: string, filters: any = {}) => {
+const fetchVendorWalletTransactions = async (
+  vendorId: string,
+  filters: any = {}
+) => {
   const params = new URLSearchParams();
-  if (filters.page) params.append('page', filters.page.toString());
-  if (filters.limit) params.append('limit', filters.limit.toString());
-  
-  const response = await fetchWithAuth(getApiUrl(`vendors/${vendorId}/wallet?${params.toString()}`));
+  if (filters.page) params.append("page", filters.page.toString());
+  if (filters.limit) params.append("limit", filters.limit.toString());
+
+  const response = await fetchWithAuth(
+    getApiUrl(`vendors/${vendorId}/wallet?${params.toString()}`)
+  );
   if (!response.ok) {
-    throw new Error('Failed to fetch vendor wallet transactions');
+    throw new Error("Failed to fetch vendor wallet transactions");
   }
   return response.json();
 };
 
-export const useVendorWalletTransactions = (vendorId: string, filters: any = {}) => {
+export const useVendorWalletTransactions = (
+  vendorId: string,
+  filters: any = {}
+) => {
   return useQuery({
-    queryKey: ['vendorWalletTransactions', vendorId, filters.page, filters.limit],
+    queryKey: [
+      "vendorWalletTransactions",
+      vendorId,
+      filters.page,
+      filters.limit,
+    ],
     queryFn: () => fetchVendorWalletTransactions(vendorId, filters),
     enabled: !!vendorId,
     refetchOnWindowFocus: false,
@@ -500,38 +522,42 @@ export const useVendorWalletTransactions = (vendorId: string, filters: any = {})
 
 export const usePlans = () => {
   return useQuery({
-    queryKey: ['plans'],
+    queryKey: ["plans"],
     queryFn: fetchPlans,
     refetchOnWindowFocus: false,
-    retry: 1
+    retry: 1,
   });
 };
 
 const fetchVendorSubscription = async (vendorId: string) => {
-  const response = await fetchWithAuth(getApiUrl(`subscriptions/vendor/${vendorId}`));
+  const response = await fetchWithAuth(
+    getApiUrl(`subscriptions/vendor/${vendorId}`)
+  );
   if (!response.ok) {
-    throw new Error('Failed to fetch vendor subscription');
+    throw new Error("Failed to fetch vendor subscription");
   }
   const data = await response.json();
-  console.log('Vendor Subscription Response:', data);
+  console.log("Vendor Subscription Response:", data);
   return data;
 };
 
 export const useVendorSubscription = (vendorId: string) => {
   return useQuery({
-    queryKey: ['vendorSubscription', vendorId],
+    queryKey: ["vendorSubscription", vendorId],
     queryFn: () => fetchVendorSubscription(vendorId),
     enabled: !!vendorId,
     refetchOnWindowFocus: false,
-    retry: 1
+    retry: 1,
   });
 };
 
 const fetchCountrySubscriptionPrice = async (vendorId: string) => {
-  const response = await fetchWithAuth(getApiUrl(`subscriptions/countrySubscriptionPrice/${vendorId}`));
+  const response = await fetchWithAuth(
+    getApiUrl(`subscriptions/countrySubscriptionPrice/${vendorId}`)
+  );
   console.log(vendorId);
   if (!response.ok) {
-    throw new Error('Failed to fetch country subscription price');
+    throw new Error("Failed to fetch country subscription price");
   }
   const data = await response.json();
   return data;
@@ -539,12 +565,35 @@ const fetchCountrySubscriptionPrice = async (vendorId: string) => {
 
 export const useCountrySubscriptionPrice = (vendorId: string) => {
   return useQuery({
-    queryKey: ['countrySubscriptionPrice', vendorId],
+    queryKey: ["countrySubscriptionPrice", vendorId],
     queryFn: () => fetchCountrySubscriptionPrice(vendorId),
     enabled: !!vendorId,
     refetchOnWindowFocus: false,
-    retry: 1
+    retry: 1,
   });
 };
 
+const fetchActiveBanners = async (): Promise<{
+  success: boolean;
+  data: any[];
+}> => {
+  const response = await fetch(getApiUrl(`/banners/active`));
 
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || "Failed to fetch banners");
+  }
+
+  return response.json();
+};
+
+export const useFetchActiveBanners = () => {
+  return useQuery({
+    queryKey: ['activeBanners'],          // cache key
+    queryFn: fetchActiveBanners,          // your API call
+    staleTime: 5 * 60 * 1000,             // optional: keep data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000,               // optional: garbage collect after 30 minutes
+    refetchOnWindowFocus: true,           // refetch when user returns to tab
+    retry: 1                              // retry once on failure
+  });
+};
